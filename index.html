@@ -670,7 +670,13 @@ async function loadPerms(){
   try{
     const qs=await getDocs(query(collection(db,'portal_users'),where('status','==','approved')));
     _allUsers=[]; qs.forEach(d=>{_allUsers.push({uid:d.id,...d.data()});});
-    _allUsers.sort((a,b)=>(a.name||'').localeCompare(b.name||'','ko'));
+    // 사원번호 오름차순 정렬 (없으면 createdAt 순)
+    _allUsers.sort((a,b)=>{
+      const ea=a.empNo||''; const eb=b.empNo||'';
+      if(ea&&eb) return ea.localeCompare(eb,'ko',{numeric:true});
+      if(ea) return -1; if(eb) return 1;
+      return (a.createdAt?.toMillis?.()||0)-(b.createdAt?.toMillis?.()||0);
+    });
     // 계정 목록: 전체 표시 (관리자 포함)
     renderEmpList(_allUsers);
     // 접근 권한 칩: 비관리자만
