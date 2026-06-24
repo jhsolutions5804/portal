@@ -250,20 +250,20 @@ window.renderDailyWrite = async function() {
         <div class="ap-arrow">›</div>
         <div class="ap-box">
           <div class="ap-role">결재</div>
-          <div class="ap-name" style="color:#9AAABF;">미지정</div>
-          <div class="ap-rank" style="color:#C2CCD9;">—</div>
-          <div class="ap-stamp empty">—</div>
+          <div class="ap-name">김종화</div>
+          <div class="ap-rank">부사장</div>
+          <div class="ap-stamp pending">대기</div>
         </div>
         <div class="ap-arrow">›</div>
         <div class="ap-box">
           <div class="ap-role">수신</div>
-          <div class="ap-name" style="color:#9AAABF;">추후 지정</div>
-          <div class="ap-rank" style="color:#C2CCD9;">—</div>
-          <div class="ap-stamp empty">—</div>
+          <div class="ap-name">송지훈</div>
+          <div class="ap-rank">대표</div>
+          <div class="ap-stamp pending">대기</div>
         </div>
       </div>
       <div style="background:#E8F0FB;border-radius:8px;padding:10px 12px;font-size:11.5px;color:#1D5BA6;margin-top:10px;line-height:1.6;">
-        💡 결재자·수신자는 관리자가 지정합니다. 상신 후 지정된 결재자에게 회람됩니다.
+        💡 결재: 김종화 부사장 → 수신: 송지훈 대표
       </div>
     </div>
 
@@ -330,11 +330,11 @@ window.dailySave = async function(status) {
     authorName:  document.getElementById('d-name')?.value || _user.displayName || '',
     authorDept:  document.getElementById('d-dept')?.value || '',
     authorRank:  document.getElementById('d-rank')?.value || '',
-    // 결재 라인 (추후 관리자 지정)
+    // 결재 라인 고정 (결재: 김종화, 수신: 송지훈)
     approvalLine: [
       { role:'작성', uid:_user.uid, name:document.getElementById('d-name')?.value || '', status:'draft' },
-      { role:'결재', uid:'', name:'', status:'pending' },
-      { role:'수신', uid:'', name:'', status:'pending' },
+      { role:'결재', uid:'', name:'김종화', rank:'부사장', status:'pending' },
+      { role:'수신', uid:'', name:'송지훈', rank:'대표', status:'pending' },
     ],
     createdAt: serverTimestamp(),
   };
