@@ -610,57 +610,53 @@ async function createEmployee(){
   const email=idp+DOMAIN;
   const btn=$('cr-btn'); btn.disabled=true; btn.textContent='생성 중...';
   try{
-    // Firebase Auth로 직접 계정 생성
-    const cred=await createUserWithEmailAndPassword(auth,email,pw);
-    await setDoc(doc(db,'portal_users',cred.user.uid),{
+    // ── 별도 앱 인스턴스로 계정 생성 → 관리자 세션 유지 ──
+    const app2=initApp2(firebaseConfig,'tmp-'+Date.now());
+    const auth2=getAuth(app2);
+    let targetUid=null;
+
+    // 1) portal_users에 이미 등록된 계정인지 확인
+    const qs=await getDocs(query(collection(db,'portal_users'),where('email','==',email)));
+    if(!qs.empty){
+      showMsg(msg,'err','이미 포털에 등록된 계정입니다. 계정 목록을 확인해 주세요.');
+      return;
+    }
+
+    // 2) Firebase Auth에 계정 생성 시도 (별도 인스턴스)
+    try{
+      const cred=await createUserWithEmailAndPassword(auth2,email,pw);
+      targetUid=cred.user.uid;
+      await signOut(auth2);
+    }catch(e2){
+      if(e2.code==='auth/email-already-in-use'){
+        // Auth엔 있지만 portal_users엔 없음 → 비밀번호로 로그인해 uid 확보
+        try{
+          const tmp=await signInWithEmailAndPassword(auth2,email,pw);
+          targetUid=tmp.user.uid;
+          await signOut(auth2);
+        }catch(e3){
+          showMsg(msg,'err','이미 가입된 계정입니다. 비밀번호를 확인하거나 Firebase Console에서 uid를 확인하세요.');
+          return;
+        }
+      } else {
+        showMsg(msg,'err',authErr(e2.code));
+        return;
+      }
+    }
+
+    // 3) 관리자 세션(auth)으로 portal_users 문서 저장
+    await setDoc(doc(db,'portal_users',targetUid),{
       email, name, rank, dept,
       status:'approved', admin:false,
       perms:{plan:false,hr:false,pjt:false,edoc:false},
       createdAt:serverTimestamp()
     });
-    // 관리자 세션 복구 (계정 생성 후 auth가 새 계정으로 전환됨)
-    await signOut(auth);
-    showMsg(msg,'ok',`✅ ${name} (${email}) 계정이 생성되었습니다. 관리자 재로그인이 필요합니다.`);
+    showMsg(msg,'ok',`✅ ${name} (${email}) 계정이 생성되었습니다.`);
     ['cr-name','cr-id','cr-pw'].forEach(i=>$(i).value='');
     $('cr-rank').value=''; $('cr-dept').value='';
-    setTimeout(()=>doLogout(),3500);
+    loadPerms();
   }catch(e){
-    // 이미 Firebase Auth에 계정이 있는 경우 → portal_users에만 등록
-    if(e.code==='auth/email-already-in-use'){
-      try{
-        // 해당 이메일로 임시 로그인해서 uid 얻기 불가 → fetchSignInMethodsForEmail로 존재 확인 후
-        // portal_users에 email 기준으로 이미 있는지 확인
-        const qs=await getDocs(query(collection(db,'portal_users'),where('email','==',email)));
-        if(!qs.empty){
-          showMsg(msg,'err','이미 포털에 등록된 계정입니다. 계정 목록을 확인해 주세요.');
-        } else {
-          // Auth엔 있지만 portal_users엔 없음
-          // → 별도 앱 인스턴스로 로그인해서 uid만 얻고, 메인 관리자 세션으로 setDoc
-          const app2=initApp2(firebaseConfig,'tmp-'+Date.now());
-          const auth2=getAuth(app2);
-          try{
-            const tmpCred=await signInWithEmailAndPassword(auth2,email,pw);
-            const targetUid=tmpCred.user.uid;
-            await signOut(auth2);
-            // 메인 auth(관리자)로 setDoc → 권한 문제 없음
-            await setDoc(doc(db,'portal_users',targetUid),{
-              email, name, rank, dept,
-              status:'approved', admin:false,
-              perms:{plan:false,hr:false,pjt:false,edoc:false},
-              createdAt:serverTimestamp()
-            });
-            showMsg(msg,'ok',`✅ 기존 계정 ${email}을 포털에 등록했습니다.`);
-            ['cr-name','cr-id','cr-pw'].forEach(i=>$(i).value='');
-            $('cr-rank').value=''; $('cr-dept').value='';
-            loadPerms();
-          }catch(e3){
-            showMsg(msg,'err','비밀번호가 틀리거나 등록 실패: '+(e3.message||e3.code));
-          }
-        }
-      }catch(e2){ showMsg(msg,'err','등록 실패: '+(e2.message||e2.code)); }
-    } else {
-      showMsg(msg,'err',authErr(e.code));
-    }
+    showMsg(msg,'err',authErr(e.code)||e.message);
   }
   finally{ btn.disabled=false; btn.textContent='✅ 계정 생성'; }
 }
