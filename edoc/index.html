@@ -680,7 +680,7 @@ window.renderLeaveMain = async function() {
 };
 
 window.renderLeaveWrite = async function() {
-  await loadPortalUsers();
+  await Promise.all([loadPortalUsers(), loadMyInfo()]);
   const el = document.getElementById('tab-leave'); if(!el) return;
   const today = new Date().toISOString().slice(0,10);
   const name = _myInfo?.name || '';
