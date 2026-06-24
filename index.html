@@ -640,15 +640,17 @@ async function loadPerms(){
     const qs=await getDocs(query(collection(db,'portal_users'),where('status','==','approved')));
     _allUsers=[]; qs.forEach(d=>{_allUsers.push({uid:d.id,...d.data()});});
     _allUsers.sort((a,b)=>(a.name||'').localeCompare(b.name||'','ko'));
-    const list=_allUsers.filter(u=>!u.admin);
-    if(!list.length){ pbox.innerHTML='<div class="empty">등록된 직원이 없습니다.</div>'; renderEmpList([]); return; }
+    // 계정 목록: 전체 표시 (관리자 포함)
+    renderEmpList(_allUsers);
+    // 접근 권한 칩: 비관리자만
+    const nonAdmins=_allUsers.filter(u=>!u.admin);
+    if(!nonAdmins.length){ pbox.innerHTML='<div class="empty">일반 직원 계정이 없습니다.</div>'; return; }
     pbox.innerHTML='';
-    list.forEach(u=>{
+    nonAdmins.forEach(u=>{
       const el=document.createElement('div'); el.className='perm';
       el.innerHTML=`<div class="nm" style="cursor:pointer;" onclick="openEmpDetail('${u.uid}')">${u.name||'-'} <span class="em">(${u.rank||''} · ${u.email||''})</span></div><div class="chips">${MODULES.map(m=>`<span class="chip ${(u.perms&&u.perms[m.key])?'on':''}" data-u="${u.uid}" data-k="${m.key}">${m.name}</span>`).join('')}</div>`;
       pbox.appendChild(el);
     });
-    renderEmpList(list);
   }catch(e){ pbox.innerHTML=`<div class="empty">불러오기 실패: ${e.code||e.message}</div>`; }
 }
 
