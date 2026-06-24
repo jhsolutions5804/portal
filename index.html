@@ -276,6 +276,7 @@
         <!-- 직원 계정 생성 -->
         <div style="background:#fff; border:1px solid #DDE4EF; border-radius:14px; padding:20px; margin-bottom:16px; box-shadow:0 1px 4px rgba(29,91,166,0.06);">
           <div style="font-size:13px; font-weight:700; color:#1D5BA6; margin-bottom:14px;">👤 직원 계정 생성</div>
+          <!-- 이름 + 직급 -->
           <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:10px;">
             <div>
               <div style="font-size:11px; font-weight:700; color:#5C6F8A; margin-bottom:5px;">이름</div>
@@ -283,9 +284,33 @@
             </div>
             <div>
               <div style="font-size:11px; font-weight:700; color:#5C6F8A; margin-bottom:5px;">직급</div>
-              <input id="cr-rank" class="inp" placeholder="예: 과장 / 대리" style="width:100%; border:1px solid #DDE4EF; border-radius:8px; padding:9px 12px; font-size:13px; box-sizing:border-box;">
+              <select id="cr-rank" style="width:100%; border:1px solid #DDE4EF; border-radius:8px; padding:9px 12px; font-size:13px; color:#1A2540; background:#FAFCFF; box-sizing:border-box; cursor:pointer;">
+                <option value="">직급 선택</option>
+                <option>대표</option>
+                <option>부사장</option>
+                <option>차장</option>
+                <option>과장</option>
+                <option>대리</option>
+                <option>사원</option>
+              </select>
             </div>
           </div>
+          <!-- 부서 -->
+          <div style="margin-bottom:10px;">
+            <div style="font-size:11px; font-weight:700; color:#5C6F8A; margin-bottom:5px;">부서</div>
+            <select id="cr-dept" style="width:100%; border:1px solid #DDE4EF; border-radius:8px; padding:9px 12px; font-size:13px; color:#1A2540; background:#FAFCFF; box-sizing:border-box; cursor:pointer;">
+              <option value="">부서 선택</option>
+              <optgroup label="사업본부">
+                <option value="현장관리팀">현장관리팀</option>
+                <option value="인력배치팀">인력배치팀</option>
+              </optgroup>
+              <optgroup label="경영지원본부">
+                <option value="경영총무팀">경영총무팀</option>
+                <option value="영업기획팀">영업기획팀</option>
+              </optgroup>
+            </select>
+          </div>
+          <!-- 아이디 + 비밀번호 -->
           <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:10px;">
             <div>
               <div style="font-size:11px; font-weight:700; color:#5C6F8A; margin-bottom:5px;">아이디 <span style="color:#9AAABF; font-weight:400;">(@jhsol.kr 자동)</span></div>
@@ -469,9 +494,11 @@ async function createEmployee(){
   const msg=$('cr-msg'); clearMsg(msg);
   const name=($('cr-name').value||'').trim();
   const rank=($('cr-rank').value||'').trim();
+  const dept=($('cr-dept').value||'').trim();
   const idp =($('cr-id').value||'').trim().toLowerCase();
   const pw  =($('cr-pw').value||'');
   if(!name)  return showMsg(msg,'err','이름을 입력하세요.');
+  if(!rank)  return showMsg(msg,'err','직급을 선택하세요.');
   if(!idp)   return showMsg(msg,'err','아이디를 입력하세요.');
   if(/[@\s]/.test(idp)) return showMsg(msg,'err','아이디는 @jhsol.kr 앞부분만 입력하세요.');
   if(pw.length<6) return showMsg(msg,'err','비밀번호는 6자 이상으로 설정하세요.');
@@ -481,7 +508,7 @@ async function createEmployee(){
     // Firebase Auth로 직접 계정 생성
     const cred=await createUserWithEmailAndPassword(auth,email,pw);
     await setDoc(doc(db,'portal_users',cred.user.uid),{
-      email, name, rank:rank||'-',
+      email, name, rank, dept,
       status:'approved', admin:false,
       perms:{plan:false,hr:false,pjt:false,edoc:false},
       createdAt:serverTimestamp()
@@ -490,7 +517,8 @@ async function createEmployee(){
     await signOut(auth);
     // 잠깐 대기 후 다시 관리자로 로그인 유도
     showMsg(msg,'ok',`✅ ${name} (${email}) 계정이 생성되었습니다. 관리자 재로그인이 필요합니다.`);
-    ['cr-name','cr-rank','cr-id','cr-pw'].forEach(i=>$(i).value='');
+    ['cr-name','cr-id','cr-pw'].forEach(i=>$(i).value='');
+    $('cr-rank').value=''; $('cr-dept').value='';
     // 3초 후 로그인 화면으로
     setTimeout(()=>doLogout(),3500);
   }catch(e){ showMsg(msg,'err',authErr(e.code)); }
@@ -532,7 +560,7 @@ function enterPortal(){
   $('p-hello').textContent=`${me.name||''} ${me.rank||''}님, 안녕하세요 👋`;
   renderMenu();
   showApp(); showView('home');
-  resetAutoLogout();   // 로그인 시 타이머 시작
+  resetAutoLogout();
 }
 function renderMenu(){
   const wrap=$('p-menu'); wrap.innerHTML='';
@@ -630,28 +658,25 @@ onAuthStateChanged(auth, async user=>{
   if(!user && !me){ showAuth('s-login'); }
 });
 
-function doLogout(){ clearTimeout(_autoLogoutTimer); signOut(auth).then(()=>{ me=null; $('login-pw').value=''; showAuth('s-login'); }); }
 
 /* ── 자동 로그아웃 (30분 무동작) ── */
-const AUTO_LOGOUT_MS = 30 * 60 * 1000; // 30분
+const AUTO_LOGOUT_MS = 30 * 60 * 1000;
 let _autoLogoutTimer = null;
-let _warnShown = false;
 
 function resetAutoLogout(){
-  if(!me) return;                          // 로그인 상태일 때만 작동
+  if(!me) return;
   clearTimeout(_autoLogoutTimer);
-  _warnShown = false;
   _autoLogoutTimer = setTimeout(()=>{
     toast('⏰ 30분 동안 활동이 없어 자동 로그아웃됩니다.');
-    setTimeout(()=>doLogout(), 2000);      // 토스트 2초 후 로그아웃
+    setTimeout(()=>doLogout(), 2000);
   }, AUTO_LOGOUT_MS);
 }
 
-// 사용자 동작 이벤트 → 타이머 리셋
 ['click','keydown','mousemove','touchstart','scroll'].forEach(evt=>{
   document.addEventListener(evt, resetAutoLogout, { passive:true });
 });
 
+function doLogout(){ clearTimeout(_autoLogoutTimer); signOut(auth).then(()=>{ me=null; $('login-pw').value=''; showAuth('s-login'); }); }
 window.go=showAuth; window.showView=showView; window.doLogin=doLogin; window.doLogout=doLogout; window.createEmployee=createEmployee; window.loadPerms=loadPerms;
 </script>
 </body>
