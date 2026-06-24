@@ -102,6 +102,7 @@
     background:#f8fafc; color:var(--sub); cursor:pointer; font-weight:600; user-select:none}
   .chip.on{background:var(--blue); color:#fff; border-color:var(--blue)}
   #s-embed{padding:0}
+  #s-embed.on{height:100vh; height:100dvh}
   .embed-top{display:flex; align-items:center; gap:10px; padding:10px 14px;
     background:var(--card); border-bottom:1px solid var(--line);
     position:sticky; top:0; z-index:5}
@@ -110,8 +111,8 @@
   .embed-title{font-size:14px; font-weight:700; flex:1; text-align:center}
   .embed-open{font-size:11.5px; color:var(--sub); text-decoration:none; flex-shrink:0;
     background:#f1f3f7; padding:5px 10px; border-radius:7px; font-weight:600}
-  .embed-frame-wrap{flex:1; background:#fff; position:relative}
-  .embed-frame{width:100%; height:100%; border:none; display:block}
+  .embed-frame-wrap{flex:1; min-height:0; background:#fff; position:relative}
+  .embed-frame{position:absolute; inset:0; width:100%; height:100%; border:none; display:block}
   .foot{text-align:center; font-size:10.5px; color:#9aa6b4; padding:18px 0 6px}
   .toast{position:fixed; left:50%; bottom:26px; transform:translateX(-50%) translateY(20px);
     background:#11233a; color:#fff; font-size:12.5px; padding:10px 18px; border-radius:22px;
@@ -254,8 +255,8 @@ const DOMAIN = '@jhsol.kr';
 const ADMIN_EMAIL = 'jh.kim@jhsol.kr';
 const MODULES = [
   { key:'plan', name:'기획',          desc:'기획 문서·일정 관리',              ic:'plan', emoji:'🧭', url:null },
-  { key:'hr',   name:'인사',          desc:'급여·계약·근태 관리 (정산도우미)', ic:'hr',   emoji:'👥', url:'https://jhsolutions5804.github.io/administrator/' },
-  { key:'pjt',  name:'PJT별 업무관리', desc:'P4 Ph2 (FAB) 현장 관리',           ic:'pjt',  emoji:'🏗️', url:'https://jhsolutions5804.github.io/p4ph2-fab-workspace/' },
+  { key:'hr',   name:'인사',          desc:'급여·계약·근태 관리 (정산도우미)', ic:'hr',   emoji:'👥', url:'https://jhsolutions5804.github.io/administrator/?via=portal' },
+  { key:'pjt',  name:'PJT별 업무관리', desc:'P4 Ph2 (FAB) 현장 관리',           ic:'pjt',  emoji:'🏗️', url:'https://jhsolutions5804.github.io/p4ph2-fab-workspace/?via=portal' },
 ];
 
 let me = null;
