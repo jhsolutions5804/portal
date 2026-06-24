@@ -210,6 +210,56 @@
     .embed-bar .eo{margin-left:auto; font-size:12px; color:var(--sub); text-decoration:none; background:#f1f3f7; padding:6px 12px; border-radius:8px; font-weight:600}
   }
   @media (max-width:899px){ .embed-pad{position:absolute; inset:0; display:flex; flex-direction:column} .embed-bar{display:none} .home-inner,.admin-wrap{padding:0} }
+
+  /* ====================== 계정 목록 & 상세 ====================== */
+  .emp-table{width:100%; border-collapse:collapse; font-size:13px; margin-top:12px}
+  .emp-table th{background:#EEF4FC; color:#1D5BA6; font-weight:700; padding:9px 10px; text-align:left; border-bottom:2px solid #D6E4F6}
+  .emp-table td{padding:9px 10px; border-bottom:1px solid #EEF2F7; color:#1A2540}
+  .emp-table tr:hover td{background:#F8FAFF; cursor:pointer}
+  .emp-table .badge{display:inline-block; font-size:11px; padding:2px 8px; border-radius:10px; font-weight:600}
+  .emp-table .badge-admin{background:#DBEAFE; color:#1D4ED8}
+  .emp-table .badge-user{background:#F1F5F9; color:#64748B}
+
+  /* 상세 패널 */
+  .detail-panel{background:#fff; border:1px solid #DDE4EF; border-radius:14px; padding:24px; box-shadow:0 2px 8px rgba(29,91,166,.08)}
+  .detail-row{display:flex; align-items:flex-start; gap:16px; margin-bottom:14px; border-bottom:1px solid #F1F5F9; padding-bottom:14px}
+  .detail-label{min-width:80px; font-size:12px; font-weight:700; color:#5C6F8A; padding-top:2px}
+  .detail-value{flex:1; font-size:14px; color:#1A2540; font-weight:500}
+  .detail-input{flex:1; border:1px solid #DDE4EF; border-radius:8px; padding:8px 11px; font-size:13px; color:#1A2540; background:#FAFCFF; outline:none; font-family:inherit}
+  .detail-input:focus{border-color:#1D5BA6; box-shadow:0 0 0 2px rgba(29,91,166,.1)}
+  .pw-dots{letter-spacing:3px; color:#9AAABF}
+
+  /* 개인정보 수정 모달 */
+  .modal-overlay{display:none; position:fixed; inset:0; background:rgba(0,0,0,.38); z-index:40; align-items:center; justify-content:center}
+  .modal-overlay.on{display:flex}
+  .modal-box{background:#fff; border-radius:16px; padding:28px 24px; width:90%; max-width:420px; box-shadow:0 12px 40px rgba(0,0,0,.18)}
+  .modal-title{font-size:16px; font-weight:800; color:#1A2540; margin-bottom:18px}
+  .modal-field{margin-bottom:12px}
+  .modal-field label{display:block; font-size:11px; font-weight:700; color:#5C6F8A; margin-bottom:4px}
+  .modal-field input{width:100%; border:1px solid #DDE4EF; border-radius:8px; padding:9px 12px; font-size:13px; color:#1A2540; background:#FAFCFF; outline:none; font-family:inherit; box-sizing:border-box}
+  .modal-field input:focus{border-color:#1D5BA6}
+  .modal-btns{display:flex; gap:10px; margin-top:16px}
+  .modal-btns button{flex:1; padding:11px; border-radius:10px; font-size:13px; font-weight:700; cursor:pointer; border:none; font-family:inherit}
+  .modal-cancel{background:#F1F5F9; color:#5C6F8A}
+  .modal-save{background:#1D5BA6; color:#fff}
+
+  /* ====================== 조직도 ====================== */
+  #view-org{display:none; flex:1; overflow-y:auto; padding:0}
+  #view-org.on{display:flex; flex-direction:column}
+  .org-inner{max-width:900px; margin:0 auto; padding:30px 24px 60px}
+  .org-dept-card{background:#fff; border:1px solid #DDE4EF; border-radius:14px; margin-bottom:20px; overflow:hidden; box-shadow:0 1px 4px rgba(29,91,166,.05)}
+  .org-dept-hd{background:#EEF4FC; padding:12px 18px; display:flex; align-items:center; gap:10px}
+  .org-dept-hd .dept-name{font-size:14px; font-weight:800; color:#1D5BA6}
+  .org-dept-hd .dept-count{font-size:12px; color:#5C6F8A; background:#fff; border-radius:20px; padding:2px 9px; border:1px solid #D6E4F6}
+  .org-table{width:100%; border-collapse:collapse; font-size:13px}
+  .org-table th{padding:8px 14px; text-align:left; font-weight:700; color:#5C6F8A; font-size:11.5px; border-bottom:1px solid #EEF2F7; background:#FAFCFF}
+  .org-table td{padding:10px 14px; border-bottom:1px solid #F4F7FB; color:#1A2540}
+  .org-table tr:last-child td{border-bottom:none}
+  .org-table tr:hover td{background:#F8FAFF}
+
+  /* 사이드바 클릭 가능한 사용자 영역 */
+  .sb-user-btn{display:flex; align-items:center; gap:10px; flex:1; cursor:pointer; background:none; border:none; padding:0; font-family:inherit; text-align:left}
+  .sb-user-btn:hover .nm{text-decoration:underline}
 </style>
 </head>
 <body>
@@ -239,8 +289,10 @@
     <nav class="sb-nav" id="sb-nav"></nav>
     <div class="sb-spacer"></div>
     <div class="sb-user">
-      <div class="avatar" id="sb-avatar">·</div>
-      <div><div class="nm" id="sb-name">-</div><div class="rk" id="sb-rank">-</div></div>
+      <button class="sb-user-btn" onclick="openMyProfile()">
+        <div class="avatar" id="sb-avatar">·</div>
+        <div><div class="nm" id="sb-name">-</div><div class="rk" id="sb-rank">-</div></div>
+      </button>
       <button class="sb-logout" onclick="doLogout()">로그아웃</button>
     </div>
   </aside>
@@ -271,6 +323,15 @@
         <div style="display:flex; align-items:center; gap:10px; margin-bottom:20px;">
           <button class="back" onclick="showView('home')" style="font-size:13px;">← 포털 홈</button>
           <h2 style="margin:0; font-size:18px; font-weight:800; color:#1A2540;">⚙️ Portal 관리</h2>
+        </div>
+
+        <!-- 직원 계정 목록 -->
+        <div style="background:#fff; border:1px solid #DDE4EF; border-radius:14px; padding:20px; margin-bottom:16px; box-shadow:0 1px 4px rgba(29,91,166,0.06);">
+          <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:12px;">
+            <div style="font-size:13px; font-weight:700; color:#1D5BA6;">📋 생성된 계정 목록</div>
+            <button onclick="loadPerms()" style="font-size:11px; background:#E8F0FB; border:1px solid #DDE4EF; border-radius:6px; padding:4px 10px; color:#1D5BA6; cursor:pointer;">↻ 새로고침</button>
+          </div>
+          <div id="emp-list-box"><div class="empty">불러오는 중...</div></div>
         </div>
 
         <!-- 직원 계정 생성 -->
@@ -358,8 +419,50 @@
         </div>
       </div>
     </section>
+
+    <!-- 조직도 뷰 -->
+    <section id="view-org">
+      <div class="org-inner">
+        <div style="display:flex; align-items:center; gap:10px; margin-bottom:20px;">
+          <button class="back" onclick="showView('home')" style="font-size:13px;">← 포털 홈</button>
+          <h2 style="margin:0; font-size:18px; font-weight:800; color:#1A2540;">🏢 조직도</h2>
+        </div>
+        <div id="org-content"><div class="empty">불러오는 중...</div></div>
+      </div>
+    </section>
+
+    <!-- 직원 상세 뷰 (관리자용) -->
+    <section id="view-emp-detail" style="display:none; flex:1; overflow-y:auto; padding:24px 20px;">
+      <div style="max-width:600px; margin:0 auto;">
+        <div style="display:flex; align-items:center; gap:10px; margin-bottom:20px;">
+          <button class="back" onclick="showView('admin')" id="emp-back-btn" style="font-size:13px;">← Portal 관리</button>
+          <h2 style="margin:0; font-size:18px; font-weight:800; color:#1A2540;">👤 직원 상세 정보</h2>
+        </div>
+        <div id="emp-detail-content"></div>
+      </div>
+    </section>
   </div>
 </section>
+
+<!-- 개인정보 수정 모달 -->
+<div class="modal-overlay" id="my-profile-modal">
+  <div class="modal-box">
+    <div class="modal-title">✏️ 내 정보 수정</div>
+    <div id="modal-msg" class="msg" style="margin-bottom:10px;"></div>
+    <div class="modal-field">
+      <label>새 비밀번호 <span style="color:#9AAABF; font-weight:400;">(변경 시만 입력)</span></label>
+      <input id="my-pw" type="password" placeholder="6자 이상">
+    </div>
+    <div class="modal-field">
+      <label>전화번호</label>
+      <input id="my-phone" type="tel" placeholder="010-0000-0000">
+    </div>
+    <div class="modal-btns">
+      <button class="modal-cancel" onclick="closeMyProfile()">취소</button>
+      <button class="modal-save" onclick="saveMyProfile()">저장</button>
+    </div>
+  </div>
+</div>
 
 <div class="toast" id="toast"></div>
 
@@ -439,6 +542,8 @@ function showView(v){
   $('view-home').classList.toggle('off', v!=='home');
   $('view-embed').classList.toggle('on', v==='embed');
   $('view-admin').style.display = (v==='admin') ? 'block' : 'none';
+  $('view-org').classList.toggle('on', v==='org');
+  $('view-emp-detail').style.display = (v==='emp-detail') ? 'block' : 'none';
   // 포털 홈이면 드롭다운 전부 닫기
   if (v==='home') document.querySelectorAll('#sb-nav .sb-group').forEach(g=>g.classList.remove('open'));
   // 사이드바 active (서브메뉴 포함)
@@ -525,23 +630,139 @@ async function createEmployee(){
   finally{ btn.disabled=false; btn.textContent='✅ 계정 생성'; }
 }
 
-/* ---------- Portal 관리: 접근 권한 ---------- */
+/* ---------- Portal 관리: 직원 목록 + 접근 권한 ---------- */
+let _allUsers = [];
+
 async function loadPerms(){
   const pbox=$('p-perms'); if(!pbox) return;
   pbox.innerHTML='<div class="empty">불러오는 중...</div>';
   try{
     const qs=await getDocs(query(collection(db,'portal_users'),where('status','==','approved')));
-    const list=[]; qs.forEach(d=>{const u={uid:d.id,...d.data()}; if(!u.admin) list.push(u);});
-    list.sort((a,b)=>(a.name||'').localeCompare(b.name||'','ko'));
-    if(!list.length){ pbox.innerHTML='<div class="empty">등록된 직원이 없습니다.</div>'; return; }
+    _allUsers=[]; qs.forEach(d=>{_allUsers.push({uid:d.id,...d.data()});});
+    _allUsers.sort((a,b)=>(a.name||'').localeCompare(b.name||'','ko'));
+    const list=_allUsers.filter(u=>!u.admin);
+    if(!list.length){ pbox.innerHTML='<div class="empty">등록된 직원이 없습니다.</div>'; renderEmpList([]); return; }
     pbox.innerHTML='';
     list.forEach(u=>{
       const el=document.createElement('div'); el.className='perm';
-      el.innerHTML=`<div class="nm">${u.name||'-'} <span class="em">(${u.rank||''} · ${u.email||''})</span></div><div class="chips">${MODULES.map(m=>`<span class="chip ${(u.perms&&u.perms[m.key])?'on':''}" data-u="${u.uid}" data-k="${m.key}">${m.name}</span>`).join('')}</div>`;
+      el.innerHTML=`<div class="nm" style="cursor:pointer;" onclick="openEmpDetail('${u.uid}')">${u.name||'-'} <span class="em">(${u.rank||''} · ${u.email||''})</span></div><div class="chips">${MODULES.map(m=>`<span class="chip ${(u.perms&&u.perms[m.key])?'on':''}" data-u="${u.uid}" data-k="${m.key}">${m.name}</span>`).join('')}</div>`;
       pbox.appendChild(el);
     });
+    renderEmpList(list);
   }catch(e){ pbox.innerHTML=`<div class="empty">불러오기 실패: ${e.code||e.message}</div>`; }
 }
+
+function renderEmpList(list){
+  const box=$('emp-list-box'); if(!box) return;
+  if(!list.length){ box.innerHTML='<div class="empty">등록된 직원이 없습니다.</div>'; return; }
+  const rows=list.map(u=>`
+    <tr onclick="openEmpDetail('${u.uid}')" style="cursor:pointer;">
+      <td>${u.name||'-'}</td>
+      <td>${u.rank||'-'}</td>
+      <td>${u.dept||'-'}</td>
+      <td>${u.email||'-'}</td>
+      <td><span class="badge ${u.admin?'badge-admin':'badge-user'}">${u.admin?'관리자':'일반'}</span></td>
+    </tr>`).join('');
+  box.innerHTML=`<table class="emp-table">
+    <thead><tr><th>이름</th><th>직급</th><th>부서</th><th>이메일</th><th>권한</th></tr></thead>
+    <tbody>${rows}</tbody>
+  </table>`;
+}
+
+function openEmpDetail(uid){
+  const u=_allUsers.find(x=>x.uid===uid); if(!u) return;
+  const permsHtml=MODULES.map(m=>`
+    <span class="chip ${(u.perms&&u.perms[m.key])?'on':''}" data-u="${u.uid}" data-k="${m.key}">${m.name}</span>
+  `).join('');
+  $('emp-detail-content').innerHTML=`
+    <div class="detail-panel">
+      <div class="detail-row"><div class="detail-label">이름</div><div class="detail-value">${u.name||'-'}</div></div>
+      <div class="detail-row"><div class="detail-label">직급</div><div class="detail-value">${u.rank||'-'}</div></div>
+      <div class="detail-row"><div class="detail-label">부서</div><div class="detail-value">${u.dept||'-'}</div></div>
+      <div class="detail-row"><div class="detail-label">이메일</div><div class="detail-value">${u.email||'-'}</div></div>
+      <div class="detail-row"><div class="detail-label">전화번호</div><div class="detail-value">${u.phone||'-'}</div></div>
+      <div class="detail-row"><div class="detail-label">비밀번호</div><div class="detail-value pw-dots">••••••</div></div>
+      <div class="detail-row"><div class="detail-label">접근 권한</div><div class="detail-value"><div class="chips">${permsHtml}</div></div></div>
+      <div style="margin-top:8px; font-size:11px; color:#9AAABF;">※ 비밀번호는 보안상 관리자도 확인 불가 (Firebase Auth 정책)</div>
+    </div>
+  `;
+  showView('emp-detail');
+}
+
+async function loadOrg(){
+  const box=$('org-content'); if(!box) return;
+  box.innerHTML='<div class="empty">불러오는 중...</div>';
+  try{
+    const qs=await getDocs(query(collection(db,'portal_users'),where('status','==','approved')));
+    const users=[]; qs.forEach(d=>users.push({uid:d.id,...d.data()}));
+    const DEPT_ORDER=['현장관리팀','인력배치팀','경영총무팀','영업기획팀','(미지정)'];
+    const RANK_ORDER=['대표','부사장','차장','과장','대리','사원'];
+    const deptMap={};
+    DEPT_ORDER.forEach(d=>{deptMap[d]=[];});
+    users.forEach(u=>{
+      const d=(u.dept&&DEPT_ORDER.includes(u.dept))?u.dept:'(미지정)';
+      deptMap[d].push(u);
+    });
+    let html='';
+    DEPT_ORDER.forEach(dept=>{
+      const list=deptMap[dept]; if(!list.length) return;
+      list.sort((a,b)=>{
+        const ra=RANK_ORDER.indexOf(a.rank||''); const rb=RANK_ORDER.indexOf(b.rank||'');
+        if(ra!==rb) return (ra<0?99:ra)-(rb<0?99:rb);
+        return (a.createdAt?.toMillis?.()||0)-(b.createdAt?.toMillis?.()||0);
+      });
+      const rows=list.map((u,i)=>`
+        <tr>
+          <td>${String(i+1).padStart(3,'0')}</td>
+          <td>${dept}</td>
+          <td>${u.name||'-'}</td>
+          <td>${u.rank||'-'}</td>
+          <td>${u.phone||'-'}</td>
+          <td>${u.email||'-'}</td>
+        </tr>`).join('');
+      html+=`
+        <div class="org-dept-card">
+          <div class="org-dept-hd">
+            <span class="dept-name">📂 ${dept}</span>
+            <span class="dept-count">${list.length}명</span>
+          </div>
+          <table class="org-table">
+            <thead><tr><th>사원번호</th><th>소속</th><th>이름</th><th>직급</th><th>전화번호</th><th>메일주소</th></tr></thead>
+            <tbody>${rows}</tbody>
+          </table>
+        </div>`;
+    });
+    box.innerHTML=html||'<div class="empty">등록된 직원이 없습니다.</div>';
+  }catch(e){ box.innerHTML=`<div class="empty">불러오기 실패: ${e.code||e.message}</div>`; }
+}
+
+function openMyProfile(){
+  $('my-pw').value='';
+  $('my-phone').value=me.phone||'';
+  clearMsg($('modal-msg'));
+  $('my-profile-modal').classList.add('on');
+}
+function closeMyProfile(){ $('my-profile-modal').classList.remove('on'); }
+async function saveMyProfile(){
+  const msg=$('modal-msg'); clearMsg(msg);
+  const pw=$('my-pw').value;
+  const phone=$('my-phone').value.trim();
+  try{
+    if(phone!==undefined){
+      await updateDoc(doc(db,'portal_users',me.uid),{phone});
+      me.phone=phone;
+    }
+    if(pw){
+      if(pw.length<6) return showMsg(msg,'err','비밀번호는 6자 이상이어야 합니다.');
+      const {updatePassword}=await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js');
+      await updatePassword(auth.currentUser,pw);
+    }
+    toast('✅ 정보가 저장되었습니다.');
+    closeMyProfile();
+  }catch(e){ showMsg(msg,'err',(e.code?authErr(e.code):null)||e.message); }
+}
+
+
 async function togglePerm(uid,key,el){
   const on=!el.classList.contains('on'); el.classList.toggle('on');
   try{ await updateDoc(doc(db,'portal_users',uid),{['perms.'+key]:on}); }
@@ -616,6 +837,21 @@ function renderMenu(){
   const firstGrp=nav.querySelector('.sb-group');
   // (아무것도 열지 않음 — 포털 홈 진입 시 항상 닫힌 상태)
 
+  // 조직도 메뉴 (모든 로그인 사용자)
+  {
+    const div2=document.createElement('div');
+    div2.style.cssText='height:1px; background:rgba(255,255,255,0.1); margin:10px 8px;';
+    nav.appendChild(div2);
+    const org=document.createElement('button');
+    org.className='sb-item'; org.dataset.nav='org';
+    org.innerHTML='<span class="sic">🏢</span><span>조직도</span>';
+    org.onclick=()=>{ showView('org'); loadOrg();
+      document.querySelectorAll('#sb-nav .sb-item, #sb-nav .sb-subitem').forEach(b=>b.classList.remove('active'));
+      org.classList.add('active');
+    };
+    nav.appendChild(org);
+  }
+
   // Portal 관리 (관리자 전용) — 구분선 + 버튼
   if(me.admin){
     const div=document.createElement('div');
@@ -677,7 +913,7 @@ function resetAutoLogout(){
 });
 
 function doLogout(){ clearTimeout(_autoLogoutTimer); signOut(auth).then(()=>{ me=null; $('login-pw').value=''; showAuth('s-login'); }); }
-window.go=showAuth; window.showView=showView; window.doLogin=doLogin; window.doLogout=doLogout; window.createEmployee=createEmployee; window.loadPerms=loadPerms;
+window.go=showAuth; window.showView=showView; window.doLogin=doLogin; window.doLogout=doLogout; window.createEmployee=createEmployee; window.loadPerms=loadPerms; window.openEmpDetail=openEmpDetail; window.loadOrg=loadOrg; window.openMyProfile=openMyProfile; window.closeMyProfile=closeMyProfile; window.saveMyProfile=saveMyProfile;
 </script>
 </body>
 </html>
