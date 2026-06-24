@@ -356,6 +356,16 @@ const HR_SUBTABS=[
   { key:'payslip',  name:'급여명세서',  emoji:'4' },
   { key:'retire',   name:'퇴직금 정산', emoji:'5' },
 ];
+// 기획(plan) 하위 탭 — gihoek 앱의 tab() 키와 일치
+const PLAN_SUBTABS=[
+  { key:'pjt',    name:'프로젝트', emoji:'1' },
+  { key:'comp',   name:'거래처',   emoji:'2' },
+  { key:'est',    name:'견적',     emoji:'3' },
+  { key:'settle', name:'정산',     emoji:'4' },
+  { key:'acct',   name:'회계',     emoji:'5' },
+];
+// 모듈별 하위 탭 맵 (드롭다운 대상)
+const SUBTABS={ plan:PLAN_SUBTABS, hr:HR_SUBTABS };
 let me=null;
 
 const $=id=>document.getElementById(id);
@@ -378,7 +388,7 @@ function showView(v){
     let on=false;
     if (b.dataset.nav==='home') on = (v==='home');
     else if (v==='embed') {
-      if (b.classList.contains('sb-subitem')) on = (_activeMod==='hr' && b.dataset.sub===_activeSub);
+      if (b.classList.contains('sb-subitem')) on = (b.dataset.nav===_activeMod && b.dataset.sub===_activeSub);
       else if (b.classList.contains('sb-grphead')) on = false;
       else on = (b.dataset.nav===_activeMod);
     }
@@ -473,20 +483,25 @@ function renderMenu(){
     const card=document.createElement('div');
     card.className='mcard'+(allowed?'':' locked');
     card.innerHTML=`<div class="ic ${m.ic}">${m.emoji}</div><div class="tx"><h3>${m.name}</h3><p>${m.desc}</p></div>${allowed?'<span class="arrow">›</span>':'<span class="lockbadge">🔒 권한 없음</span>'}`;
-    if(allowed) card.onclick=()=>openModule(m, m.key==='hr'?'home':null);
+    if(allowed) card.onclick=()=>openModule(m, SUBTABS[m.key] ? SUBTABS[m.key][0].key : null);
     wrap.appendChild(card);
     // 사이드바 항목
-    if (m.key==='hr' && allowed) {
-      // 인사: 확장형 드롭다운
-      const grp=document.createElement('div'); grp.className='sb-group open';
+    if (SUBTABS[m.key] && allowed) {
+      // 확장형 드롭다운 (기획·인사)
+      const grp=document.createElement('div'); grp.className='sb-group'; grp.dataset.mod=m.key;
       const head=document.createElement('button');
-      head.className='sb-item sb-grphead'; head.dataset.nav='hr';
+      head.className='sb-item sb-grphead'; head.dataset.nav=m.key;
       head.innerHTML=`<span class="sic">${m.emoji}</span><span>${m.name}</span><span class="chev">▾</span>`;
-      head.onclick=()=>grp.classList.toggle('open');
+      // 아코디언: 하나를 열면 나머지는 닫힘
+      head.onclick=()=>{
+        const willOpen=!grp.classList.contains('open');
+        document.querySelectorAll('#sb-nav .sb-group').forEach(g=>g.classList.remove('open'));
+        if(willOpen) grp.classList.add('open');
+      };
       const sub=document.createElement('div'); sub.className='sb-sub';
-      HR_SUBTABS.forEach(st=>{
+      SUBTABS[m.key].forEach(st=>{
         const sbtn=document.createElement('button');
-        sbtn.className='sb-subitem'; sbtn.dataset.nav='hr'; sbtn.dataset.sub=st.key;
+        sbtn.className='sb-subitem'; sbtn.dataset.nav=m.key; sbtn.dataset.sub=st.key;
         sbtn.innerHTML=`<span class="sdot">${st.emoji}</span><span>${st.name}</span>`;
         sbtn.onclick=()=>openModule(m, st.key);
         sub.appendChild(sbtn);
@@ -501,22 +516,27 @@ function renderMenu(){
       nav.appendChild(it);
     }
   });
+  // 기본: 첫 번째 드롭다운 그룹만 펼침
+  const firstGrp=nav.querySelector('.sb-group');
+  if(firstGrp) firstGrp.classList.add('open');
 }
 function openModule(m, tab){
   if(!m.url){ toast(`${m.name} 메뉴는 준비 중입니다.`); return; }
   _activeMod=m.key;
-  _activeSub=(m.key==='hr') ? (tab||'home') : null;
+  _activeSub=SUBTABS[m.key] ? (tab||SUBTABS[m.key][0].key) : null;
   $('emb-title').textContent=m.name; $('emb-title2').textContent=m.name;
   const fullUrl=m.url + (tab?('&tab='+tab):'');
   $('emb-open').href=fullUrl; $('emb-open2').href=fullUrl;
   const frame=$('emb-frame');
-  if (m.key==='hr' && _embUrl===m.url && tab) {
-    // 이미 로드된 인사 앱 → 새로고침 없이 탭만 전환
+  if (SUBTABS[m.key] && _embUrl===m.url && tab) {
+    // 이미 로드된 앱 → 새로고침 없이 탭만 전환
     try { frame.contentWindow.postMessage({source:'jh-portal', action:'goTab', key:tab}, '*'); } catch(e){}
   } else {
     frame.src=fullUrl;
     _embUrl=m.url;
   }
+  // 해당 모듈 그룹만 펼침 (아코디언 유지)
+  document.querySelectorAll('#sb-nav .sb-group').forEach(g=>g.classList.toggle('open', g.dataset.mod===m.key));
   showView('embed');
 }
 
