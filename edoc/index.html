@@ -469,7 +469,7 @@ window.dailyApprove = async function(docId, newStatus) {
   if (!confirm(`이 업무일지를 [${newStatus==='approved'?'승인':newStatus==='rejected'?'반려':'게시'}] 처리하시겠습니까?`)) return;
   try {
     const { doc, setDoc } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
-    await setDoc(window._doc(window._db,'edoc_daily',docId),
+    await setDoc(doc(window._db,'edoc_daily',docId),
       { status:newStatus, approvedBy:_user?.displayName||'', approvedAt:serverTimestamp() }, { merge:true });
     alert('✅ 처리 완료');
     renderDailyList();
@@ -887,7 +887,7 @@ window.docSave = async function(dtype, status) {
   const title = document.getElementById('f-title')?.value?.trim();
   if (!title) { alert('제목을 입력해 주세요.'); return; }
 
-  const data = { title, dtype, status, authorUid:_user.uid, authorName:_user.displayName||_user.email||'', createdAt:serverTimestamp() };
+  const data = { title, dtype, status, authorUid:_user.uid, authorName:_myInfo?.name||_user.displayName||_user.email||'', createdAt:serverTimestamp() };
   cfg.fields.forEach(f => {
     const el = document.getElementById('f-'+f.key);
     if (el) data[f.key] = el.value;
@@ -970,22 +970,42 @@ window.docDetail = function(d, dtype) {
     </div>
     ${canApprove ? `
     <div style="display:flex;gap:8px;margin-bottom:10px;">
-      <button onclick="docApprove('${d.id}','${dtype}','approved')" style="flex:1;padding:12px;background:#16A34A;border:none;border-radius:10px;color:#fff;font-size:13px;font-weight:700;cursor:pointer;">✅ 승인</button>
-      <button onclick="docApprove('${d.id}','${dtype}','rejected')" style="flex:1;padding:12px;background:#DC2626;border:none;border-radius:10px;color:#fff;font-size:13px;font-weight:700;cursor:pointer;">❌ 반려</button>
-      <button onclick="docApprove('${d.id}','${dtype}','posted')" style="flex:1;padding:12px;background:#1D5BA6;border:none;border-radius:10px;color:#fff;font-size:13px;font-weight:700;cursor:pointer;">📤 게시</button>
+      <button onclick="docApprove('${d.id}','${dtype}','approved',${JSON.stringify(d).replace(/"/g,'&quot;')})" style="flex:1;padding:12px;background:#16A34A;border:none;border-radius:10px;color:#fff;font-size:13px;font-weight:700;cursor:pointer;">✅ 승인</button>
+      <button onclick="docApprove('${d.id}','${dtype}','rejected',${JSON.stringify(d).replace(/"/g,'&quot;')})" style="flex:1;padding:12px;background:#DC2626;border:none;border-radius:10px;color:#fff;font-size:13px;font-weight:700;cursor:pointer;">❌ 반려</button>
+      <button onclick="docApprove('${d.id}','${dtype}','posted',${JSON.stringify(d).replace(/"/g,'&quot;')})" style="flex:1;padding:12px;background:#1D5BA6;border:none;border-radius:10px;color:#fff;font-size:13px;font-weight:700;cursor:pointer;">📤 게시</button>
     </div>` : ''}
     <button onclick="renderDocList('${dtype}')" class="back-btn" style="width:100%;padding:11px;text-align:center;border-radius:10px;">목록으로</button>
   </div>`;
 };
 
-window.docApprove = async function(docId, dtype, newStatus) {
+window.docApprove = async function(docId, dtype, newStatus, docData) {
   if (!window._db) return;
   const labels = {approved:'승인', rejected:'반려', posted:'게시'};
   if (!confirm(`이 문서를 [${labels[newStatus]}] 처리하시겠습니까?`)) return;
   try {
-    const { doc, setDoc } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
-    await setDoc(window._doc(db, `edoc_${dtype}`, docId), { status:newStatus, approvedBy:_user?.displayName||'', approvedAt:serverTimestamp() }, { merge:true });
-    alert('✅ 처리 완료');
+    const { doc, setDoc, addDoc, collection } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+    const approverName = _myInfo?.name || _user?.displayName || _user?.email || '';
+    await setDoc(doc(db, `edoc_${dtype}`, docId), { status:newStatus, approvedBy:approverName, approvedAt:serverTimestamp() }, { merge:true });
+
+    // 게시 + 연차신청서 → user_schedules에 일정 등록 (모든 PJT 캘린더 공유)
+    if (newStatus === 'posted' && dtype === 'leave' && docData) {
+      const d = typeof docData === 'string' ? JSON.parse(docData) : docData;
+      await addDoc(collection(db, 'user_schedules'), {
+        text: `[연차] ${d.authorName||''} ${d.leaveType||'연차'} (${d.days||''}일)`,
+        tag: 'off',
+        tagLabel: d.leaveType||'연차',
+        sdate: d.startDate||'',
+        edate: d.endDate||d.startDate||'',
+        stime: null, etime: null,
+        isTodo: false, place: '',
+        att: d.authorName||'',
+        reg: _user?.email||'',
+        savedAt: serverTimestamp(),
+      });
+      alert('✅ 게시 완료. 연차 일정이 PJT 캘린더에 자동 등록되었습니다.');
+    } else {
+      alert('✅ 처리 완료');
+    }
     renderDocList(dtype);
   } catch(e) { alert('오류: '+e.message); }
 };
