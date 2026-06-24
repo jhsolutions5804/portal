@@ -620,13 +620,40 @@ async function createEmployee(){
     });
     // 관리자 세션 복구 (계정 생성 후 auth가 새 계정으로 전환됨)
     await signOut(auth);
-    // 잠깐 대기 후 다시 관리자로 로그인 유도
     showMsg(msg,'ok',`✅ ${name} (${email}) 계정이 생성되었습니다. 관리자 재로그인이 필요합니다.`);
     ['cr-name','cr-id','cr-pw'].forEach(i=>$(i).value='');
     $('cr-rank').value=''; $('cr-dept').value='';
-    // 3초 후 로그인 화면으로
     setTimeout(()=>doLogout(),3500);
-  }catch(e){ showMsg(msg,'err',authErr(e.code)); }
+  }catch(e){
+    // 이미 Firebase Auth에 계정이 있는 경우 → portal_users에만 등록
+    if(e.code==='auth/email-already-in-use'){
+      try{
+        // 해당 이메일로 임시 로그인해서 uid 얻기 불가 → fetchSignInMethodsForEmail로 존재 확인 후
+        // portal_users에 email 기준으로 이미 있는지 확인
+        const qs=await getDocs(query(collection(db,'portal_users'),where('email','==',email)));
+        if(!qs.empty){
+          showMsg(msg,'err','이미 포털에 등록된 계정입니다. 계정 목록을 확인해 주세요.');
+        } else {
+          // Auth엔 있지만 portal_users엔 없음 → 관리자가 직접 로그인해서 uid 확보 필요
+          // 대신: 임시 비밀번호로 로그인 시도해서 uid 얻기
+          const tmpCred=await signInWithEmailAndPassword(auth,email,pw);
+          await setDoc(doc(db,'portal_users',tmpCred.user.uid),{
+            email, name, rank, dept,
+            status:'approved', admin:false,
+            perms:{plan:false,hr:false,pjt:false,edoc:false},
+            createdAt:serverTimestamp()
+          });
+          await signOut(auth);
+          showMsg(msg,'ok',`✅ 기존 계정 ${email}을 포털에 등록했습니다. 관리자 재로그인이 필요합니다.`);
+          ['cr-name','cr-id','cr-pw'].forEach(i=>$(i).value='');
+          $('cr-rank').value=''; $('cr-dept').value='';
+          setTimeout(()=>doLogout(),3500);
+        }
+      }catch(e2){ showMsg(msg,'err','등록 실패: '+(e2.message||e2.code)); }
+    } else {
+      showMsg(msg,'err',authErr(e.code));
+    }
+  }
   finally{ btn.disabled=false; btn.textContent='✅ 계정 생성'; }
 }
 
