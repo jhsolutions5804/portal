@@ -45,14 +45,22 @@ onAuthStateChanged(auth, async u => {
         const d = ps.data();
         if (d.status === 'approved' && (d.admin || (d.perms && d.perms.edoc))) {
           _isAdmin = !!d.admin;
-          // portal_users에서 읽은 정보를 _myInfo에 즉시 저장
           _myInfo = { name: d.name||u.displayName||'', rank: d.rank||'', dept: d.dept||'', email: u.email };
           document.documentElement.classList.add('portal-embed');
           enterApp(u);
           return;
+        } else {
+          // perms.edoc 없음 또는 미승인 → 접근 불가
+          show('denied'); return;
         }
+      } else {
+        // portal_users 문서 없음 → 접근 불가
+        show('denied'); return;
       }
-    } catch(e) {}
+    } catch(e) {
+      console.error('portal auth error:', e);
+      show('denied'); return;
+    }
   }
 
   // 직접 접근: edoc_users 체크
