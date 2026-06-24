@@ -483,16 +483,31 @@ window.dailyApprove = async function(docId, newStatus) {
 // ── 전자결재 홈 ──
 async function renderEdocHome() {
   const el = document.getElementById('tab-home'); if(!el) return;
+  const TYPE_LABEL = { daily:'업무일지', leave:'연차신청서', resign:'퇴직원서', cert:'재직증명서', purchase:'구매품의서', expense:'지출결의서' };
+  const fmtD = ts => ts?.seconds ? new Date(ts.seconds*1000).toLocaleDateString('ko-KR',{month:'short',day:'numeric'}) : '-';
+  const STATUS_COLOR = { pending:'#F59E0B', approved:'#16A34A', rejected:'#DC2626', posted:'#1D5BA6', draft:'#9AAABF' };
+  const STATUS_LABEL = { pending:'결재대기', approved:'승인', rejected:'반려', posted:'게시', draft:'임시저장' };
+
   el.innerHTML = `<div class="wrap2">
     <div class="sec-title">전자결재 홈</div>
-    <div class="sec-sub">결재 대기 · 게시 문건 현황</div>
+    <div class="sec-sub">내 결재함 · 수신함 · 게시 문건</div>
     <div id="edoc-home-kpi" class="home-kpi-grid">
       ${[0,0,0,0].map(()=>'<div class="kpi-card loading">·</div>').join('')}
     </div>
     <div class="home-2col" id="edoc-home-panels">
       <div class="panel">
-        <div class="panel-head">📥 결재 대기</div>
-        <div id="panel-pending" class="panel-list">불러오는 중…</div>
+        <div class="panel-head">✍️ 내가 결재해야 할 문서</div>
+        <div id="panel-my-approve" class="panel-list">불러오는 중…</div>
+      </div>
+      <div class="panel">
+        <div class="panel-head">📨 수신함 (회람)</div>
+        <div id="panel-inbox" class="panel-list">불러오는 중…</div>
+      </div>
+    </div>
+    <div class="home-2col" id="edoc-home-panels2" style="margin-top:16px;">
+      <div class="panel">
+        <div class="panel-head">📝 내가 작성한 문서</div>
+        <div id="panel-my-docs" class="panel-list">불러오는 중…</div>
       </div>
       <div class="panel">
         <div class="panel-head">📤 게시된 문건</div>
@@ -501,61 +516,114 @@ async function renderEdocHome() {
     </div>
   </div>`;
 
-  if (!window._db) return;
+  if (!window._db || !_user) return;
   try {
-    const { getDocs, collection, query, where } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+    const { getDocs, collection } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
     const DOC_TYPES = ['daily','leave','resign','cert','purchase','expense'];
-    let pendingAll=[], postedAll=[];
+    const myUid = _user.uid;
+
+    // 내가 결재해야 할 문서: approvalLine에 내 uid가 있고 status=pending인 역할이 현재 차례인 것
+    let myApprove = [];  // 내가 결재자인 대기 문서
+    let myInbox = [];    // 내가 회람 수신자인 문서
+    let myDocs = [];     // 내가 작성한 문서
+    let postedAll = [];  // 게시된 전체 문서
 
     for (const dtype of DOC_TYPES) {
       const snap = await getDocs(collection(db, `edoc_${dtype}`));
       snap.forEach(d => {
         const data = {id:d.id, dtype, ...d.data()};
-        if (data.status==='pending' || data.status==='reviewing') pendingAll.push(data);
-        else if (data.status==='approved' || data.status==='posted') postedAll.push(data);
+        const line = data.approvalLine || [];
+
+        // 게시된 문서
+        if (data.status === 'posted') postedAll.push(data);
+
+        // 내가 작성한 문서
+        if (data.authorUid === myUid) myDocs.push(data);
+
+        // 내가 결재라인에 있는 문서 분류
+        line.forEach((step, idx) => {
+          if (step.uid !== myUid) return;
+          if (step.role === '회람' || step.role === '수신') {
+            // 회람/수신: 문서가 posted거나 approved이면 수신함에
+            if (data.status === 'posted' || data.status === 'approved') myInbox.push(data);
+          } else {
+            // 결재1/결재2/결재: 내 차례(이전 단계가 모두 완료)인지 확인
+            const prevDone = line.slice(0, idx).every(s => s.status === 'done' || s.status === 'approved' || s.role === '작성');
+            if (prevDone && step.status === 'pending' && (data.status === 'pending' || data.status === 'reviewing')) {
+              myApprove.push(data);
+            }
+          }
+        });
       });
     }
 
-    pendingAll.sort((a,b)=>(b.createdAt?.seconds||0)-(a.createdAt?.seconds||0));
-    postedAll.sort((a,b)=>(b.createdAt?.seconds||0)-(a.createdAt?.seconds||0));
+    // 정렬
+    [myApprove, myInbox, myDocs, postedAll].forEach(arr =>
+      arr.sort((a,b)=>(b.createdAt?.seconds||0)-(a.createdAt?.seconds||0))
+    );
+    // 중복 제거
+    const dedup = arr => arr.filter((d,i,a)=>a.findIndex(x=>x.id===d.id)===i);
+    myApprove = dedup(myApprove); myInbox = dedup(myInbox);
+    myDocs = dedup(myDocs); postedAll = dedup(postedAll);
 
-    const TYPE_LABEL = { daily:'업무일지', leave:'연차신청서', resign:'퇴직원서', cert:'재직증명서', purchase:'구매품의서', expense:'지출결의서' };
-    const fmtD = ts => ts?.seconds ? new Date(ts.seconds*1000).toLocaleDateString('ko-KR',{month:'short',day:'numeric'}) : '-';
-
-    // KPI 카드
+    // KPI
     const kpi = document.getElementById('edoc-home-kpi');
     if (kpi) kpi.innerHTML = `
-      <div class="kpi-card" onclick="goTab('daily')"><div class="kpi-label">업무일지</div><div class="kpi-val">${[...pendingAll,...postedAll].filter(d=>d.dtype==='daily').length}<span class="kpi-unit">건</span></div><div class="kpi-link">보러가기 ›</div></div>
-      <div class="kpi-card warn" onclick="goTab('leave')"><div class="kpi-label">결재 대기</div><div class="kpi-val">${pendingAll.length}<span class="kpi-unit">건</span></div><div class="kpi-link">확인하기 ›</div></div>
-      <div class="kpi-card" onclick="goTab('expense')"><div class="kpi-label">게시 문건</div><div class="kpi-val">${postedAll.length}<span class="kpi-unit">건</span></div><div class="kpi-link">조회하기 ›</div></div>
-      <div class="kpi-card"><div class="kpi-label">총 문서</div><div class="kpi-val">${pendingAll.length+postedAll.length}<span class="kpi-unit">건</span></div><div class="kpi-link">전체 보기 ›</div></div>`;
+      <div class="kpi-card warn"><div class="kpi-label">결재 요청</div><div class="kpi-val">${myApprove.length}<span class="kpi-unit">건</span></div><div class="kpi-link">확인하기 ›</div></div>
+      <div class="kpi-card"><div class="kpi-label">수신함</div><div class="kpi-val">${myInbox.length}<span class="kpi-unit">건</span></div><div class="kpi-link">보러가기 ›</div></div>
+      <div class="kpi-card"><div class="kpi-label">내 문서</div><div class="kpi-val">${myDocs.length}<span class="kpi-unit">건</span></div><div class="kpi-link">전체 보기 ›</div></div>
+      <div class="kpi-card"><div class="kpi-label">게시 문건</div><div class="kpi-val">${postedAll.length}<span class="kpi-unit">건</span></div><div class="kpi-link">조회하기 ›</div></div>`;
 
-    // 결재 대기 패널
-    const pp = document.getElementById('panel-pending');
-    if (pp) pp.innerHTML = pendingAll.length
-      ? pendingAll.slice(0,8).map(d=>`
-        <div class="panel-row" onclick="goTab('${d.dtype}')">
-          <span class="doc-badge">${TYPE_LABEL[d.dtype]||d.dtype}</span>
-          <span class="doc-title">${d.title||d.subject||'(제목없음)'}</span>
-          <span class="doc-date">${fmtD(d.createdAt)}</span>
-        </div>`).join('')
-      : '<div class="panel-empty">결재 대기 문건이 없습니다</div>';
+    const rowHtml = (d, showApproveBtn=false) => `
+      <div class="panel-row" onclick="docDetail(${JSON.stringify(d).replace(/"/g,'&quot;')}, '${d.dtype}')">
+        <span class="doc-badge ${d.status==='posted'?'posted':''}">${TYPE_LABEL[d.dtype]||d.dtype}</span>
+        <span class="doc-title">${d.title||'(제목없음)'}</span>
+        <span style="font-size:10px;font-weight:700;color:${STATUS_COLOR[d.status]||'#9AAABF'};white-space:nowrap;">${STATUS_LABEL[d.status]||d.status}</span>
+        <span class="doc-date">${fmtD(d.createdAt)}</span>
+        ${showApproveBtn ? `<button onclick="event.stopPropagation();quickApprove('${d.id}','${d.dtype}',${JSON.stringify(d).replace(/"/g,'&quot;')})" style="margin-left:6px;font-size:11px;padding:3px 8px;background:#1D5BA6;color:#fff;border:none;border-radius:6px;cursor:pointer;flex-shrink:0;">결재</button>` : ''}
+      </div>`;
 
-    // 게시된 문건 패널
-    const ppost = document.getElementById('panel-posted');
-    if (ppost) ppost.innerHTML = postedAll.length
-      ? postedAll.slice(0,8).map(d=>`
-        <div class="panel-row" onclick="goTab('${d.dtype}')">
-          <span class="doc-badge posted">${TYPE_LABEL[d.dtype]||d.dtype}</span>
-          <span class="doc-title">${d.title||d.subject||'(제목없음)'}</span>
-          <span class="doc-date">${fmtD(d.createdAt)}</span>
-        </div>`).join('')
-      : '<div class="panel-empty">게시된 문건이 없습니다</div>';
+    // 패널 렌더
+    const pa = document.getElementById('panel-my-approve');
+    if (pa) pa.innerHTML = myApprove.length ? myApprove.slice(0,8).map(d=>rowHtml(d,true)).join('') : '<div class="panel-empty">결재 요청 문서가 없습니다</div>';
 
-  } catch(e) {
-    console.error(e);
-  }
+    const pi = document.getElementById('panel-inbox');
+    if (pi) pi.innerHTML = myInbox.length ? myInbox.slice(0,8).map(d=>rowHtml(d)).join('') : '<div class="panel-empty">수신된 문서가 없습니다</div>';
+
+    const pm = document.getElementById('panel-my-docs');
+    if (pm) pm.innerHTML = myDocs.length ? myDocs.slice(0,8).map(d=>rowHtml(d)).join('') : '<div class="panel-empty">작성한 문서가 없습니다</div>';
+
+    const pp = document.getElementById('panel-posted');
+    if (pp) pp.innerHTML = postedAll.length ? postedAll.slice(0,8).map(d=>rowHtml(d)).join('') : '<div class="panel-empty">게시된 문건이 없습니다</div>';
+
+  } catch(e) { console.error('renderEdocHome:', e); }
 }
+
+// 결재함에서 빠른 결재 처리
+window.quickApprove = async function(docId, dtype, docData) {
+  const d = typeof docData === 'string' ? JSON.parse(docData) : docData;
+  const labels = {approved:'승인', rejected:'반려', posted:'게시'};
+  const choice = confirm(`[${d.title||'문서'}]
+승인하려면 확인, 반려하려면 취소를 누르세요.`);
+  const newStatus = choice ? 'approved' : 'rejected';
+  if (!confirm(`${labels[newStatus]} 처리하시겠습니까?`)) return;
+  try {
+    const { doc, setDoc, updateDoc } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+    const approverName = _myInfo?.name || _user?.displayName || '';
+    // approvalLine에서 내 단계 상태 업데이트
+    const line = (d.approvalLine||[]).map(s =>
+      s.uid === _user.uid && s.status === 'pending' ? {...s, status: choice ? 'approved' : 'rejected', approvedAt: new Date().toISOString()} : s
+    );
+    await setDoc(doc(db, `edoc_${dtype}`, docId), {
+      status: newStatus,
+      approvalLine: line,
+      approvedBy: approverName,
+      approvedAt: new Date().toISOString(),
+    }, {merge: true});
+    alert(`✅ ${labels[newStatus]} 처리되었습니다.`);
+    renderEdocHome();
+  } catch(e) { alert('오류: '+e.message); }
+};
 
 // ── 문서 유형별 메인 (공통 골격) ──
 const DOC_CONFIG = {
