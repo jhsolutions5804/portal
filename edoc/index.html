@@ -82,7 +82,7 @@ function enterApp(u) {
 const EDOC_TABS = {
   home:    { id:'tab-home',    title:'전자결재 홈',  fn:()=>renderEdocHome() },
   daily:   { id:'tab-daily',   title:'업무일지',      fn:()=>renderDailyMain() },
-  leave:   { id:'tab-leave',   title:'연차신청서',    fn:()=>renderDocMain('leave') },
+  leave:   { id:'tab-leave',   title:'연차신청서',    fn:()=>renderLeaveMain() },
   resign:  { id:'tab-resign',  title:'퇴직원서',      fn:()=>renderDocMain('resign') },
   cert:    { id:'tab-cert',    title:'재직증명서',    fn:()=>renderDocMain('cert') },
   purchase:{ id:'tab-purchase',title:'구매품의서',    fn:()=>renderDocMain('purchase') },
@@ -609,6 +609,227 @@ function renderDocMain(dtype) {
     </div>
   </div>`;
 }
+
+// ══════════════════════════════════════════════
+// 연차신청서 전용 모듈
+// ══════════════════════════════════════════════
+let _portalUsers = [];
+
+async function loadPortalUsers() {
+  if (_portalUsers.length) return;
+  try {
+    const { getDocs, collection, query, where } =
+      await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+    const snap = await getDocs(query(collection(window._db,'portal_users'), where('status','==','approved')));
+    _portalUsers = [];
+    snap.forEach(d => _portalUsers.push({uid:d.id,...d.data()}));
+    _portalUsers.sort((a,b)=>(a.empNo||'').localeCompare(b.empNo||'','ko',{numeric:true}));
+  } catch(e) { console.warn('loadPortalUsers:', e.message); }
+}
+
+function calcLeaveDays(startDate, endDate, leaveType) {
+  if (leaveType && (leaveType.includes('반차'))) return 0.5;
+  if (!startDate || !endDate) return '';
+  const s = new Date(startDate), e = new Date(endDate);
+  if (isNaN(s)||isNaN(e)) return '';
+  let days = 0;
+  const cur = new Date(s);
+  while (cur <= e) {
+    const dow = cur.getDay();
+    if (dow !== 0 && dow !== 6) days++;
+    cur.setDate(cur.getDate()+1);
+  }
+  return days;
+}
+
+function leaveAutoTitle() {
+  const today = new Date().toISOString().slice(0,10).replace(/-/g,'');
+  const name = _myInfo?.name || '';
+  const type = document.getElementById('lv-type')?.value || '';
+  const t = `${today} ${name} ${type} 신청서`;
+  const el = document.getElementById('lv-title');
+  if (el) el.value = t;
+}
+
+function leaveCalcDays() {
+  const s = document.getElementById('lv-start')?.value;
+  const e = document.getElementById('lv-end')?.value;
+  const t = document.getElementById('lv-type')?.value;
+  const d = calcLeaveDays(s, e, t);
+  const el = document.getElementById('lv-days');
+  if (el && d !== '') el.value = d;
+}
+
+window.leaveAutoTitle = leaveAutoTitle;
+window.leaveCalcDays = leaveCalcDays;
+window.renderLeaveMain = async function() {
+  const el = document.getElementById('tab-leave'); if(!el) return;
+  el.innerHTML = `<div class="wrap2">
+    <div class="sec-title">🏖️ 연차신청서</div>
+    <div style="display:flex;flex-direction:column;gap:10px;margin-top:4px;">
+      <button class="sel-btn blue" onclick="renderLeaveWrite()">
+        <div class="sel-icon" style="background:#E8F0FB;">✏️</div>
+        <div><div class="sel-label">신청서 작성</div><div class="sel-desc">연차·반차·병가 신청</div></div>
+      </button>
+      <button class="sel-btn" onclick="renderDocList('leave')">
+        <div class="sel-icon">📋</div>
+        <div><div class="sel-label">내 신청 목록</div><div class="sel-desc">제출한 신청서 조회</div></div>
+      </button>
+    </div>
+  </div>`;
+};
+
+window.renderLeaveWrite = async function() {
+  await loadPortalUsers();
+  const el = document.getElementById('tab-leave'); if(!el) return;
+  const today = new Date().toISOString().slice(0,10);
+  const name = _myInfo?.name || '';
+  const rank = _myInfo?.rank || '';
+  const todayFmt = today.replace(/-/g,'');
+  const defaultTitle = `${todayFmt} ${name} 연차 신청서`;
+
+  // 결재1 선택 옵션 (본인 제외)
+  const approver1Opts = _portalUsers
+    .filter(u => u.uid !== (_user?.uid||''))
+    .map(u => `<option value="${u.uid}" data-name="${u.name}" data-rank="${u.rank||''}">${u.name} ${u.rank||''}</option>`)
+    .join('');
+
+  // 업무대리인 선택 옵션 (본인 제외)
+  const deputyOpts = `<option value="">선택 안함</option>` + _portalUsers
+    .filter(u => u.uid !== (_user?.uid||''))
+    .map(u => `<option value="${u.uid}" data-name="${u.name}" data-rank="${u.rank||''}">${u.name} ${u.rank||''}</option>`)
+    .join('');
+
+  el.innerHTML = `<div class="wrap2">
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:16px;">
+      <button onclick="renderLeaveMain()" class="back-btn">‹ 뒤로</button>
+      <span style="font-size:13px;font-weight:700;color:#1A2540;">🏖️ 연차신청서 작성</span>
+    </div>
+    <div class="form-card">
+      <div style="margin-bottom:11px;">
+        <div style="font-size:11px;font-weight:700;color:#5C6F8A;margin-bottom:5px;">제목 <span style="color:#DC2626;">*</span></div>
+        <input id="lv-title" type="text" value="${defaultTitle}"
+          style="width:100%;border:1px solid #DDE4EF;border-radius:8px;padding:9px 12px;font-size:13px;color:#1A2540;background:#FAFCFF;box-sizing:border-box;">
+      </div>
+      <div style="margin-bottom:11px;">
+        <div style="font-size:11px;font-weight:700;color:#5C6F8A;margin-bottom:5px;">휴가 종류 <span style="color:#DC2626;">*</span></div>
+        <select id="lv-type" onchange="leaveAutoTitle();leaveCalcDays();"
+          style="width:100%;border:1px solid #DDE4EF;border-radius:8px;padding:9px 12px;font-size:13px;color:#1A2540;background:#FAFCFF;box-sizing:border-box;">
+          <option>연차</option><option>반차(오전)</option><option>반차(오후)</option><option>병가</option><option>기타</option>
+        </select>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:11px;">
+        <div>
+          <div style="font-size:11px;font-weight:700;color:#5C6F8A;margin-bottom:5px;">시작일 <span style="color:#DC2626;">*</span></div>
+          <input id="lv-start" type="date" value="${today}" onchange="leaveCalcDays();"
+            style="width:100%;border:1px solid #DDE4EF;border-radius:8px;padding:9px 12px;font-size:13px;color:#1A2540;background:#FAFCFF;box-sizing:border-box;">
+        </div>
+        <div>
+          <div style="font-size:11px;font-weight:700;color:#5C6F8A;margin-bottom:5px;">종료일 <span style="color:#DC2626;">*</span></div>
+          <input id="lv-end" type="date" value="${today}" onchange="leaveCalcDays();"
+            style="width:100%;border:1px solid #DDE4EF;border-radius:8px;padding:9px 12px;font-size:13px;color:#1A2540;background:#FAFCFF;box-sizing:border-box;">
+        </div>
+      </div>
+      <div style="margin-bottom:11px;">
+        <div style="font-size:11px;font-weight:700;color:#5C6F8A;margin-bottom:5px;">일수 <span style="color:#DC2626;">*</span> <span style="color:#9AAABF;font-weight:400;">(자동 계산)</span></div>
+        <input id="lv-days" type="number" step="0.5" value="1" readonly
+          style="width:100%;border:1px solid #DDE4EF;border-radius:8px;padding:9px 12px;font-size:13px;color:#1D5BA6;font-weight:700;background:#F4F7FB;box-sizing:border-box;">
+      </div>
+      <div style="margin-bottom:11px;">
+        <div style="font-size:11px;font-weight:700;color:#5C6F8A;margin-bottom:5px;">사유 <span style="color:#DC2626;">*</span></div>
+        <textarea id="lv-reason" rows="3" placeholder="휴가 사유를 입력하세요"
+          style="width:100%;border:1px solid #DDE4EF;border-radius:8px;padding:9px 12px;font-size:13px;color:#1A2540;background:#FAFCFF;box-sizing:border-box;resize:vertical;font-family:inherit;"></textarea>
+      </div>
+      <div style="margin-bottom:11px;">
+        <div style="font-size:11px;font-weight:700;color:#5C6F8A;margin-bottom:5px;">비상연락처</div>
+        <input id="lv-contact" type="tel" placeholder="휴가 중 연락처"
+          style="width:100%;border:1px solid #DDE4EF;border-radius:8px;padding:9px 12px;font-size:13px;color:#1A2540;background:#FAFCFF;box-sizing:border-box;">
+      </div>
+      <div style="margin-bottom:11px;">
+        <div style="font-size:11px;font-weight:700;color:#5C6F8A;margin-bottom:5px;">업무 대리인</div>
+        <select id="lv-deputy"
+          style="width:100%;border:1px solid #DDE4EF;border-radius:8px;padding:9px 12px;font-size:13px;color:#1A2540;background:#FAFCFF;box-sizing:border-box;">
+          ${deputyOpts}
+        </select>
+      </div>
+    </div>
+
+    <div class="form-card" style="margin-top:12px;">
+      <div style="font-size:12px;font-weight:700;color:#1D5BA6;margin-bottom:12px;">✍️ 결재 라인</div>
+      <div style="margin-bottom:11px;">
+        <div style="font-size:11px;font-weight:700;color:#5C6F8A;margin-bottom:5px;">결재1 (직접 지정) <span style="color:#DC2626;">*</span></div>
+        <select id="lv-approver1"
+          style="width:100%;border:1px solid #DDE4EF;border-radius:8px;padding:9px 12px;font-size:13px;color:#1A2540;background:#FAFCFF;box-sizing:border-box;">
+          <option value="">선택하세요</option>
+          ${approver1Opts}
+        </select>
+      </div>
+      <div style="background:#F4F7FB;border-radius:8px;padding:10px 12px;font-size:12px;color:#5C6F8A;line-height:1.8;">
+        📌 결재2: <b style="color:#1A2540;">김종화 부사장</b> (고정)<br>
+        📨 회람: 업무 대리인 (지정 시 자동 포함)
+      </div>
+    </div>
+
+    <div style="background:#EEF4FB;border-radius:10px;padding:11px 13px;font-size:11.5px;color:#1D5BA6;margin:12px 0;line-height:1.6;">
+      💡 상신 → 결재1 → 결재2(김종화) → 회람(대리인) 순으로 처리됩니다.
+    </div>
+    <div style="display:flex;gap:8px;">
+      <button onclick="leaveSave('draft')" style="flex:1;padding:13px;background:#6B7280;border:none;border-radius:12px;color:#fff;font-size:13px;font-weight:700;cursor:pointer;">💾 임시저장</button>
+      <button onclick="leaveSave('pending')" style="flex:1;padding:13px;background:#1D5BA6;border:none;border-radius:12px;color:#fff;font-size:13px;font-weight:700;cursor:pointer;">📨 상신</button>
+    </div>
+  </div>`;
+
+  // 초기 일수 계산
+  leaveCalcDays();
+};
+
+window.leaveSave = async function(status) {
+  if (!window._db || !_user) { alert('로그인이 필요합니다.'); return; }
+  const title   = document.getElementById('lv-title')?.value?.trim();
+  const type    = document.getElementById('lv-type')?.value;
+  const start   = document.getElementById('lv-start')?.value;
+  const end     = document.getElementById('lv-end')?.value;
+  const days    = parseFloat(document.getElementById('lv-days')?.value)||0;
+  const reason  = document.getElementById('lv-reason')?.value?.trim();
+  const contact = document.getElementById('lv-contact')?.value?.trim();
+  const dep     = document.getElementById('lv-deputy');
+  const depUid  = dep?.value||'';
+  const depName = dep?.options[dep.selectedIndex]?.dataset?.name||'';
+  const depRank = dep?.options[dep.selectedIndex]?.dataset?.rank||'';
+  const ap1sel  = document.getElementById('lv-approver1');
+  const ap1Uid  = ap1sel?.value||'';
+  const ap1Name = ap1sel?.options[ap1sel.selectedIndex]?.dataset?.name||'';
+  const ap1Rank = ap1sel?.options[ap1sel.selectedIndex]?.dataset?.rank||'';
+
+  if (!title) return alert('제목을 입력해 주세요.');
+  if (!start||!end) return alert('시작일과 종료일을 입력해 주세요.');
+  if (!reason) return alert('사유를 입력해 주세요.');
+  if (status==='pending' && !ap1Uid) return alert('결재1을 선택해 주세요.');
+
+  const approvalLine = [
+    { role:'작성', uid:_user.uid, name:_myInfo?.name||'', rank:_myInfo?.rank||'', status:'draft' },
+    { role:'결재1', uid:ap1Uid, name:ap1Name, rank:ap1Rank, status:'pending' },
+    { role:'결재2', uid:'', name:'김종화', rank:'부사장', status:'pending' },
+  ];
+  if (depUid) approvalLine.push({ role:'회람', uid:depUid, name:depName, rank:depRank, status:'pending' });
+
+  const data = {
+    dtype:'leave', status, title,
+    leaveType:type, startDate:start, endDate:end, days,
+    reason, contact,
+    deputyUid:depUid, deputyName:depName,
+    authorUid:_user.uid, authorName:_myInfo?.name||'', authorRank:_myInfo?.rank||'', authorDept:_myInfo?.dept||'',
+    approvalLine,
+    createdAt: serverTimestamp(),
+  };
+
+  try {
+    const { addDoc, collection } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+    await addDoc(collection(window._db,'edoc_leave'), data);
+    alert(status==='pending'?'✅ 상신 완료!':'💾 임시저장 완료');
+    renderLeaveMain();
+  } catch(e) { alert('오류: '+e.message); }
+};
 
 window.renderDocWrite = function(dtype) {
   const el = document.getElementById(`tab-${dtype}`); if(!el) return;
