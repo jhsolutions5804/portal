@@ -28,6 +28,14 @@ window._db = db;
 
 let _user = null, _isAdmin = false;
 
+// ── 화면 전환 ──
+function show(s) {
+  ['login','denied','app'].forEach(id=>{
+    const el=document.getElementById(id+'-screen');
+    if(el) el.style.display=(id===s?'flex':'none');
+  });
+}
+
 // ── 인증 ──
 window.doLogin  = async () => { try { await signInWithPopup(auth, prov); } catch(e) { alert('로그인 오류'); } };
 window.doLogout = async () => { await signOut(auth); location.reload(); };
@@ -1350,13 +1358,6 @@ window.docApprove = async function(docId, dtype, newStatus, docData) {
   } catch(e) { alert('오류: '+e.message); }
 };
 
-// ── 화면 전환 ──
-function show(s) {
-  ['login','denied','app'].forEach(id=>{
-    const el=document.getElementById(id+'-screen');
-    if(el) el.style.display=(id===s?'flex':'none');
-  });
-}
 </script>
 
 <style>
