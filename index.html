@@ -815,7 +815,7 @@ async function loadOrg(){
   try{
     const qs=await getDocs(query(collection(db,'portal_users'),where('status','==','approved')));
     const users=[]; qs.forEach(d=>users.push({uid:d.id,...d.data()}));
-    const DEPT_ORDER=['사업본부','현장관리팀','인력배치팀','경영지원본부','경영총무팀','영업기획팀','(미지정)'];
+    const DEPT_ORDER=['(미지정)','사업본부','현장관리팀','인력배치팀','경영지원본부','경영총무팀','영업기획팀'];
     const RANK_ORDER=['대표','부사장','차장','과장','대리','사원'];
     const deptMap={};
     DEPT_ORDER.forEach(d=>{deptMap[d]=[];});
