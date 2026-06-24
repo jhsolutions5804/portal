@@ -952,6 +952,12 @@ window.docDetail = function(d, dtype) {
     </div>`).join('');
 
   const canApprove = _isAdmin && (d.status==='pending'||d.status==='reviewing');
+  // 작성자 본인 여부
+  const isOwner = _user && (d.authorUid === _user.uid);
+  // 회수 가능: 본인 + 결재 전(draft/pending)
+  const canRecall = isOwner && (d.status==='draft'||d.status==='pending');
+  // 삭제 가능: 본인 + (반려/회수(draft)) 또는 관리자
+  const canDelete = isOwner && (d.status==='rejected'||d.status==='draft') || _isAdmin;
 
   el.innerHTML = `<div class="wrap2">
     <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;">
@@ -974,8 +980,34 @@ window.docDetail = function(d, dtype) {
       <button onclick="docApprove('${d.id}','${dtype}','rejected',${JSON.stringify(d).replace(/"/g,'&quot;')})" style="flex:1;padding:12px;background:#DC2626;border:none;border-radius:10px;color:#fff;font-size:13px;font-weight:700;cursor:pointer;">❌ 반려</button>
       <button onclick="docApprove('${d.id}','${dtype}','posted',${JSON.stringify(d).replace(/"/g,'&quot;')})" style="flex:1;padding:12px;background:#1D5BA6;border:none;border-radius:10px;color:#fff;font-size:13px;font-weight:700;cursor:pointer;">📤 게시</button>
     </div>` : ''}
+    <div style="display:flex;gap:8px;margin-bottom:10px;">
+      ${canRecall ? `<button onclick="docRecall('${d.id}','${dtype}')" style="flex:1;padding:11px;background:#F59E0B;border:none;border-radius:10px;color:#fff;font-size:13px;font-weight:700;cursor:pointer;">↩️ 회수</button>` : ''}
+      ${canDelete ? `<button onclick="docDelete('${d.id}','${dtype}')" style="flex:1;padding:11px;background:#fff;border:1px solid #DC2626;border-radius:10px;color:#DC2626;font-size:13px;font-weight:700;cursor:pointer;">🗑️ 삭제</button>` : ''}
+    </div>
     <button onclick="renderDocList('${dtype}')" class="back-btn" style="width:100%;padding:11px;text-align:center;border-radius:10px;">목록으로</button>
   </div>`;
+};
+
+window.docRecall = async function(docId, dtype) {
+  if (!window._db) return;
+  if (!confirm('이 문서를 회수하시겠습니까? 상신이 취소되고 임시저장 상태로 돌아갑니다.')) return;
+  try {
+    const { doc, setDoc } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+    await setDoc(doc(db, `edoc_${dtype}`, docId), { status:'draft', recalledAt:serverTimestamp() }, { merge:true });
+    alert('✅ 회수 완료. 임시저장 상태로 변경되었습니다.');
+    renderDocList(dtype);
+  } catch(e) { alert('오류: '+e.message); }
+};
+
+window.docDelete = async function(docId, dtype) {
+  if (!window._db) return;
+  if (!confirm('이 문서를 완전히 삭제하시겠습니까? 복구가 불가능합니다.')) return;
+  try {
+    const { doc, deleteDoc } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+    await deleteDoc(doc(db, `edoc_${dtype}`, docId));
+    alert('🗑️ 삭제 완료');
+    renderDocList(dtype);
+  } catch(e) { alert('오류: '+e.message); }
 };
 
 window.docApprove = async function(docId, dtype, newStatus, docData) {
