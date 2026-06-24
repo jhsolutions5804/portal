@@ -72,6 +72,8 @@ function enterApp(u) {
   const sb = document.getElementById('sb-user');
   if (sb) sb.textContent = (u.displayName||u.email||'?')[0].toUpperCase();
   show('app');
+  // 로그인 직후 사용자 정보 미리 로드
+  loadMyInfo();
   const params = new URLSearchParams(location.search);
   if (params.get('via')==='portal') document.documentElement.classList.add('portal-embed');
   const t = params.get('tab');
@@ -680,7 +682,9 @@ window.renderLeaveMain = async function() {
 };
 
 window.renderLeaveWrite = async function() {
-  await Promise.all([loadPortalUsers(), loadMyInfo()]);
+  // _myInfo가 비어있으면 강제 재로드
+  if (!_myInfo?.name) await loadMyInfo();
+  await loadPortalUsers();
   const el = document.getElementById('tab-leave'); if(!el) return;
   const today = new Date().toISOString().slice(0,10);
   const name = _myInfo?.name || '';
@@ -906,7 +910,7 @@ window.renderDocList = async function(dtype) {
   const cfg = DOC_CONFIG[dtype];
   el.innerHTML = `<div class="wrap2">
     <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;">
-      <button onclick="renderDocMain('${dtype}')" class="back-btn">‹ 뒤로</button>
+      <button onclick="${dtype==='leave'?'renderLeaveMain()':"renderDocMain('"+dtype+"')"}" class="back-btn">‹ 뒤로</button>
       <span style="font-size:13px;font-weight:700;color:#1A2540;">${cfg.icon} ${cfg.label} 목록</span>
     </div>
     <div id="doc-list-wrap">⏳ 불러오는 중…</div>
@@ -944,8 +948,20 @@ window.docDetail = function(d, dtype) {
   const STATUS = { draft:'임시저장', pending:'결재대기', reviewing:'검토중', approved:'승인', rejected:'반려', posted:'게시' };
   const STATUS_COLOR = { draft:'#9AAABF', pending:'#F59E0B', reviewing:'#3B82F6', approved:'#16A34A', rejected:'#DC2626', posted:'#1D5BA6' };
   const fmtD = ts => ts?.seconds ? new Date(ts.seconds*1000).toLocaleDateString('ko-KR') : '-';
+  const backFn = dtype==='leave' ? 'renderLeaveMain()' : `renderDocList('${dtype}')`;
 
-  const rows = cfg.fields.map(f=>`
+  // leave 전용 필드 목록
+  const leaveFields = [
+    {key:'leaveType', label:'휴가 종류'},
+    {key:'startDate', label:'시작일'},
+    {key:'endDate',   label:'종료일'},
+    {key:'days',      label:'일수'},
+    {key:'reason',    label:'사유'},
+    {key:'contact',   label:'비상연락처'},
+    {key:'deputyName',label:'업무 대리인'},
+  ];
+  const displayFields = dtype==='leave' ? leaveFields : (cfg.fields||[]);
+  const rows = displayFields.map(f=>`
     <div style="display:flex;padding:8px 0;border-bottom:1px solid #F0F4FA;font-size:12px;gap:12px;">
       <span style="color:#5C6F8A;font-weight:600;min-width:90px;flex-shrink:0;">${f.label}</span>
       <span style="color:#1A2540;word-break:break-all;">${d[f.key]||'-'}</span>
@@ -961,7 +977,7 @@ window.docDetail = function(d, dtype) {
 
   el.innerHTML = `<div class="wrap2">
     <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;">
-      <button onclick="renderDocList('${dtype}')" class="back-btn">‹ 목록</button>
+      <button onclick="${backFn}" class="back-btn">‹ 목록</button>
       <span style="font-size:13px;font-weight:700;color:#1A2540;">${cfg.icon} 문서 상세</span>
     </div>
     <div class="form-card" style="margin-bottom:10px;">
@@ -984,7 +1000,7 @@ window.docDetail = function(d, dtype) {
       ${canRecall ? `<button onclick="docRecall('${d.id}','${dtype}')" style="flex:1;padding:11px;background:#F59E0B;border:none;border-radius:10px;color:#fff;font-size:13px;font-weight:700;cursor:pointer;">↩️ 회수</button>` : ''}
       ${canDelete ? `<button onclick="docDelete('${d.id}','${dtype}')" style="flex:1;padding:11px;background:#fff;border:1px solid #DC2626;border-radius:10px;color:#DC2626;font-size:13px;font-weight:700;cursor:pointer;">🗑️ 삭제</button>` : ''}
     </div>
-    <button onclick="renderDocList('${dtype}')" class="back-btn" style="width:100%;padding:11px;text-align:center;border-radius:10px;">목록으로</button>
+    <button onclick="${backFn}" class="back-btn" style="width:100%;padding:11px;text-align:center;border-radius:10px;">목록으로</button>
   </div>`;
 };
 
