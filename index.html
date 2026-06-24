@@ -467,7 +467,7 @@
 <div class="toast" id="toast"></div>
 
 <script type="module">
-import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
+import { initializeApp, initializeApp as initApp2 } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
 import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged }
   from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
 import { getFirestore, doc, getDoc, setDoc, updateDoc, serverTimestamp, collection, query, where, getDocs }
@@ -634,20 +634,28 @@ async function createEmployee(){
         if(!qs.empty){
           showMsg(msg,'err','이미 포털에 등록된 계정입니다. 계정 목록을 확인해 주세요.');
         } else {
-          // Auth엔 있지만 portal_users엔 없음 → 관리자가 직접 로그인해서 uid 확보 필요
-          // 대신: 임시 비밀번호로 로그인 시도해서 uid 얻기
-          const tmpCred=await signInWithEmailAndPassword(auth,email,pw);
-          await setDoc(doc(db,'portal_users',tmpCred.user.uid),{
-            email, name, rank, dept,
-            status:'approved', admin:false,
-            perms:{plan:false,hr:false,pjt:false,edoc:false},
-            createdAt:serverTimestamp()
-          });
-          await signOut(auth);
-          showMsg(msg,'ok',`✅ 기존 계정 ${email}을 포털에 등록했습니다. 관리자 재로그인이 필요합니다.`);
-          ['cr-name','cr-id','cr-pw'].forEach(i=>$(i).value='');
-          $('cr-rank').value=''; $('cr-dept').value='';
-          setTimeout(()=>doLogout(),3500);
+          // Auth엔 있지만 portal_users엔 없음
+          // → 별도 앱 인스턴스로 로그인해서 uid만 얻고, 메인 관리자 세션으로 setDoc
+          const app2=initApp2(firebaseConfig,'tmp-'+Date.now());
+          const auth2=getAuth(app2);
+          try{
+            const tmpCred=await signInWithEmailAndPassword(auth2,email,pw);
+            const targetUid=tmpCred.user.uid;
+            await signOut(auth2);
+            // 메인 auth(관리자)로 setDoc → 권한 문제 없음
+            await setDoc(doc(db,'portal_users',targetUid),{
+              email, name, rank, dept,
+              status:'approved', admin:false,
+              perms:{plan:false,hr:false,pjt:false,edoc:false},
+              createdAt:serverTimestamp()
+            });
+            showMsg(msg,'ok',`✅ 기존 계정 ${email}을 포털에 등록했습니다.`);
+            ['cr-name','cr-id','cr-pw'].forEach(i=>$(i).value='');
+            $('cr-rank').value=''; $('cr-dept').value='';
+            loadPerms();
+          }catch(e3){
+            showMsg(msg,'err','비밀번호가 틀리거나 등록 실패: '+(e3.message||e3.code));
+          }
         }
       }catch(e2){ showMsg(msg,'err','등록 실패: '+(e2.message||e2.code)); }
     } else {
