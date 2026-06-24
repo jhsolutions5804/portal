@@ -549,7 +549,11 @@ async function renderEdocHome() {
           } else {
             // 결재1/결재2/결재: 내 차례(이전 단계가 모두 완료)인지 확인
             const prevDone = line.slice(0, idx).every(s => s.status === 'done' || s.status === 'approved' || s.role === '작성');
-            if (prevDone && step.status === 'pending' && (data.status === 'pending' || data.status === 'reviewing')) {
+            // 이전 단계: approved 또는 draft(작성) 상태여야 내 차례
+            const prevApproved = line.slice(0, idx).every(p =>
+              p.role === '작성' || p.status === 'approved' || p.status === 'done'
+            );
+            if (prevApproved && step.status === 'pending' && (data.status === 'pending' || data.status === 'reviewing')) {
               myApprove.push(data);
             }
           }
@@ -1007,12 +1011,13 @@ window.renderDocList = async function(dtype) {
     const snap = await getDocs(collection(db, `edoc_${dtype}`));
     const allDocs = []; snap.forEach(d=>allDocs.push({id:d.id,...d.data()}));
     const myUid = _user?.uid;
-    // 볼 수 있는 문서: 관리자OR(내가 작성 OR 결재라인에 포함 OR 게시됨)
+    // 볼 수 있는 문서:
+    // - 관리자: 전체
+    // - 일반: 게시됨(모두공개) OR 내가 작성 OR 결재라인에 내 uid 포함
     const canView = (d) => {
       if (_isAdmin) return true;
-      if (d.status === 'posted') return true; // 게시된 문서는 모두 공개
-      if (d.authorUid === myUid) return true;  // 내가 작성
-      // 결재라인에 포함
+      if (d.status === 'posted') return true;
+      if (d.authorUid === myUid) return true;
       return (d.approvalLine||[]).some(s => s.uid === myUid);
     };
     const docs = allDocs.filter(canView);
@@ -1067,27 +1072,29 @@ window.docDetail = function(d, dtype) {
   const isOwner = myUid && d.authorUid === myUid;
   const line = d.approvalLine || [];
 
-  // 내 결재 차례인지: 내 uid가 있고, 이전 단계 완료, 내 상태가 pending
+  // 내 결재 차례인지: 내 uid가 있고, 이전 결재 단계가 모두 approved, 내 상태가 pending
   const myStepIdx = line.findIndex((s,i) => {
     if (s.uid !== myUid) return false;
     if (s.role === '회람' || s.role === '수신') return false;
-    const prevDone = line.slice(0,i).every(p => p.role==='작성' || p.status==='approved' || p.status==='done');
+    const prevDone = line.slice(0,i).every(p =>
+      p.role==='작성' || p.status==='approved' || p.status==='done'
+    );
     return prevDone && s.status === 'pending';
   });
   const isMyTurn = myStepIdx >= 0 && (d.status==='pending'||d.status==='reviewing');
 
-  // 최종 결재자: 결재라인에서 회람/수신 제외하고 마지막 결재 역할
-  const lastApproverIdx = [...line].reverse().findIndex(s => s.role !== '회람' && s.role !== '수신' && s.role !== '작성');
-  const lastApprover = lastApproverIdx >= 0 ? line[line.length-1-lastApproverIdx] : null;
+  // 최종 결재자: 회람/수신/작성 제외하고 마지막 결재 역할
+  const approverSteps = line.filter(s => s.role!=='회람' && s.role!=='수신' && s.role!=='작성');
+  const lastApprover = approverSteps[approverSteps.length-1] || null;
   const isLastApprover = lastApprover && lastApprover.uid === myUid;
 
-  // 결재 버튼: 내 차례이거나 관리자
+  // 결재 버튼: 내 차례이거나 관리자 (pending OR reviewing)
   const canApprove = isMyTurn || (_isAdmin && (d.status==='pending'||d.status==='reviewing'));
-  // 게시 버튼: 최종 결재자이고 approved 상태이거나 관리자
-  const canPost = (isLastApprover && d.status==='approved') || (_isAdmin && (d.status==='approved'||d.status==='pending'||d.status==='reviewing'));
-  // 회수: 작성자 + 결재 전(pending)만, approved/rejected/posted 후에는 불가
-  const canRecall = isOwner && d.status==='pending';
-  // 수정: 작성자 + 회수됨(draft) 또는 반려
+  // 게시 버튼: 최종 결재자 + approved 상태 OR 관리자 + approved 상태
+  const canPost = d.status==='approved' && (isLastApprover || _isAdmin);
+  // 회수: 작성자 + pending OR reviewing (결재 진행 중)
+  const canRecall = isOwner && (d.status==='pending' || d.status==='reviewing');
+  // 수정: 작성자 + draft(임시저장) 또는 rejected(반려)
   const canEdit = isOwner && (d.status==='draft' || d.status==='rejected');
   // 삭제: 작성자 + (draft/rejected) 또는 관리자
   const canDelete = (isOwner && (d.status==='draft'||d.status==='rejected')) || _isAdmin;
@@ -1177,15 +1184,30 @@ window.docApprove = async function(docId, dtype, newStatus, docData) {
 
     // approvalLine 단계 상태 업데이트
     const rawData = typeof docData === 'string' ? JSON.parse(docData) : (docData||{});
-    const line = (rawData.approvalLine||[]).map(s => {
+    const origLine = rawData.approvalLine || [];
+
+    // 내 단계 상태 업데이트
+    const line = origLine.map(s => {
       if (s.uid !== myUid) return s;
       if (s.role === '회람' || s.role === '수신') return s;
       if (s.status === 'pending') return {...s, status: newStatus==='rejected'?'rejected':'approved', approvedBy:approverName, approvedAt:new Date().toISOString()};
       return s;
     });
 
+    // 문서 전체 status 결정:
+    // - 반려 → rejected
+    // - 게시 → posted
+    // - 승인: 다음 결재자가 있으면 → reviewing, 없으면(최종) → approved
+    let docStatus = newStatus;
+    if (newStatus === 'approved') {
+      // 내 단계 이후 결재 역할이 남아있는지 확인
+      const myIdx = origLine.findIndex(s => s.uid === myUid && s.status === 'pending' && s.role !== '회람' && s.role !== '수신');
+      const hasNextApprover = origLine.slice(myIdx+1).some(s => s.role !== '회람' && s.role !== '수신' && s.role !== '작성');
+      docStatus = hasNextApprover ? 'reviewing' : 'approved';
+    }
+
     await setDoc(doc(db, `edoc_${dtype}`, docId), {
-      status: newStatus,
+      status: docStatus,
       approvalLine: line,
       approvedBy: approverName,
       approvedAt: serverTimestamp()
