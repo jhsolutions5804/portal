@@ -602,25 +602,24 @@ async function renderEdocHome() {
 // 결재함에서 빠른 결재 처리
 window.quickApprove = async function(docId, dtype, docData) {
   const d = typeof docData === 'string' ? JSON.parse(docData) : docData;
-  const labels = {approved:'승인', rejected:'반려', posted:'게시'};
   const choice = confirm(`[${d.title||'문서'}]
-승인하려면 확인, 반려하려면 취소를 누르세요.`);
+✅ 확인 = 승인 / ❌ 취소 = 반려`);
   const newStatus = choice ? 'approved' : 'rejected';
-  if (!confirm(`${labels[newStatus]} 처리하시겠습니까?`)) return;
+  if (!confirm(`[${choice?'승인':'반려'}] 처리하시겠습니까?`)) return;
   try {
-    const { doc, setDoc, updateDoc } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+    const { doc, setDoc } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
     const approverName = _myInfo?.name || _user?.displayName || '';
-    // approvalLine에서 내 단계 상태 업데이트
+    const myUid = _user?.uid;
     const line = (d.approvalLine||[]).map(s =>
-      s.uid === _user.uid && s.status === 'pending' ? {...s, status: choice ? 'approved' : 'rejected', approvedAt: new Date().toISOString()} : s
+      (s.uid === myUid && s.status === 'pending' && s.role !== '회람' && s.role !== '수신')
+        ? {...s, status: choice ? 'approved' : 'rejected', approvedBy: approverName, approvedAt: new Date().toISOString()}
+        : s
     );
     await setDoc(doc(db, `edoc_${dtype}`, docId), {
-      status: newStatus,
-      approvalLine: line,
-      approvedBy: approverName,
-      approvedAt: new Date().toISOString(),
+      status: newStatus, approvalLine: line,
+      approvedBy: approverName, approvedAt: new Date().toISOString(),
     }, {merge: true});
-    alert(`✅ ${labels[newStatus]} 처리되었습니다.`);
+    alert(`✅ ${choice?'승인':'반려'} 처리되었습니다.`);
     renderEdocHome();
   } catch(e) { alert('오류: '+e.message); }
 };
@@ -990,8 +989,16 @@ window.renderDocList = async function(dtype) {
     const { getDocs, collection } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
     const snap = await getDocs(collection(db, `edoc_${dtype}`));
     const allDocs = []; snap.forEach(d=>allDocs.push({id:d.id,...d.data()}));
-    // 관리자: 전체 / 일반: 본인 문서만
-    const docs = _isAdmin ? allDocs : allDocs.filter(d=>d.authorUid===_user?.uid);
+    const myUid = _user?.uid;
+    // 볼 수 있는 문서: 관리자OR(내가 작성 OR 결재라인에 포함 OR 게시됨)
+    const canView = (d) => {
+      if (_isAdmin) return true;
+      if (d.status === 'posted') return true; // 게시된 문서는 모두 공개
+      if (d.authorUid === myUid) return true;  // 내가 작성
+      // 결재라인에 포함
+      return (d.approvalLine||[]).some(s => s.uid === myUid);
+    };
+    const docs = allDocs.filter(canView);
     docs.sort((a,b)=>(b.createdAt?.seconds||0)-(a.createdAt?.seconds||0));
 
     const STATUS = { draft:'임시저장', pending:'결재대기', reviewing:'검토중', approved:'승인', rejected:'반려', posted:'게시' };
@@ -1039,13 +1046,34 @@ window.docDetail = function(d, dtype) {
       <span style="color:#1A2540;word-break:break-all;">${d[f.key]||'-'}</span>
     </div>`).join('');
 
-  const canApprove = _isAdmin && (d.status==='pending'||d.status==='reviewing');
-  // 작성자 본인 여부
-  const isOwner = _user && (d.authorUid === _user.uid);
-  // 회수 가능: 본인 + 결재 전(draft/pending)
-  const canRecall = isOwner && (d.status==='draft'||d.status==='pending');
-  // 삭제 가능: 본인 + (반려/회수(draft)) 또는 관리자
-  const canDelete = isOwner && (d.status==='rejected'||d.status==='draft') || _isAdmin;
+  const myUid = _user?.uid;
+  const isOwner = myUid && d.authorUid === myUid;
+  const line = d.approvalLine || [];
+
+  // 내 결재 차례인지: 내 uid가 있고, 이전 단계 완료, 내 상태가 pending
+  const myStepIdx = line.findIndex((s,i) => {
+    if (s.uid !== myUid) return false;
+    if (s.role === '회람' || s.role === '수신') return false;
+    const prevDone = line.slice(0,i).every(p => p.role==='작성' || p.status==='approved' || p.status==='done');
+    return prevDone && s.status === 'pending';
+  });
+  const isMyTurn = myStepIdx >= 0 && (d.status==='pending'||d.status==='reviewing');
+
+  // 최종 결재자: 결재라인에서 회람/수신 제외하고 마지막 결재 역할
+  const lastApproverIdx = [...line].reverse().findIndex(s => s.role !== '회람' && s.role !== '수신' && s.role !== '작성');
+  const lastApprover = lastApproverIdx >= 0 ? line[line.length-1-lastApproverIdx] : null;
+  const isLastApprover = lastApprover && lastApprover.uid === myUid;
+
+  // 결재 버튼: 내 차례이거나 관리자
+  const canApprove = isMyTurn || (_isAdmin && (d.status==='pending'||d.status==='reviewing'));
+  // 게시 버튼: 최종 결재자이고 approved 상태이거나 관리자
+  const canPost = (isLastApprover && d.status==='approved') || (_isAdmin && (d.status==='approved'||d.status==='pending'||d.status==='reviewing'));
+  // 회수: 작성자 + 결재 전(pending)만, approved/rejected/posted 후에는 불가
+  const canRecall = isOwner && d.status==='pending';
+  // 수정: 작성자 + 회수됨(draft) 또는 반려
+  const canEdit = isOwner && (d.status==='draft' || d.status==='rejected');
+  // 삭제: 작성자 + (draft/rejected) 또는 관리자
+  const canDelete = (isOwner && (d.status==='draft'||d.status==='rejected')) || _isAdmin;
 
   el.innerHTML = `<div class="wrap2">
     <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;">
@@ -1085,10 +1113,14 @@ window.docDetail = function(d, dtype) {
     <div style="display:flex;gap:8px;margin-bottom:10px;">
       <button onclick="docApprove('${d.id}','${dtype}','approved',${JSON.stringify(d).replace(/"/g,'&quot;')})" style="flex:1;padding:12px;background:#16A34A;border:none;border-radius:10px;color:#fff;font-size:13px;font-weight:700;cursor:pointer;">✅ 승인</button>
       <button onclick="docApprove('${d.id}','${dtype}','rejected',${JSON.stringify(d).replace(/"/g,'&quot;')})" style="flex:1;padding:12px;background:#DC2626;border:none;border-radius:10px;color:#fff;font-size:13px;font-weight:700;cursor:pointer;">❌ 반려</button>
-      <button onclick="docApprove('${d.id}','${dtype}','posted',${JSON.stringify(d).replace(/"/g,'&quot;')})" style="flex:1;padding:12px;background:#1D5BA6;border:none;border-radius:10px;color:#fff;font-size:13px;font-weight:700;cursor:pointer;">📤 게시</button>
+    </div>` : ''}
+    ${canPost ? `
+    <div style="margin-bottom:10px;">
+      <button onclick="docApprove('${d.id}','${dtype}','posted',${JSON.stringify(d).replace(/"/g,'&quot;')})" style="width:100%;padding:12px;background:#1D5BA6;border:none;border-radius:10px;color:#fff;font-size:13px;font-weight:700;cursor:pointer;">📤 게시 (최종)</button>
     </div>` : ''}
     <div style="display:flex;gap:8px;margin-bottom:10px;">
       ${canRecall ? `<button onclick="docRecall('${d.id}','${dtype}')" style="flex:1;padding:11px;background:#F59E0B;border:none;border-radius:10px;color:#fff;font-size:13px;font-weight:700;cursor:pointer;">↩️ 회수</button>` : ''}
+      ${canEdit ? `<button onclick="alert('수정 기능: 문서를 회수하여 재작성해 주세요.')" style="flex:1;padding:11px;background:#3B82F6;border:none;border-radius:10px;color:#fff;font-size:13px;font-weight:700;cursor:pointer;">✏️ 수정</button>` : ''}
       ${canDelete ? `<button onclick="docDelete('${d.id}','${dtype}')" style="flex:1;padding:11px;background:#fff;border:1px solid #DC2626;border-radius:10px;color:#DC2626;font-size:13px;font-weight:700;cursor:pointer;">🗑️ 삭제</button>` : ''}
     </div>
     <button onclick="${backFn}" class="back-btn" style="width:100%;padding:11px;text-align:center;border-radius:10px;">목록으로</button>
@@ -1124,26 +1156,36 @@ window.docApprove = async function(docId, dtype, newStatus, docData) {
   try {
     const { doc, setDoc, addDoc, collection } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
     const approverName = _myInfo?.name || _user?.displayName || _user?.email || '';
-    await setDoc(doc(db, `edoc_${dtype}`, docId), { status:newStatus, approvedBy:approverName, approvedAt:serverTimestamp() }, { merge:true });
+    const myUid = _user?.uid;
 
-    // 게시 + 연차신청서 → user_schedules에 일정 등록 (모든 PJT 캘린더 공유)
-    if (newStatus === 'posted' && dtype === 'leave' && docData) {
-      const d = typeof docData === 'string' ? JSON.parse(docData) : docData;
+    // approvalLine 단계 상태 업데이트
+    const rawData = typeof docData === 'string' ? JSON.parse(docData) : (docData||{});
+    const line = (rawData.approvalLine||[]).map(s => {
+      if (s.uid !== myUid) return s;
+      if (s.role === '회람' || s.role === '수신') return s;
+      if (s.status === 'pending') return {...s, status: newStatus==='rejected'?'rejected':'approved', approvedBy:approverName, approvedAt:new Date().toISOString()};
+      return s;
+    });
+
+    await setDoc(doc(db, `edoc_${dtype}`, docId), {
+      status: newStatus,
+      approvalLine: line,
+      approvedBy: approverName,
+      approvedAt: serverTimestamp()
+    }, { merge:true });
+
+    // 게시 + 연차신청서 → user_schedules에 일정 등록
+    if (newStatus === 'posted' && dtype === 'leave' && rawData.startDate) {
       await addDoc(collection(db, 'user_schedules'), {
-        text: `[연차] ${d.authorName||''} ${d.leaveType||'연차'} (${d.days||''}일)`,
-        tag: 'off',
-        tagLabel: d.leaveType||'연차',
-        sdate: d.startDate||'',
-        edate: d.endDate||d.startDate||'',
-        stime: null, etime: null,
-        isTodo: false, place: '',
-        att: d.authorName||'',
-        reg: _user?.email||'',
-        savedAt: serverTimestamp(),
+        text: `[연차] ${rawData.authorName||''} ${rawData.leaveType||'연차'} (${rawData.days||''}일)`,
+        tag: 'off', tagLabel: rawData.leaveType||'연차',
+        sdate: rawData.startDate||'', edate: rawData.endDate||rawData.startDate||'',
+        stime: null, etime: null, isTodo: false, place: '',
+        att: rawData.authorName||'', reg: _user?.email||'', savedAt: serverTimestamp(),
       });
       alert('✅ 게시 완료. 연차 일정이 PJT 캘린더에 자동 등록되었습니다.');
     } else {
-      alert('✅ 처리 완료');
+      alert(`✅ ${labels[newStatus]} 처리되었습니다.`);
     }
     renderDocList(dtype);
   } catch(e) { alert('오류: '+e.message); }
