@@ -684,8 +684,9 @@ async function loadPerms(){
 function renderEmpList(list){
   const box=$('emp-list-box'); if(!box) return;
   if(!list.length){ box.innerHTML='<div class="empty">등록된 직원이 없습니다.</div>'; return; }
-  const rows=list.map(u=>`
+  const rows=list.map((u,i)=>`
     <tr onclick="openEmpDetail('${u.uid}')" style="cursor:pointer;">
+      <td style="color:#9AAABF; font-size:12px;">${u.empNo||String(i+1).padStart(3,'0')}</td>
       <td>${u.name||'-'}</td>
       <td>${u.rank||'-'}</td>
       <td>${u.dept||'-'}</td>
@@ -693,14 +694,22 @@ function renderEmpList(list){
       <td><span class="badge ${u.admin?'badge-admin':'badge-user'}">${u.admin?'관리자':'일반'}</span></td>
     </tr>`).join('');
   box.innerHTML=`<table class="emp-table">
-    <thead><tr><th>이름</th><th>직급</th><th>부서</th><th>이메일</th><th>권한</th></tr></thead>
+    <thead><tr><th>사원번호</th><th>이름</th><th>직급</th><th>부서</th><th>이메일</th><th>권한</th></tr></thead>
     <tbody>${rows}</tbody>
   </table>`;
+}
+
+function getEmpNo(uid){
+  // createdAt 오름차순 정렬 후 전체 순번 (001~)
+  const sorted=[..._allUsers].sort((a,b)=>(a.createdAt?.toMillis?.()||0)-(b.createdAt?.toMillis?.()||0));
+  const idx=sorted.findIndex(x=>x.uid===uid);
+  return idx>=0 ? String(idx+1).padStart(3,'0') : '---';
 }
 
 function openEmpDetail(uid){
   const u=_allUsers.find(x=>x.uid===uid); if(!u) return;
   _editUid=uid;
+  const empNo=u.empNo || getEmpNo(uid);
   const RANKS=['대표','부사장','차장','과장','대리','사원'];
   const rankOpts=RANKS.map(r=>`<option value="${r}" ${u.rank===r?'selected':''}>${r}</option>`).join('');
   const deptOpts=`<option value="">미지정</option>
@@ -719,6 +728,10 @@ function openEmpDetail(uid){
   `).join('');
   $('emp-detail-content').innerHTML=`
     <div class="detail-panel">
+      <div class="detail-row">
+        <div class="detail-label">사원번호</div>
+        <input class="detail-input" id="ed-empno" value="${empNo}" placeholder="001" maxlength="10">
+      </div>
       <div class="detail-row">
         <div class="detail-label">이름</div>
         <input class="detail-input" id="ed-name" value="${u.name||''}">
@@ -760,6 +773,7 @@ function openEmpDetail(uid){
 let _editUid=null;
 async function saveEmpDetail(){
   const msg=$('ed-msg'); clearMsg(msg);
+  const empNo=($('ed-empno').value||'').trim();
   const name=($('ed-name').value||'').trim();
   const rank=$('ed-rank').value;
   const dept=$('ed-dept').value;
@@ -767,7 +781,7 @@ async function saveEmpDetail(){
   const pw=($('ed-pw').value||'');
   if(!name) return showMsg(msg,'err','이름을 입력하세요.');
   try{
-    const updates={name,rank,dept,phone};
+    const updates={empNo,name,rank,dept,phone};
     await updateDoc(doc(db,'portal_users',_editUid),updates);
     // 비밀번호 변경은 Firebase Admin SDK 없이는 타 계정 변경 불가
     // → 안내 메시지로 대체
