@@ -1088,10 +1088,10 @@ window.docDetail = function(d, dtype) {
   const lastApprover = approverSteps[approverSteps.length-1] || null;
   const isLastApprover = lastApprover && lastApprover.uid === myUid;
 
-  // 결재 버튼: 내 차례이거나 관리자 (pending OR reviewing)
-  const canApprove = isMyTurn || (_isAdmin && (d.status==='pending'||d.status==='reviewing'));
-  // 게시 버튼: 최종 결재자 + approved 상태 OR 관리자 + approved 상태
-  const canPost = d.status==='approved' && (isLastApprover || _isAdmin);
+  // 결재 버튼: 내 차례 (작성자 본인은 제외) + pending OR reviewing
+  const canApprove = isMyTurn && !isOwner || (!isOwner && _isAdmin && (d.status==='pending'||d.status==='reviewing'));
+  // 게시 버튼: 최종 결재자 + approved 상태 (작성자 본인이어도 최종 결재자면 가능, 단 approved 상태만)
+  const canPost = d.status==='approved' && (isLastApprover || (_isAdmin && !isOwner));
   // 회수: 작성자 + pending OR reviewing (결재 진행 중)
   const canRecall = isOwner && (d.status==='pending' || d.status==='reviewing');
   // 수정: 작성자 + draft(임시저장) 또는 rejected(반려)
@@ -1147,6 +1147,10 @@ window.docDetail = function(d, dtype) {
       ${canEdit ? `<button onclick="${dtype==='leave'?`renderLeaveWrite(${JSON.stringify(d).replace(/"/g,'&quot;')})`:`alert('임시저장/반려 문서는 삭제 후 재작성해 주세요.')`}" style="flex:1;padding:11px;background:#3B82F6;border:none;border-radius:10px;color:#fff;font-size:13px;font-weight:700;cursor:pointer;">✏️ 수정</button>` : ''}
       ${canDelete ? `<button onclick="docDelete('${d.id}','${dtype}')" style="flex:1;padding:11px;background:#fff;border:1px solid #DC2626;border-radius:10px;color:#DC2626;font-size:13px;font-weight:700;cursor:pointer;">🗑️ 삭제</button>` : ''}
     </div>
+    ${(isOwner && d.status==='draft') ? `
+    <div style="margin-bottom:10px;">
+      <button onclick="${dtype==='leave' ? `renderLeaveWrite(${JSON.stringify(d).replace(/"/g,'&quot;')})` : `renderDocWrite('${dtype}')`}" style="width:100%;padding:13px;background:#1D5BA6;border:none;border-radius:12px;color:#fff;font-size:13px;font-weight:700;cursor:pointer;">📨 수정 후 상신하기</button>
+    </div>` : ''}
     <button onclick="${backFn}" class="back-btn" style="width:100%;padding:11px;text-align:center;border-radius:10px;">목록으로</button>
   </div>`;
 };
