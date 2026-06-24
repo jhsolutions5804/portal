@@ -1007,11 +1007,17 @@ function openModule(m, tab){
   $('emb-open').href=fullUrl; $('emb-open2').href=fullUrl;
   const frame=$('emb-frame');
   if (SUBTABS[m.key] && _embUrl===m.url && tab) {
-    // 이미 로드된 앱 → 새로고침 없이 탭만 전환
-    try { frame.contentWindow.postMessage({source:'jh-portal', action:'goTab', key:tab}, '*'); } catch(e){}
+    // 이미 로드된 앱 → postMessage로 탭 전환
+    try {
+      frame.contentWindow.postMessage({source:'jh-portal', action:'goTab', key:tab}, '*');
+    } catch(e) {
+      // postMessage 실패 시 URL로 재로드
+      frame.src = fullUrl;
+      _embUrl = m.url;
+    }
   } else {
-    frame.src=fullUrl;
-    _embUrl=m.url;
+    frame.src = fullUrl;
+    _embUrl = m.url;
   }
   // 해당 모듈 그룹만 펼침 (아코디언 유지)
   document.querySelectorAll('#sb-nav .sb-group').forEach(g=>g.classList.toggle('open', g.dataset.mod===m.key));
