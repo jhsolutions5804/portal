@@ -50,16 +50,24 @@ onAuthStateChanged(auth, async u => {
           enterApp(u);
           return;
         } else {
-          // perms.edoc 없음 또는 미승인 → 접근 불가
-          show('denied'); return;
+          // perms.edoc 없음 또는 미승인 → 직접 접근 허용 (로그인된 상태로 입장)
+          _isAdmin = !!d.admin;
+          _myInfo = { name: d.name||u.displayName||'', rank: d.rank||'', dept: d.dept||'', email: u.email };
+          document.documentElement.classList.add('portal-embed');
+          enterApp(u);
+          return;
         }
       } else {
-        // portal_users 문서 없음 → 접근 불가
-        show('denied'); return;
+        // portal_users 문서 없음 → 그냥 입장 허용
+        document.documentElement.classList.add('portal-embed');
+        enterApp(u);
+        return;
       }
     } catch(e) {
       console.error('portal auth error:', e);
-      show('denied'); return;
+      document.documentElement.classList.add('portal-embed');
+      enterApp(u);
+      return;
     }
   }
 
