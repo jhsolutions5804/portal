@@ -673,22 +673,80 @@ function renderEmpList(list){
 
 function openEmpDetail(uid){
   const u=_allUsers.find(x=>x.uid===uid); if(!u) return;
+  _editUid=uid;
+  const RANKS=['대표','부사장','차장','과장','대리','사원'];
+  const DEPTS=['현장관리팀','인력배치팀','경영총무팀','영업기획팀'];
+  const rankOpts=RANKS.map(r=>`<option value="${r}" ${u.rank===r?'selected':''}>${r}</option>`).join('');
+  const deptOpts=`<option value="">미지정</option>`+DEPTS.map(d=>`<option value="${d}" ${u.dept===d?'selected':''}>${d}</option>`).join('');
   const permsHtml=MODULES.map(m=>`
     <span class="chip ${(u.perms&&u.perms[m.key])?'on':''}" data-u="${u.uid}" data-k="${m.key}">${m.name}</span>
   `).join('');
   $('emp-detail-content').innerHTML=`
     <div class="detail-panel">
-      <div class="detail-row"><div class="detail-label">이름</div><div class="detail-value">${u.name||'-'}</div></div>
-      <div class="detail-row"><div class="detail-label">직급</div><div class="detail-value">${u.rank||'-'}</div></div>
-      <div class="detail-row"><div class="detail-label">부서</div><div class="detail-value">${u.dept||'-'}</div></div>
-      <div class="detail-row"><div class="detail-label">이메일</div><div class="detail-value">${u.email||'-'}</div></div>
-      <div class="detail-row"><div class="detail-label">전화번호</div><div class="detail-value">${u.phone||'-'}</div></div>
-      <div class="detail-row"><div class="detail-label">비밀번호</div><div class="detail-value pw-dots">••••••</div></div>
-      <div class="detail-row"><div class="detail-label">접근 권한</div><div class="detail-value"><div class="chips">${permsHtml}</div></div></div>
-      <div style="margin-top:8px; font-size:11px; color:#9AAABF;">※ 비밀번호는 보안상 관리자도 확인 불가 (Firebase Auth 정책)</div>
+      <div class="detail-row">
+        <div class="detail-label">이름</div>
+        <input class="detail-input" id="ed-name" value="${u.name||''}">
+      </div>
+      <div class="detail-row">
+        <div class="detail-label">직급</div>
+        <select class="detail-input" id="ed-rank">${rankOpts}</select>
+      </div>
+      <div class="detail-row">
+        <div class="detail-label">부서</div>
+        <select class="detail-input" id="ed-dept">${deptOpts}</select>
+      </div>
+      <div class="detail-row">
+        <div class="detail-label">이메일</div>
+        <div class="detail-value" style="color:#9AAABF;">${u.email||'-'} <span style="font-size:11px;">(변경 불가)</span></div>
+      </div>
+      <div class="detail-row">
+        <div class="detail-label">전화번호</div>
+        <input class="detail-input" id="ed-phone" type="tel" value="${u.phone||''}" placeholder="010-0000-0000" oninput="fmtPhone(this)" maxlength="13">
+      </div>
+      <div class="detail-row">
+        <div class="detail-label">새 비밀번호</div>
+        <input class="detail-input" id="ed-pw" type="password" placeholder="변경 시만 입력 (6자 이상)">
+      </div>
+      <div class="detail-row">
+        <div class="detail-label">접근 권한</div>
+        <div class="detail-value"><div class="chips">${permsHtml}</div></div>
+      </div>
+      <div id="ed-msg" class="msg" style="margin:8px 0;"></div>
+      <div style="display:flex; gap:10px; margin-top:4px;">
+        <button onclick="showView('admin')" style="flex:1; padding:11px; border-radius:10px; font-size:13px; font-weight:700; cursor:pointer; border:none; background:#F1F5F9; color:#5C6F8A; font-family:inherit;">취소</button>
+        <button onclick="saveEmpDetail()" style="flex:1; padding:11px; border-radius:10px; font-size:13px; font-weight:700; cursor:pointer; border:none; background:#1D5BA6; color:#fff; font-family:inherit;">💾 저장</button>
+      </div>
     </div>
   `;
   showView('emp-detail');
+}
+
+let _editUid=null;
+async function saveEmpDetail(){
+  const msg=$('ed-msg'); clearMsg(msg);
+  const name=($('ed-name').value||'').trim();
+  const rank=$('ed-rank').value;
+  const dept=$('ed-dept').value;
+  const phone=($('ed-phone').value||'').trim();
+  const pw=($('ed-pw').value||'');
+  if(!name) return showMsg(msg,'err','이름을 입력하세요.');
+  try{
+    const updates={name,rank,dept,phone};
+    await updateDoc(doc(db,'portal_users',_editUid),updates);
+    // 비밀번호 변경은 Firebase Admin SDK 없이는 타 계정 변경 불가
+    // → 안내 메시지로 대체
+    if(pw){
+      if(pw.length<6) return showMsg(msg,'err','비밀번호는 6자 이상이어야 합니다.');
+      showMsg(msg,'info','⚠️ 타 계정 비밀번호는 Firebase Console에서 직접 변경하세요.');
+    } else {
+      // _allUsers 캐시 업데이트
+      const idx=_allUsers.findIndex(x=>x.uid===_editUid);
+      if(idx>=0) Object.assign(_allUsers[idx],updates);
+      toast('✅ 저장되었습니다.');
+      showView('admin');
+      loadPerms();
+    }
+  }catch(e){ showMsg(msg,'err',e.message); }
 }
 
 async function loadOrg(){
@@ -921,7 +979,7 @@ function resetAutoLogout(){
 });
 
 function doLogout(){ clearTimeout(_autoLogoutTimer); signOut(auth).then(()=>{ me=null; $('login-pw').value=''; showAuth('s-login'); }); }
-window.go=showAuth; window.showView=showView; window.doLogin=doLogin; window.doLogout=doLogout; window.createEmployee=createEmployee; window.loadPerms=loadPerms; window.openEmpDetail=openEmpDetail; window.loadOrg=loadOrg; window.fmtPhone=fmtPhone; window.openMyProfile=openMyProfile; window.closeMyProfile=closeMyProfile; window.saveMyProfile=saveMyProfile;
+window.go=showAuth; window.showView=showView; window.doLogin=doLogin; window.doLogout=doLogout; window.createEmployee=createEmployee; window.loadPerms=loadPerms; window.openEmpDetail=openEmpDetail; window.saveEmpDetail=saveEmpDetail; window.loadOrg=loadOrg; window.fmtPhone=fmtPhone; window.openMyProfile=openMyProfile; window.closeMyProfile=closeMyProfile; window.saveMyProfile=saveMyProfile;
 </script>
 </body>
 </html>
