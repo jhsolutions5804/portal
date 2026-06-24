@@ -162,6 +162,18 @@
     .sb-item.locked{opacity:.42; cursor:not-allowed}
     .sb-item.locked:hover{background:none}
     .sb-lock{margin-left:auto; font-size:11px}
+    /* 인사 드롭다운 서브메뉴 */
+    .sb-group{display:flex; flex-direction:column}
+    .sb-grphead .chev{margin-left:auto; font-size:11px; opacity:.65; transition:transform .15s}
+    .sb-group.open .sb-grphead .chev{transform:rotate(180deg)}
+    .sb-sub{display:none; flex-direction:column; gap:2px; margin:2px 0 6px}
+    .sb-group.open .sb-sub{display:flex}
+    .sb-subitem{display:flex; align-items:center; gap:9px; padding:8px 12px 8px 30px; border-radius:9px;
+      cursor:pointer; font-size:12.5px; font-weight:500; color:var(--sidebar-ink); opacity:.82;
+      border:none; background:none; width:100%; text-align:left; font-family:inherit; transition:.12s}
+    .sb-subitem:hover{background:rgba(255,255,255,.07); opacity:1}
+    .sb-subitem.active{background:var(--sidebar-act); color:#fff; opacity:1; font-weight:600}
+    .sb-subitem .sdot{width:16px; text-align:center; font-size:11px; opacity:.7}
     .sb-spacer{flex:1}
     .sb-user{display:flex; align-items:center; gap:10px; padding:12px; border-top:1px solid rgba(255,255,255,.12); margin-top:10px}
     .sb-user .avatar{background:var(--blue-l)}
@@ -334,6 +346,16 @@ const MODULES=[
   { key:'hr',   name:'인사',          desc:'급여·계약·근태 관리 (정산도우미)', ic:'hr',   emoji:'👥', url:'https://jhsolutions5804.github.io/administrator/?via=portal' },
   { key:'pjt',  name:'PJT별 업무관리', desc:'P4 Ph2 (FAB) 현장 관리',           ic:'pjt',  emoji:'🏗️', url:'https://jhsolutions5804.github.io/p4ph2-fab-workspace/?via=portal' },
 ];
+// 인사(hr) 하위 탭 — administrator 앱의 HR_TABS 키와 일치
+const HR_SUBTABS=[
+  { key:'home',     name:'인사 홈',     emoji:'★' },
+  { key:'roster',   name:'근로자 명부', emoji:'1' },
+  { key:'labor',    name:'근로계약서',  emoji:'2' },
+  { key:'annual',   name:'연봉계약서',  emoji:'2' },
+  { key:'overtime', name:'초과근로',    emoji:'3' },
+  { key:'payslip',  name:'급여명세서',  emoji:'4' },
+  { key:'retire',   name:'퇴직금 정산', emoji:'5' },
+];
 let me=null;
 
 const $=id=>document.getElementById(id);
@@ -351,13 +373,22 @@ function showApp(){
 function showView(v){
   $('view-home').classList.toggle('off', v!=='home');
   $('view-embed').classList.toggle('on', v==='embed');
-  // 사이드바 active
-  document.querySelectorAll('.sb-item').forEach(b=>{
-    b.classList.toggle('active', (v==='home' && b.dataset.nav==='home') || (v==='embed' && b.dataset.nav===_activeMod));
+  // 사이드바 active (서브메뉴 포함)
+  document.querySelectorAll('#sb-nav .sb-item, #sb-nav .sb-subitem').forEach(b=>{
+    let on=false;
+    if (b.dataset.nav==='home') on = (v==='home');
+    else if (v==='embed') {
+      if (b.classList.contains('sb-subitem')) on = (_activeMod==='hr' && b.dataset.sub===_activeSub);
+      else if (b.classList.contains('sb-grphead')) on = false;
+      else on = (b.dataset.nav===_activeMod);
+    }
+    b.classList.toggle('active', on);
   });
   window.scrollTo(0,0);
 }
 let _activeMod=null;
+let _activeSub=null;
+let _embUrl=null;
 function showMsg(el,t,x){ el.className='msg '+t; el.textContent=x; }
 function clearMsg(el){ el.className='msg'; el.textContent=''; }
 function toast(t){ const el=$('toast'); el.textContent=t; el.classList.add('show'); clearTimeout(el._t); el._t=setTimeout(()=>el.classList.remove('show'),2400); }
@@ -442,22 +473,50 @@ function renderMenu(){
     const card=document.createElement('div');
     card.className='mcard'+(allowed?'':' locked');
     card.innerHTML=`<div class="ic ${m.ic}">${m.emoji}</div><div class="tx"><h3>${m.name}</h3><p>${m.desc}</p></div>${allowed?'<span class="arrow">›</span>':'<span class="lockbadge">🔒 권한 없음</span>'}`;
-    if(allowed) card.onclick=()=>openModule(m);
+    if(allowed) card.onclick=()=>openModule(m, m.key==='hr'?'home':null);
     wrap.appendChild(card);
     // 사이드바 항목
-    const it=document.createElement('button');
-    it.className='sb-item'+(allowed?'':' locked'); it.dataset.nav=m.key;
-    it.innerHTML=`<span class="sic">${m.emoji}</span><span>${m.name}</span>${allowed?'':'<span class="sb-lock">🔒</span>'}`;
-    if(allowed) it.onclick=()=>openModule(m);
-    nav.appendChild(it);
+    if (m.key==='hr' && allowed) {
+      // 인사: 확장형 드롭다운
+      const grp=document.createElement('div'); grp.className='sb-group open';
+      const head=document.createElement('button');
+      head.className='sb-item sb-grphead'; head.dataset.nav='hr';
+      head.innerHTML=`<span class="sic">${m.emoji}</span><span>${m.name}</span><span class="chev">▾</span>`;
+      head.onclick=()=>grp.classList.toggle('open');
+      const sub=document.createElement('div'); sub.className='sb-sub';
+      HR_SUBTABS.forEach(st=>{
+        const sbtn=document.createElement('button');
+        sbtn.className='sb-subitem'; sbtn.dataset.nav='hr'; sbtn.dataset.sub=st.key;
+        sbtn.innerHTML=`<span class="sdot">${st.emoji}</span><span>${st.name}</span>`;
+        sbtn.onclick=()=>openModule(m, st.key);
+        sub.appendChild(sbtn);
+      });
+      grp.appendChild(head); grp.appendChild(sub);
+      nav.appendChild(grp);
+    } else {
+      const it=document.createElement('button');
+      it.className='sb-item'+(allowed?'':' locked'); it.dataset.nav=m.key;
+      it.innerHTML=`<span class="sic">${m.emoji}</span><span>${m.name}</span>${allowed?'':'<span class="sb-lock">🔒</span>'}`;
+      if(allowed) it.onclick=()=>openModule(m);
+      nav.appendChild(it);
+    }
   });
 }
-function openModule(m){
+function openModule(m, tab){
   if(!m.url){ toast(`${m.name} 메뉴는 준비 중입니다.`); return; }
   _activeMod=m.key;
+  _activeSub=(m.key==='hr') ? (tab||'home') : null;
   $('emb-title').textContent=m.name; $('emb-title2').textContent=m.name;
-  $('emb-open').href=m.url; $('emb-open2').href=m.url;
-  $('emb-frame').src=m.url;
+  const fullUrl=m.url + (tab?('&tab='+tab):'');
+  $('emb-open').href=fullUrl; $('emb-open2').href=fullUrl;
+  const frame=$('emb-frame');
+  if (m.key==='hr' && _embUrl===m.url && tab) {
+    // 이미 로드된 인사 앱 → 새로고침 없이 탭만 전환
+    try { frame.contentWindow.postMessage({source:'jh-portal', action:'goTab', key:tab}, '*'); } catch(e){}
+  } else {
+    frame.src=fullUrl;
+    _embUrl=m.url;
+  }
   showView('embed');
 }
 
