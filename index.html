@@ -358,6 +358,7 @@ const HR_SUBTABS=[
 ];
 // 기획(plan) 하위 탭 — gihoek 앱의 tab() 키와 일치
 const PLAN_SUBTABS=[
+  { key:'home',   name:'기획 홈',  emoji:'★' },
   { key:'pjt',    name:'프로젝트', emoji:'1' },
   { key:'comp',   name:'거래처',   emoji:'2' },
   { key:'est',    name:'견적',     emoji:'3' },
@@ -383,6 +384,8 @@ function showApp(){
 function showView(v){
   $('view-home').classList.toggle('off', v!=='home');
   $('view-embed').classList.toggle('on', v==='embed');
+  // 포털 홈이면 드롭다운 전부 닫기
+  if (v==='home') document.querySelectorAll('#sb-nav .sb-group').forEach(g=>g.classList.remove('open'));
   // 사이드바 active (서브메뉴 포함)
   document.querySelectorAll('#sb-nav .sb-item, #sb-nav .sb-subitem').forEach(b=>{
     let on=false;
