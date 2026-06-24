@@ -455,7 +455,7 @@
     </div>
     <div class="modal-field">
       <label>전화번호</label>
-      <input id="my-phone" type="tel" placeholder="010-0000-0000">
+      <input id="my-phone" type="tel" placeholder="010-0000-0000" oninput="fmtPhone(this)" maxlength="13">
     </div>
     <div class="modal-btns">
       <button class="modal-cancel" onclick="closeMyProfile()">취소</button>
@@ -738,6 +738,12 @@ async function loadOrg(){
   }catch(e){ box.innerHTML=`<div class="empty">불러오기 실패: ${e.code||e.message}</div>`; }
 }
 
+function fmtPhone(el){
+  let v=el.value.replace(/[^0-9]/g,'');
+  if(v.length<=3) el.value=v;
+  else if(v.length<=7) el.value=v.slice(0,3)+'-'+v.slice(3);
+  else el.value=v.slice(0,3)+'-'+v.slice(3,7)+'-'+v.slice(7,11);
+}
 function openMyProfile(){
   $('my-pw').value='';
   $('my-phone').value=me.phone||'';
@@ -915,7 +921,7 @@ function resetAutoLogout(){
 });
 
 function doLogout(){ clearTimeout(_autoLogoutTimer); signOut(auth).then(()=>{ me=null; $('login-pw').value=''; showAuth('s-login'); }); }
-window.go=showAuth; window.showView=showView; window.doLogin=doLogin; window.doLogout=doLogout; window.createEmployee=createEmployee; window.loadPerms=loadPerms; window.openEmpDetail=openEmpDetail; window.loadOrg=loadOrg; window.openMyProfile=openMyProfile; window.closeMyProfile=closeMyProfile; window.saveMyProfile=saveMyProfile;
+window.go=showAuth; window.showView=showView; window.doLogin=doLogin; window.doLogout=doLogout; window.createEmployee=createEmployee; window.loadPerms=loadPerms; window.openEmpDetail=openEmpDetail; window.loadOrg=loadOrg; window.fmtPhone=fmtPhone; window.openMyProfile=openMyProfile; window.closeMyProfile=closeMyProfile; window.saveMyProfile=saveMyProfile;
 </script>
 </body>
 </html>
