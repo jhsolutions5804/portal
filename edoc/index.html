@@ -118,7 +118,13 @@ window.goTab = function(key, afterFn) {
 
 window.addEventListener('message', e => {
   const d = e.data;
-  if (d && d.source==='jh-portal' && d.action==='goTab' && EDOC_TABS[d.key]) goTab(d.key);
+  if (!d || d.source !== 'jh-portal') return;
+  if (d.action === 'goTab') {
+    const key = d.key;
+    if (EDOC_TABS[key]) {
+      goTab(key);
+    }
+  }
 });
 
 // ══════════════════════════════════════════════
