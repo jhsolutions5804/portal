@@ -85,6 +85,7 @@ function enterApp(u) {
 // ── 탭 시스템 ──
 const EDOC_TABS = {
   home:    { id:'tab-home',    title:'전자결재 홈',  fn:()=>renderEdocHome() },
+  approve: { id:'tab-approve', title:'결재함',        fn:()=>renderApproveBox() },
   daily:   { id:'tab-daily',   title:'업무일지',      fn:()=>renderDailyMain() },
   leave:   { id:'tab-leave',   title:'연차신청서',    fn:()=>renderLeaveMain() },
   resign:  { id:'tab-resign',  title:'퇴직원서',      fn:()=>renderDocMain('resign') },
@@ -587,7 +588,7 @@ async function renderEdocHome() {
     // KPI
     const kpi = document.getElementById('edoc-home-kpi');
     if (kpi) kpi.innerHTML = `
-      <div class="kpi-card warn"><div class="kpi-label">결재 요청</div><div class="kpi-val">${myApprove.length}<span class="kpi-unit">건</span></div><div class="kpi-link">확인하기 ›</div></div>
+      <div class="kpi-card warn" onclick="goTab('approve')" style="cursor:pointer;"><div class="kpi-label">결재 요청</div><div class="kpi-val">${myApprove.length}<span class="kpi-unit">건</span></div><div class="kpi-link">확인하기 ›</div></div>
       <div class="kpi-card"><div class="kpi-label">수신함</div><div class="kpi-val">${myInbox.length}<span class="kpi-unit">건</span></div><div class="kpi-link">보러가기 ›</div></div>
       <div class="kpi-card"><div class="kpi-label">내 문서</div><div class="kpi-val">${myDocs.length}<span class="kpi-unit">건</span></div><div class="kpi-link">전체 보기 ›</div></div>
       <div class="kpi-card"><div class="kpi-label">게시 문건</div><div class="kpi-val">${postedAll.length}<span class="kpi-unit">건</span></div><div class="kpi-link">조회하기 ›</div></div>`;
@@ -619,6 +620,66 @@ async function renderEdocHome() {
 
 // 결재함에서 빠른 결재 처리
 // 홈에서 문서 클릭 → 탭 전환 후 상세 열기
+// ── 결재함: 내가 결재해야 할 문서 전체 목록 ──
+async function renderApproveBox() {
+  const el = document.getElementById('tab-approve'); if(!el) return;
+  el.innerHTML = `<div class="wrap2">
+    <div class="sec-title">📥 결재함</div>
+    <div class="sec-sub">결재 요청된 문서 목록</div>
+    <div id="approve-list">⏳ 불러오는 중…</div>
+  </div>`;
+
+  if (!window._db || !_user) return;
+  try {
+    const { getDocs, collection } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+    const DOC_TYPES = ['daily','leave','resign','cert','purchase','expense'];
+    const TYPE_LABEL = { daily:'업무일지', leave:'연차신청서', resign:'퇴직원서', cert:'재직증명서', purchase:'구매품의서', expense:'지출결의서' };
+    const STATUS_COLOR = { pending:'#F59E0B', reviewing:'#3B82F6', approved:'#16A34A', rejected:'#DC2626', posted:'#1D5BA6', draft:'#9AAABF' };
+    const STATUS_LABEL = { pending:'결재대기', reviewing:'검토중', approved:'승인', rejected:'반려', posted:'게시', draft:'임시저장' };
+    const fmtD = ts => ts?.seconds ? new Date(ts.seconds*1000).toLocaleDateString('ko-KR',{month:'short',day:'numeric'}) : '-';
+    const myName = _myInfo?.name || '';
+
+    let myApprove = [];
+    for (const dtype of DOC_TYPES) {
+      const snap = await getDocs(collection(db, \`edoc_\${dtype}\`));
+      snap.forEach(doc => {
+        const data = {id:doc.id, dtype, ...doc.data()};
+        const line = data.approvalLine || [];
+        line.forEach((step, idx) => {
+          if (step.role === '회람' || step.role === '수신' || step.role === '작성') return;
+          const uidMatch = step.uid === _user.uid || (!step.uid && step.name === myName);
+          if (!uidMatch || step.status !== 'pending') return;
+          const prevDone = line.slice(0,idx).every(p => p.role==='작성' || p.status==='approved' || p.status==='done');
+          if (prevDone && (data.status==='pending' || data.status==='reviewing')) {
+            myApprove.push(data);
+          }
+        });
+      });
+    }
+    // 중복 제거 및 최신순 정렬
+    myApprove = myApprove.filter((d,i,a)=>a.findIndex(x=>x.id===d.id)===i);
+    myApprove.sort((a,b)=>(b.createdAt?.seconds||0)-(a.createdAt?.seconds||0));
+
+    const wrap = document.getElementById('approve-list');
+    if (!myApprove.length) {
+      wrap.innerHTML = '<div class="panel-empty" style="padding:40px;text-align:center;">결재 요청 문서가 없습니다</div>';
+      return;
+    }
+    wrap.innerHTML = myApprove.map(d => `
+      <div class="doc-row" onclick="openDocFromHome(${JSON.stringify(d).replace(/"/g,'&quot;')})">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+          <span style="font-size:13px;font-weight:700;color:#1A2540;">${d.title||'(제목없음)'}</span>
+          <span style="font-size:10px;font-weight:700;padding:2px 9px;border-radius:10px;background:${STATUS_COLOR[d.status]||'#9AAABF'}20;color:${STATUS_COLOR[d.status]||'#9AAABF'};">${STATUS_LABEL[d.status]||d.status}</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;">
+          <span style="font-size:11px;color:#5C6F8A;"><span style="background:#EEF4FC;color:#1D5BA6;padding:1px 7px;border-radius:6px;font-weight:600;margin-right:6px;">${TYPE_LABEL[d.dtype]||d.dtype}</span>${d.authorName||'-'} · ${fmtD(d.createdAt)}</span>
+          <button onclick="event.stopPropagation();openDocFromHome(${JSON.stringify(d).replace(/"/g,'&quot;')})" style="font-size:12px;padding:5px 14px;background:#1D5BA6;color:#fff;border:none;border-radius:8px;cursor:pointer;font-weight:600;">📋 내용 확인 후 결재</button>
+        </div>
+      </div>`).join('');
+  } catch(e) { document.getElementById('approve-list').innerHTML = `<div style="color:#DC2626;padding:20px;">오류: ${e.message}</div>`; }
+}
+window.renderApproveBox = renderApproveBox;
+
 window.openDocFromHome = function(d) {
   const dtype = d.dtype;
   // 탭 전환 완료 후 상세 열기 (afterFn 콜백 사용)
@@ -1456,6 +1517,7 @@ body{font-family:-apple-system,'Apple SD Gothic Neo','Pretendard',sans-serif;bac
         <div class="nm">전자결재<small>제이에이치솔루션</small></div>
       </div>
       <button class="sb-item" data-navkey="home" onclick="goTab('home')"><span class="sb-num">★</span> 전자결재 홈</button>
+      <button class="sb-item" data-navkey="approve" onclick="goTab('approve')"><span class="sb-num">📥</span> 결재함</button>
       <button class="sb-item" data-navkey="daily" onclick="goTab('daily')"><span class="sb-num">1</span> 업무일지</button>
       <button class="sb-item" data-navkey="leave" onclick="goTab('leave')"><span class="sb-num">2</span> 연차신청서</button>
       <button class="sb-item" data-navkey="resign" onclick="goTab('resign')"><span class="sb-num">3</span> 퇴직원서</button>
@@ -1472,6 +1534,7 @@ body{font-family:-apple-system,'Apple SD Gothic Neo','Pretendard',sans-serif;bac
       <!-- 모바일 탭바 -->
       <div id="tabbar">
         <button class="tab-btn active" data-navkey="home"     onclick="goTab('home')">🏠 홈</button>
+        <button class="tab-btn"        data-navkey="approve"  onclick="goTab('approve')">📥 결재함</button>
         <button class="tab-btn"        data-navkey="daily"    onclick="goTab('daily')">📝 업무일지</button>
         <button class="tab-btn"        data-navkey="leave"    onclick="goTab('leave')">🏖️ 연차</button>
         <button class="tab-btn"        data-navkey="resign"   onclick="goTab('resign')">📤 퇴직원서</button>
@@ -1482,6 +1545,7 @@ body{font-family:-apple-system,'Apple SD Gothic Neo','Pretendard',sans-serif;bac
 
       <!-- 탭 콘텐츠 -->
       <div class="tab-content active" id="tab-home"></div>
+      <div class="tab-content" id="tab-approve"></div>
       <div class="tab-content" id="tab-daily"></div>
       <div class="tab-content" id="tab-leave"></div>
       <div class="tab-content" id="tab-resign"></div>
