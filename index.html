@@ -704,13 +704,15 @@ function openEmpDetail(uid){
   const RANKS=['대표','부사장','차장','과장','대리','사원'];
   const rankOpts=RANKS.map(r=>`<option value="${r}" ${u.rank===r?'selected':''}>${r}</option>`).join('');
   const deptOpts=`<option value="">미지정</option>
-    <optgroup label="사업본부">
-      <option value="현장관리팀" ${u.dept==='현장관리팀'?'selected':''}>현장관리팀</option>
-      <option value="인력배치팀" ${u.dept==='인력배치팀'?'selected':''}>인력배치팀</option>
+    <option value="사업본부" ${u.dept==='사업본부'?'selected':''}>사업본부</option>
+    <optgroup label="　">
+      <option value="현장관리팀" ${u.dept==='현장관리팀'?'selected':''}>　현장관리팀</option>
+      <option value="인력배치팀" ${u.dept==='인력배치팀'?'selected':''}>　인력배치팀</option>
     </optgroup>
-    <optgroup label="경영지원본부">
-      <option value="경영총무팀" ${u.dept==='경영총무팀'?'selected':''}>경영총무팀</option>
-      <option value="영업기획팀" ${u.dept==='영업기획팀'?'selected':''}>영업기획팀</option>
+    <option value="경영지원본부" ${u.dept==='경영지원본부'?'selected':''}>경영지원본부</option>
+    <optgroup label="　">
+      <option value="경영총무팀" ${u.dept==='경영총무팀'?'selected':''}>　경영총무팀</option>
+      <option value="영업기획팀" ${u.dept==='영업기획팀'?'selected':''}>　영업기획팀</option>
     </optgroup>`;
   const permsHtml=MODULES.map(m=>`
     <span class="chip ${(u.perms&&u.perms[m.key])?'on':''}" data-u="${u.uid}" data-k="${m.key}">${m.name}</span>
@@ -789,7 +791,7 @@ async function loadOrg(){
   try{
     const qs=await getDocs(query(collection(db,'portal_users'),where('status','==','approved')));
     const users=[]; qs.forEach(d=>users.push({uid:d.id,...d.data()}));
-    const DEPT_ORDER=['현장관리팀','인력배치팀','경영총무팀','영업기획팀','(미지정)'];
+    const DEPT_ORDER=['사업본부','현장관리팀','인력배치팀','경영지원본부','경영총무팀','영업기획팀','(미지정)'];
     const RANK_ORDER=['대표','부사장','차장','과장','대리','사원'];
     const deptMap={};
     DEPT_ORDER.forEach(d=>{deptMap[d]=[];});
