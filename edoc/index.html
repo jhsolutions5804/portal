@@ -750,33 +750,41 @@ window.renderLeaveMain = async function() {
   </div>`;
 };
 
-window.renderLeaveWrite = async function() {
-  // _myInfo가 비어있으면 강제 재로드
+window.renderLeaveWrite = async function(editDoc) {
+  // editDoc: 수정 시 기존 문서 데이터
   if (!_myInfo?.name) await loadMyInfo();
   await loadPortalUsers();
   const el = document.getElementById('tab-leave'); if(!el) return;
   const today = new Date().toISOString().slice(0,10);
   const name = _myInfo?.name || '';
   const rank = _myInfo?.rank || '';
+  const ed = editDoc || null; // 수정 모드 데이터
   const todayFmt = today.replace(/-/g,'');
-  const defaultTitle = `${todayFmt} ${name} 연차 신청서`;
+  const defaultTitle = ed?.title || `${todayFmt} ${name} 연차 신청서`;
+  const isEdit = !!ed; // 수정 모드 여부
+  let _leaveEditId = ed?.id || null;
 
-  // 결재1 선택 옵션 (본인 제외)
+  // 결재1 선택 옵션 - 수정 시 기존 결재자 선택 유지
+  const existAp1Uid = ed?.approvalLine?.find(s=>s.role==='결재1')?.uid||'';
   const approver1Opts = _portalUsers
     .filter(u => u.uid !== (_user?.uid||''))
-    .map(u => `<option value="${u.uid}" data-name="${u.name}" data-rank="${u.rank||''}">${u.name} ${u.rank||''}</option>`)
+    .map(u => `<option value="${u.uid}" data-name="${u.name}" data-rank="${u.rank||''}" ${u.uid===existAp1Uid?'selected':''}>${u.name} ${u.rank||''}</option>`)
     .join('');
 
-  // 업무대리인 선택 옵션 (본인 제외)
+  const existDepUid = ed?.deputyUid||'';
   const deputyOpts = `<option value="">선택 안함</option>` + _portalUsers
     .filter(u => u.uid !== (_user?.uid||''))
-    .map(u => `<option value="${u.uid}" data-name="${u.name}" data-rank="${u.rank||''}">${u.name} ${u.rank||''}</option>`)
+    .map(u => `<option value="${u.uid}" data-name="${u.name}" data-rank="${u.rank||''}" ${u.uid===existDepUid?'selected':''}>${u.name} ${u.rank||''}</option>`)
     .join('');
+
+  // leaveSave에서 editId를 참조할 수 있도록 전역 저장
+  window._leaveEditId = _leaveEditId;
 
   el.innerHTML = `<div class="wrap2">
     <div style="display:flex;align-items:center;gap:8px;margin-bottom:16px;">
       <button onclick="renderLeaveMain()" class="back-btn">‹ 뒤로</button>
-      <span style="font-size:13px;font-weight:700;color:#1A2540;">🏖️ 연차신청서 작성</span>
+      <span style="font-size:13px;font-weight:700;color:#1A2540;">🏖️ 연차신청서 ${isEdit?'수정':'작성'}</span>
+      ${isEdit?'<span style="font-size:11px;background:#FEF3C7;color:#92400E;padding:2px 8px;border-radius:6px;font-weight:600;">✏️ 수정 중</span>':''}
     </div>
     <div class="form-card">
       <div style="margin-bottom:11px;">
@@ -788,34 +796,34 @@ window.renderLeaveWrite = async function() {
         <div style="font-size:11px;font-weight:700;color:#5C6F8A;margin-bottom:5px;">휴가 종류 <span style="color:#DC2626;">*</span></div>
         <select id="lv-type" onchange="leaveAutoTitle();leaveCalcDays();"
           style="width:100%;border:1px solid #DDE4EF;border-radius:8px;padding:9px 12px;font-size:13px;color:#1A2540;background:#FAFCFF;box-sizing:border-box;">
-          <option>연차</option><option>반차(오전)</option><option>반차(오후)</option><option>병가</option><option>기타</option>
+          ${['연차','반차(오전)','반차(오후)','병가','기타'].map(o=>`<option ${(ed?.leaveType||'연차')===o?'selected':''}>${o}</option>`).join('')}
         </select>
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:11px;">
         <div>
           <div style="font-size:11px;font-weight:700;color:#5C6F8A;margin-bottom:5px;">시작일 <span style="color:#DC2626;">*</span></div>
-          <input id="lv-start" type="date" value="${today}" onchange="leaveCalcDays();"
+          <input id="lv-start" type="date" value="${ed?.startDate||today}" onchange="leaveCalcDays();"
             style="width:100%;border:1px solid #DDE4EF;border-radius:8px;padding:9px 12px;font-size:13px;color:#1A2540;background:#FAFCFF;box-sizing:border-box;">
         </div>
         <div>
           <div style="font-size:11px;font-weight:700;color:#5C6F8A;margin-bottom:5px;">종료일 <span style="color:#DC2626;">*</span></div>
-          <input id="lv-end" type="date" value="${today}" onchange="leaveCalcDays();"
+          <input id="lv-end" type="date" value="${ed?.endDate||today}" onchange="leaveCalcDays();"
             style="width:100%;border:1px solid #DDE4EF;border-radius:8px;padding:9px 12px;font-size:13px;color:#1A2540;background:#FAFCFF;box-sizing:border-box;">
         </div>
       </div>
       <div style="margin-bottom:11px;">
         <div style="font-size:11px;font-weight:700;color:#5C6F8A;margin-bottom:5px;">일수 <span style="color:#DC2626;">*</span> <span style="color:#9AAABF;font-weight:400;">(자동 계산)</span></div>
-        <input id="lv-days" type="number" step="0.5" value="1" readonly
+        <input id="lv-days" type="number" step="0.5" value="${ed?.days||1}" readonly
           style="width:100%;border:1px solid #DDE4EF;border-radius:8px;padding:9px 12px;font-size:13px;color:#1D5BA6;font-weight:700;background:#F4F7FB;box-sizing:border-box;">
       </div>
       <div style="margin-bottom:11px;">
         <div style="font-size:11px;font-weight:700;color:#5C6F8A;margin-bottom:5px;">사유 <span style="color:#DC2626;">*</span></div>
         <textarea id="lv-reason" rows="3" placeholder="휴가 사유를 입력하세요"
-          style="width:100%;border:1px solid #DDE4EF;border-radius:8px;padding:9px 12px;font-size:13px;color:#1A2540;background:#FAFCFF;box-sizing:border-box;resize:vertical;font-family:inherit;"></textarea>
+          style="width:100%;border:1px solid #DDE4EF;border-radius:8px;padding:9px 12px;font-size:13px;color:#1A2540;background:#FAFCFF;box-sizing:border-box;resize:vertical;font-family:inherit;">${ed?.reason||''}</textarea>
       </div>
       <div style="margin-bottom:11px;">
         <div style="font-size:11px;font-weight:700;color:#5C6F8A;margin-bottom:5px;">비상연락처</div>
-        <input id="lv-contact" type="tel" placeholder="휴가 중 연락처"
+        <input id="lv-contact" type="tel" placeholder="휴가 중 연락처" value="${ed?.contact||''}"
           style="width:100%;border:1px solid #DDE4EF;border-radius:8px;padding:9px 12px;font-size:13px;color:#1A2540;background:#FAFCFF;box-sizing:border-box;">
       </div>
       <div style="margin-bottom:11px;">
@@ -897,9 +905,18 @@ window.leaveSave = async function(status) {
   };
 
   try {
-    const { addDoc, collection } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
-    await addDoc(collection(window._db,'edoc_leave'), data);
-    alert(status==='pending'?'✅ 상신 완료!':'💾 임시저장 완료');
+    const { addDoc, setDoc, doc, collection } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+    const editId = window._leaveEditId;
+    if (editId) {
+      // 수정 모드: 기존 문서 업데이트 (createdAt 유지)
+      const {createdAt:_, ...updateData} = data;
+      await setDoc(doc(window._db,'edoc_leave',editId), updateData, {merge:true});
+      window._leaveEditId = null;
+      alert(status==='pending'?'✅ 상신 완료!':'💾 수정 저장 완료');
+    } else {
+      await addDoc(collection(window._db,'edoc_leave'), data);
+      alert(status==='pending'?'✅ 상신 완료!':'💾 임시저장 완료');
+    }
     renderLeaveMain();
   } catch(e) { alert('오류: '+e.message); }
 };
@@ -1120,7 +1137,7 @@ window.docDetail = function(d, dtype) {
     </div>` : ''}
     <div style="display:flex;gap:8px;margin-bottom:10px;">
       ${canRecall ? `<button onclick="docRecall('${d.id}','${dtype}')" style="flex:1;padding:11px;background:#F59E0B;border:none;border-radius:10px;color:#fff;font-size:13px;font-weight:700;cursor:pointer;">↩️ 회수</button>` : ''}
-      ${canEdit ? `<button onclick="alert('수정 기능: 문서를 회수하여 재작성해 주세요.')" style="flex:1;padding:11px;background:#3B82F6;border:none;border-radius:10px;color:#fff;font-size:13px;font-weight:700;cursor:pointer;">✏️ 수정</button>` : ''}
+      ${canEdit ? `<button onclick="${dtype==='leave'?`renderLeaveWrite(${JSON.stringify(d).replace(/"/g,'&quot;')})`:`alert('임시저장/반려 문서는 삭제 후 재작성해 주세요.')`}" style="flex:1;padding:11px;background:#3B82F6;border:none;border-radius:10px;color:#fff;font-size:13px;font-weight:700;cursor:pointer;">✏️ 수정</button>` : ''}
       ${canDelete ? `<button onclick="docDelete('${d.id}','${dtype}')" style="flex:1;padding:11px;background:#fff;border:1px solid #DC2626;border-radius:10px;color:#DC2626;font-size:13px;font-weight:700;cursor:pointer;">🗑️ 삭제</button>` : ''}
     </div>
     <button onclick="${backFn}" class="back-btn" style="width:100%;padding:11px;text-align:center;border-radius:10px;">목록으로</button>
