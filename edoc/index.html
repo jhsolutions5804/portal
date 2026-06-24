@@ -542,7 +542,9 @@ async function renderEdocHome() {
 
         // 내가 결재라인에 있는 문서 분류
         line.forEach((step, idx) => {
-          if (step.uid !== myUid) return;
+          // uid 일치 OR uid 비어있고 이름 일치
+        const uidMatch = step.uid === myUid || (!step.uid && step.name === (_myInfo?.name||''));
+        if (!uidMatch) return;
           if (step.role === '회람' || step.role === '수신') {
             // 회람/수신: 문서가 posted거나 approved이면 수신함에
             if (data.status === 'posted' || data.status === 'approved') myInbox.push(data);
@@ -631,11 +633,12 @@ window.quickApprove = async function(docId, dtype, docData) {
     const { doc, setDoc } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
     const approverName = _myInfo?.name || _user?.displayName || '';
     const myUid = _user?.uid;
-    const line = (d.approvalLine||[]).map(s =>
-      (s.uid === myUid && s.status === 'pending' && s.role !== '회람' && s.role !== '수신')
-        ? {...s, status: choice ? 'approved' : 'rejected', approvedBy: approverName, approvedAt: new Date().toISOString()}
-        : s
-    );
+    const line = (d.approvalLine||[]).map(s => {
+      const uidMatch = s.uid === myUid || (!s.uid && s.name === approverName);
+      if (uidMatch && s.status === 'pending' && s.role !== '회람' && s.role !== '수신')
+        return {...s, uid: myUid, status: choice ? 'approved' : 'rejected', approvedBy: approverName, approvedAt: new Date().toISOString()};
+      return s;
+    });
     await setDoc(doc(db, `edoc_${dtype}`, docId), {
       status: newStatus, approvalLine: line,
       approvedBy: approverName, approvedAt: new Date().toISOString(),
@@ -908,10 +911,16 @@ window.leaveSave = async function(status) {
   if (!reason) return alert('사유를 입력해 주세요.');
   if (status==='pending' && !ap1Uid) return alert('결재1을 선택해 주세요.');
 
+  // 결재2 고정자(김종화) uid 확보
+  const ap2User = _portalUsers.find(u => u.email==='jh.kim@jhsol.kr') || {};
+  const ap2Uid = ap2User.uid || '';
+  const ap2Name = ap2User.name || '김종화';
+  const ap2Rank = ap2User.rank || '부사장';
+
   const approvalLine = [
     { role:'작성', uid:_user.uid, name:_myInfo?.name||'', rank:_myInfo?.rank||'', status:'draft' },
     { role:'결재1', uid:ap1Uid, name:ap1Name, rank:ap1Rank, status:'pending' },
-    { role:'결재2', uid:'', name:'김종화', rank:'부사장', status:'pending' },
+    { role:'결재2', uid:ap2Uid, name:ap2Name, rank:ap2Rank, status:'pending' },
   ];
   if (depUid) approvalLine.push({ role:'회람', uid:depUid, name:depName, rank:depRank, status:'pending' });
 
@@ -1089,10 +1098,11 @@ window.docDetail = function(d, dtype) {
   const isOwner = myUid && d.authorUid === myUid;
   const line = d.approvalLine || [];
 
-  // 내 결재 차례인지: 내 uid가 있고, 이전 결재 단계가 모두 approved, 내 상태가 pending
+  // 내 결재 차례인지: uid 일치 OR (uid 비어있고 이름 일치), 이전 단계 완료, 내 상태 pending
   const myStepIdx = line.findIndex((s,i) => {
-    if (s.uid !== myUid) return false;
     if (s.role === '회람' || s.role === '수신') return false;
+    const uidMatch = s.uid === myUid || (!s.uid && s.name === (_myInfo?.name||''));
+    if (!uidMatch) return false;
     const prevDone = line.slice(0,i).every(p =>
       p.role==='작성' || p.status==='approved' || p.status==='done'
     );
@@ -1207,23 +1217,25 @@ window.docApprove = async function(docId, dtype, newStatus, docData) {
     const rawData = typeof docData === 'string' ? JSON.parse(docData) : (docData||{});
     const origLine = rawData.approvalLine || [];
 
-    // 내 단계 상태 업데이트
+    // 내 단계 매칭: uid 일치 OR (uid 비어있고 이름 일치)
+    const isMyStep = (s) => {
+      if (s.role === '회람' || s.role === '수신' || s.role === '작성') return false;
+      if (s.status !== 'pending') return false;
+      return s.uid === myUid || (!s.uid && s.name === approverName);
+    };
+
     const line = origLine.map(s => {
-      if (s.uid !== myUid) return s;
-      if (s.role === '회람' || s.role === '수신') return s;
-      if (s.status === 'pending') return {...s, status: newStatus==='rejected'?'rejected':'approved', approvedBy:approverName, approvedAt:new Date().toISOString()};
-      return s;
+      if (!isMyStep(s)) return s;
+      return {...s, uid: myUid, status: newStatus==='rejected'?'rejected':'approved', approvedBy:approverName, approvedAt:new Date().toISOString()};
     });
 
-    // 문서 전체 status 결정:
-    // - 반려 → rejected
-    // - 게시 → posted
-    // - 승인: 다음 결재자가 있으면 → reviewing, 없으면(최종) → approved
+    // 문서 전체 status 결정
     let docStatus = newStatus;
     if (newStatus === 'approved') {
-      // 내 단계 이후 결재 역할이 남아있는지 확인
-      const myIdx = origLine.findIndex(s => s.uid === myUid && s.status === 'pending' && s.role !== '회람' && s.role !== '수신');
-      const hasNextApprover = origLine.slice(myIdx+1).some(s => s.role !== '회람' && s.role !== '수신' && s.role !== '작성');
+      const myIdx = origLine.findIndex(s => isMyStep(s));
+      const hasNextApprover = myIdx >= 0 && origLine.slice(myIdx+1).some(s =>
+        s.role !== '회람' && s.role !== '수신' && s.role !== '작성' && s.status === 'pending'
+      );
       docStatus = hasNextApprover ? 'reviewing' : 'approved';
     }
 
