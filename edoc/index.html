@@ -45,6 +45,8 @@ onAuthStateChanged(auth, async u => {
         const d = ps.data();
         if (d.status === 'approved' && (d.admin || (d.perms && d.perms.edoc))) {
           _isAdmin = !!d.admin;
+          // portal_users에서 읽은 정보를 _myInfo에 즉시 저장
+          _myInfo = { name: d.name||u.displayName||'', rank: d.rank||'', dept: d.dept||'', email: u.email };
           document.documentElement.classList.add('portal-embed');
           enterApp(u);
           return;
@@ -919,7 +921,9 @@ window.renderDocList = async function(dtype) {
   try {
     const { getDocs, collection } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
     const snap = await getDocs(collection(db, `edoc_${dtype}`));
-    const docs = []; snap.forEach(d=>docs.push({id:d.id,...d.data()}));
+    const allDocs = []; snap.forEach(d=>allDocs.push({id:d.id,...d.data()}));
+    // 관리자: 전체 / 일반: 본인 문서만
+    const docs = _isAdmin ? allDocs : allDocs.filter(d=>d.authorUid===_user?.uid);
     docs.sort((a,b)=>(b.createdAt?.seconds||0)-(a.createdAt?.seconds||0));
 
     const STATUS = { draft:'임시저장', pending:'결재대기', reviewing:'검토중', approved:'승인', rejected:'반려', posted:'게시' };
@@ -990,6 +994,25 @@ window.docDetail = function(d, dtype) {
       </div>
       ${rows}
     </div>
+
+    ${(d.approvalLine&&d.approvalLine.length) ? `
+    <div class="form-card" style="margin-bottom:10px;">
+      <div style="font-size:12px;font-weight:700;color:#1D5BA6;margin-bottom:10px;">✍️ 결재 라인</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        ${(d.approvalLine||[]).map(a=>{
+          const roleColor = {작성:'#5C6F8A',결재1:'#1D5BA6',결재2:'#1D5BA6',결재:'#1D5BA6',수신:'#16A34A',회람:'#9AAABF'}[a.role]||'#9AAABF';
+          const stColor = {draft:'#9AAABF',pending:'#F59E0B',done:'#16A34A',approved:'#16A34A',rejected:'#DC2626'}[a.status]||'#9AAABF';
+          const stLabel = {draft:'작성중',pending:'대기',done:'완료',approved:'승인',rejected:'반려'}[a.status]||a.status;
+          return `<div style="background:#F4F7FB;border-radius:10px;padding:8px 12px;min-width:80px;text-align:center;">
+            <div style="font-size:10px;font-weight:700;color:${roleColor};margin-bottom:3px;">${a.role}</div>
+            <div style="font-size:12px;font-weight:700;color:#1A2540;">${a.name||'미지정'}</div>
+            <div style="font-size:10px;color:#9AAABF;">${a.rank||''}</div>
+            <div style="font-size:10px;font-weight:700;color:${stColor};margin-top:3px;">${stLabel}</div>
+          </div>`;
+        }).join('<span style="align-self:center;color:#9AAABF;font-size:16px;">›</span>')}
+      </div>
+    </div>` : ''}
+
     ${canApprove ? `
     <div style="display:flex;gap:8px;margin-bottom:10px;">
       <button onclick="docApprove('${d.id}','${dtype}','approved',${JSON.stringify(d).replace(/"/g,'&quot;')})" style="flex:1;padding:12px;background:#16A34A;border:none;border-radius:10px;color:#fff;font-size:13px;font-weight:700;cursor:pointer;">✅ 승인</button>
