@@ -1002,24 +1002,26 @@ function openModule(m, tab){
   if(!m.url){ toast(`${m.name} 메뉴는 준비 중입니다.`); return; }
   _activeMod=m.key;
   _activeSub=SUBTABS[m.key] ? (tab||SUBTABS[m.key][0].key) : null;
-  $('emb-title').textContent=m.name; $('emb-title2').textContent=m.name;
   const fullUrl=m.url + (tab?('&tab='+tab):'');
-  $('emb-open').href=fullUrl; $('emb-open2').href=fullUrl;
-  const frame=$('emb-frame');
+
+  // iframe이 이미 같은 앱으로 로드된 경우 → postMessage로 탭 전환
   if (SUBTABS[m.key] && _embUrl===m.url && tab) {
-    // 이미 로드된 앱 → postMessage로 탭 전환
     try {
+      const frame=$('emb-frame');
       frame.contentWindow.postMessage({source:'jh-portal', action:'goTab', key:tab}, '*');
-    } catch(e) {
-      // postMessage 실패 시 URL로 재로드
-      frame.src = fullUrl;
-      _embUrl = m.url;
-    }
-  } else {
-    frame.src = fullUrl;
-    _embUrl = m.url;
+      document.querySelectorAll('#sb-nav .sb-group').forEach(g=>g.classList.toggle('open', g.dataset.mod===m.key));
+      showView('embed');
+      return;
+    } catch(e) {}
   }
-  // 해당 모듈 그룹만 펼침 (아코디언 유지)
+
+  // 새로 로드: iframe에 src 설정
+  const frame=$('emb-frame');
+  frame.src = fullUrl;
+  _embUrl = m.url;
+
+  $('emb-title').textContent=m.name; $('emb-title2').textContent=m.name;
+  $('emb-open').href=fullUrl; $('emb-open2').href=fullUrl;
   document.querySelectorAll('#sb-nav .sb-group').forEach(g=>g.classList.toggle('open', g.dataset.mod===m.key));
   showView('embed');
 }
