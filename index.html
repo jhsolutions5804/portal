@@ -833,7 +833,7 @@ async function loadOrg(){
       });
       const rows=list.map((u,i)=>`
         <tr>
-          <td>${String(i+1).padStart(3,'0')}</td>
+          <td>${u.empNo||String(i+1).padStart(3,'0')}</td>
           <td>${dept}</td>
           <td>${u.name||'-'}</td>
           <td>${u.rank||'-'}</td>
