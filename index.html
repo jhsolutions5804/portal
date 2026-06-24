@@ -204,10 +204,10 @@
     #p-reqs .empty, #p-perms .empty{grid-column:1/-1}
 
     /* 임베드: 사이드바 옆 전체 영역 채움 */
-    #view-embed{height:100vh}
+    #view-embed{height:100vh; display:flex; flex-direction:column;}
     .embed-top{display:none}            /* PC에선 사이드바가 내비 역할 → 상단바 숨김 */
-    .embed-frame-wrap{background:var(--bg)}
-    .embed-pad{position:absolute; inset:0; display:flex; flex-direction:column}
+    .embed-frame-wrap{flex:1; height:100%; background:var(--bg); position:relative; overflow:hidden;}
+    .embed-pad{position:absolute; top:0; left:0; right:0; bottom:0; display:flex; flex-direction:column}
     .embed-bar{display:flex; align-items:center; gap:12px; padding:12px 20px; background:var(--card); border-bottom:1px solid var(--line)}
     .embed-bar .et{font-size:15px; font-weight:700}
     .embed-bar .eo{margin-left:auto; font-size:12px; color:var(--sub); text-decoration:none; background:#f1f3f7; padding:6px 12px; border-radius:8px; font-weight:600}
