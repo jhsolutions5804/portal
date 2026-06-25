@@ -964,6 +964,7 @@ async function loadHomeKpis() {
 
     const wSnap = await getDocs(collection(window._db,'workers'));
     const workers = []; wSnap.forEach(d=>workers.push({id:d.id, ...d.data()}));
+    workers.sort((a,b)=>(a.empNo||'').localeCompare(b.empNo||''));
     const headcount = workers.length;
 
     let noAnnual = 0, renew = 0, payDone = 0;
@@ -2139,6 +2140,7 @@ window.psViewWorker = async (wid, wname) => {
     const { getDocs, collection, doc, deleteDoc } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
     const snap = await getDocs(collection(window._db, `payslips/${wid}/months`));
     const docs = []; snap.forEach(d=>docs.push({id:d.id,...d.data()}));
+    docs.sort((a,b)=>(a.empNo||'').localeCompare(b.empNo||''));
     docs.sort((a,b)=>(b.month||b.id).localeCompare(a.month||a.id));
     document.getElementById('ps-months-loading').style.display='none';
 
@@ -2226,6 +2228,7 @@ window.psViewWorker = async (wid, wname) => {
     const { getDocs, collection, doc, deleteDoc } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
     const snap = await getDocs(collection(window._db, `payslips/${wid}/months`));
     const docs = []; snap.forEach(d=>docs.push({id:d.id,...d.data()}));
+    docs.sort((a,b)=>(a.empNo||'').localeCompare(b.empNo||''));
     docs.sort((a,b)=>(b.month||b.id).localeCompare(a.month||a.id));
     document.getElementById('ps-months-loading').style.display='none';
 
@@ -2314,6 +2317,7 @@ async function getWorkersList() {
     const snap = await getDocs(collection(window._db, 'workers'));
     const docs = [];
     snap.forEach(d => docs.push({id:d.id, ...d.data()}));
+    docs.sort((a,b)=>(a.empNo||'').localeCompare(b.empNo||''));
     return docs.sort((a,b)=>(a.name||'').localeCompare(b.name||'','ko'));
   } catch(e) { return []; }
 }
@@ -2441,6 +2445,7 @@ window.renderRosterList = async () => {
     const { getDocs, collection, doc, deleteDoc, getDoc } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
     const snap = await getDocs(collection(window._db,'workers'));
     const docs = []; snap.forEach(d=>docs.push({id:d.id,...d.data()}));
+    docs.sort((a,b)=>(a.empNo||'').localeCompare(b.empNo||''));
     docs.sort((a,b)=>{
       if(a.dept!==b.dept)return(a.dept||'').localeCompare(b.dept||'','ko');
       if(a.empNo!==b.empNo)return(a.empNo||'').localeCompare(b.empNo||'');
@@ -3045,6 +3050,7 @@ window.laborViewWorker2 = async (wid, wname) => {
     const { getDocs, collection, doc, deleteDoc } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
     const snap=await getDocs(collection(window._db,`labor_contracts/${wid}/contracts`));
     const docs=[]; snap.forEach(d=>docs.push({id:d.id,...d.data()}));
+    docs.sort((a,b)=>(a.empNo||'').localeCompare(b.empNo||''));
     docs.sort((a,b)=>(b.contractDate||b.id).localeCompare(a.contractDate||a.id));
     document.getElementById('labor-contracts-loading').style.display='none';
     if(!docs.length){document.getElementById('labor-contracts-wrap').innerHTML='<div style="text-align:center;padding:32px;color:'+C2.mute+';">근로계약서가 없습니다.</div>';return;}
@@ -3380,6 +3386,7 @@ window.annualViewWorker2=async(wid,wname)=>{
     const { getDocs, collection, doc, deleteDoc }=await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
     const snap=await getDocs(collection(window._db,`annual_contracts/${wid}/contracts`));
     const docs=[]; snap.forEach(d=>docs.push({id:d.id,...d.data()}));
+    docs.sort((a,b)=>(a.empNo||'').localeCompare(b.empNo||''));
     docs.sort((a,b)=>(b.contractDate||b.id).localeCompare(a.contractDate||a.id));
     document.getElementById('annual-contracts-loading').style.display='none';
     if(!docs.length){document.getElementById('annual-contracts-wrap').innerHTML='<div style="text-align:center;padding:32px;color:'+C2.mute+';">연봉계약서가 없습니다.</div>';return;}
@@ -3449,9 +3456,9 @@ async function otGetWorkerList() {
     const list = [];
     snap.forEach(d => {
       const w = d.data();
-      list.push({ id: d.id, name: w.name, rank: w.rank || '' });
+      list.push({ id: d.id, name: w.name, rank: w.rank || '', empNo: w.empNo || '' });
     });
-    list.sort((a,b) => a.name.localeCompare(b.name, 'ko'));
+    list.sort((a,b) => (a.empNo||'').localeCompare(b.empNo||''));
     return list;
   } catch(e) { return []; }
 }
@@ -3976,6 +3983,7 @@ window.renderLeaveStatusMain = async () => {
     const wSnap = await getDocs(collection(window._db,'workers'));
     const workers = [];
     wSnap.forEach(w => workers.push({ id:w.id, ...w.data() }));
+    workers.sort((a,b)=>(a.empNo||'').localeCompare(b.empNo||''));
     // 2) 연차신청서 (게시/승인된 것만 사용일수 집계)
     const lvSnap = await getDocs(collection(window._db,'edoc_leave'));
     const leaves = [];
