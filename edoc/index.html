@@ -148,6 +148,8 @@ window.edocShowList = function(kind) {
   const TYPE_LABEL = { daily:'업무일지', leave:'연차신청서', resign:'퇴직원서', cert:'재직증명서', purchase:'구매품의서', expense:'지출결의서' };
   const STATUS_LABEL = { draft:'임시저장', pending:'결재대기', reviewing:'검토중', approved:'승인', rejected:'반려', posted:'게시' };
   const STATUS_COLOR = { draft:'#9AAABF', pending:'#F59E0B', reviewing:'#1D5BA6', approved:'#16A34A', rejected:'#DC2626', posted:'#16A34A' };
+  const STATUS_BG = { draft:'#F1EFE8', pending:'#FAEEDA', reviewing:'#E6F1FB', approved:'#EAF3DE', rejected:'#FCEBEB', posted:'#E1F5EE' };
+  const STATUS_FG = { draft:'#444441', pending:'#633806', reviewing:'#0C447C', approved:'#27500A', rejected:'#791F1F', posted:'#085041' };
   const arr = lists[kind] || [];
 
   const fmtD = (ts) => {
@@ -156,13 +158,22 @@ window.edocShowList = function(kind) {
     return `${d.getMonth()+1}월 ${d.getDate()}일`;
   };
 
+  const authorOf = (d) => {
+    const nm = d.authorName || '';
+    const rk = d.authorRank || '';
+    const ty = TYPE_LABEL[d.dtype] || d.dtype;
+    return ty + (nm ? ' · ' + nm + (rk ? ' ' + rk : '') : '');
+  };
   const rows = arr.length ? arr.map(d => `
-    <div class="elist-row" onclick="edocCloseList();openDocFromHome(${JSON.stringify(d).replace(/"/g,'&quot;')})">
-      <span class="doc-badge ${d.status==='posted'?'posted':''}">${TYPE_LABEL[d.dtype]||d.dtype}</span>
-      <span class="doc-title">${d.title||'(제목없음)'}</span>
-      <span style="font-size:11px;font-weight:700;color:${STATUS_COLOR[d.status]||'#9AAABF'};white-space:nowrap;">${STATUS_LABEL[d.status]||d.status}</span>
-      <span class="doc-date">${fmtD(d.createdAt)}</span>
-    </div>`).join('') : `<div class="panel-empty" style="padding:40px;text-align:center;">${EMPTY[kind]||'문서가 없습니다'}</div>`;
+    <div class="elist-rowB" onclick="edocCloseList();openDocFromHome(${JSON.stringify(d).replace(/"/g,'&quot;')})" style="display:flex;align-items:center;gap:12px;padding:13px 18px;border-bottom:1px solid #EEF2F7;cursor:pointer;" onmouseover="this.style.background='#F7F9FC'" onmouseout="this.style.background='transparent'">
+      <span style="flex-shrink:0;font-size:11px;font-weight:600;padding:4px 10px;border-radius:7px;background:${STATUS_BG[d.status]||'#F1EFE8'};color:${STATUS_FG[d.status]||'#444441'};white-space:nowrap;">${STATUS_LABEL[d.status]||d.status}</span>
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:13px;font-weight:600;color:#1A2540;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${d.title||'(제목없음)'}</div>
+        <div style="font-size:11px;color:#5C6F8A;margin-top:3px;">${authorOf(d)}</div>
+      </div>
+      <span style="flex-shrink:0;font-size:11px;color:#9AAABF;">${fmtD(d.createdAt)}</span>
+      <span style="flex-shrink:0;font-size:15px;color:#C5CEDB;">›</span>
+    </div>`).join('') : `<div class="panel-empty" style="padding:48px;text-align:center;color:#9AAABF;font-size:13px;">${EMPTY[kind]||'문서가 없습니다'}</div>`;
 
   let modal = document.getElementById('edoc-list-modal');
   if (!modal) {
@@ -758,7 +769,7 @@ async function renderEdocHome() {
     // KPI
     const kpi = document.getElementById('edoc-home-kpi');
     if (kpi) kpi.innerHTML = `
-      <div class="kpi-card warn" onclick="goTab('approve')" style="cursor:pointer;"><div class="kpi-label">결재 요청</div><div class="kpi-val">${myApprove.length}<span class="kpi-unit">건</span></div><div class="kpi-link">확인하기 ›</div></div>
+      <div class="kpi-card warn" onclick="edocShowList('approve')" style="cursor:pointer;"><div class="kpi-label">결재 요청</div><div class="kpi-val">${myApprove.length}<span class="kpi-unit">건</span></div><div class="kpi-link">확인하기 ›</div></div>
       <div class="kpi-card" onclick="edocShowList('inbox')" style="cursor:pointer;"><div class="kpi-label">수신함</div><div class="kpi-val">${myInbox.length}<span class="kpi-unit">건</span></div><div class="kpi-link">보러가기 ›</div></div>
       <div class="kpi-card" onclick="edocShowList('mydocs')" style="cursor:pointer;"><div class="kpi-label">내 문서</div><div class="kpi-val">${myDocs.length}<span class="kpi-unit">건</span></div><div class="kpi-link">전체 보기 ›</div></div>
       <div class="kpi-card" onclick="edocShowList('posted')" style="cursor:pointer;"><div class="kpi-label">게시 문건</div><div class="kpi-val">${postedAll.length}<span class="kpi-unit">건</span></div><div class="kpi-link">조회하기 ›</div></div>`;
