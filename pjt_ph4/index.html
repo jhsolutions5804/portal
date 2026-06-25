@@ -685,8 +685,9 @@ body{font-family:-apple-system,'Apple SD Gothic Neo','Pretendard',sans-serif;bac
         <button onclick="goProgToday()" style="font-size:11px;font-weight:600;color:#1D5BA6;background:#e8f0fb;border:none;border-radius:8px;padding:5px 10px;cursor:pointer;white-space:nowrap;margin-left:4px">오늘</button>
       </div>
       <!-- 읽기전용 배너 -->
-      <div id="prog-readonly-banner" style="display:none;align-items:center;gap:6px;background:#fff8e8;border:1px solid #ffe082;border-radius:10px;padding:8px 12px;margin-bottom:12px;font-size:12px;color:#7a5c00">
-        📅 과거 기록 조회 중 — 체크는 오늘 날짜에서만 가능해요
+      <div id="prog-readonly-banner" style="display:none;align-items:center;justify-content:space-between;gap:6px;background:#fff8e8;border:1px solid #ffe082;border-radius:10px;padding:8px 12px;margin-bottom:12px;font-size:12px;color:#7a5c00">
+        <span id="prog-banner-text">📅 과거 기록 조회 중 — 체크는 오늘 날짜에서만 가능해요</span>
+        <button onclick="toggleProgEditMode()" id="prog-edit-btn" style="font-size:11px;padding:4px 12px;background:#fff;border:1px solid #e0a800;border-radius:8px;cursor:pointer;color:#7a5c00;font-weight:600;white-space:nowrap">✏️ 수정 모드</button>
       </div>
       <div class="ref-date" id="prog-ref-date"></div>
       <div class="total-card">
@@ -908,8 +909,7 @@ window._fbAddWorker = async function(name, role){
 };
 
 window._fbDeleteWorker = async function(workerId){
-  if(!confirm('이 기술인을 명단에서 제거할까요?
-(기존 공수·출역 데이터는 유지됩니다)')) return;
+  if(!confirm('이 기술인을 명단에서 제거할까요?\n(기존 공수·출역 데이터는 유지됩니다)')) return;
   try{
     await deleteDoc(doc(db, WORKERS_COLLECTION, workerId));
     await window._fbLoadWorkers();
@@ -1846,6 +1846,11 @@ function changeMonth(dir){curMonth+=dir;if(curMonth>11){curMonth=0;curYear++;}if
 let progDayOffset=0;
 function getProgDate(){const b=getAppToday();b.setDate(b.getDate()+progDayOffset);return b;}
 function isProgToday(){return progDayOffset===0;}
+window._progEditMode=false;
+window.toggleProgEditMode=function(){
+  window._progEditMode=!window._progEditMode;
+  initProgress();
+};
 window.changeProgDay=function(dir){progDayOffset+=dir;initProgress();};
 window.goProgToday=function(){progDayOffset=0;initProgress();};
 
@@ -1856,7 +1861,23 @@ function initProgress(){
   document.getElementById('prog-date-label').textContent=(d.getMonth()+1)+'월 '+d.getDate()+'일('+days[d.getDay()]+')';
   document.getElementById('prog-week-label').textContent='W'+getWeekNum(d)+(isProgToday()?' · 오늘':'');
   document.getElementById('prog-ref-date').textContent='기준일: '+dateKey;
-  document.getElementById('prog-readonly-banner').style.display=isProgToday()?'none':'flex';
+  var _roBanner=document.getElementById('prog-readonly-banner');
+  _roBanner.style.display=isProgToday()?'none':'flex';
+  if(!isProgToday()){
+    var _bt=document.getElementById('prog-banner-text');
+    var _be=document.getElementById('prog-edit-btn');
+    if(window._progEditMode){
+      if(_bt) _bt.textContent='✏️ 수정 모드 — 과거 기록을 변경할 수 있습니다';
+      if(_be){ _be.textContent='✓ 수정 완료'; _be.style.background='#16A34A'; _be.style.color='#fff'; _be.style.borderColor='#16A34A'; }
+      _roBanner.style.background='#e8f5e9'; _roBanner.style.borderColor='#16A34A'; _roBanner.style.color='#1b5e20';
+    } else {
+      if(_bt) _bt.textContent='📅 과거 기록 조회 중 — 체크는 오늘 날짜에서만 가능해요';
+      if(_be){ _be.textContent='✏️ 수정 모드'; _be.style.background='#fff'; _be.style.color='#7a5c00'; _be.style.borderColor='#e0a800'; }
+      _roBanner.style.background='#fff8e8'; _roBanner.style.borderColor='#ffe082'; _roBanner.style.color='#7a5c00';
+    }
+  } else {
+    window._progEditMode=false; // 오늘로 돌아오면 수정모드 해제
+  }
   if(window._fbSubscribeProgress)window._fbSubscribeProgress(dateKey);
   renderProgress();
 }
@@ -1940,11 +1961,11 @@ function buildCheckTable(z,cksObj){
       // 오늘: 파란색(done) or 빈칸(클릭가능)
       // 이전: 회색(done, 읽기전용)
       // 과거 날짜 조회: 전부 읽기전용
-      const ro=isPast||!isToday;
+      const ro=(isPast||!isToday)&&!window._progEditMode; // 수정모드면 과거도 가능
       let cls='cbox';
       if(done&&isNew)cls+=' done';       // 오늘 체크 → 파란색
       else if(done&&isPast)cls+=' past'; // 과거 체크 → 회색
-      const click=isToday&&!isPast?` onclick="toggleCkProg('${z.id}','${eq}','${c}',this)"`:'';
+      const click=((isToday&&!isPast)||window._progEditMode)?` onclick="toggleCkProg('${z.id}','${eq}','${c}',this)"`:'';
       return`<td><div class="${cls}"${click}></div></td>`;
     }).join('');
     return`<tr><td><div>${eq}</div><div class="eq-pct">${pct}%</div><div class="eq-pct-bar"><div class="eq-pct-fill" style="width:${pct}%"></div></div></td>${checks}</tr>`;
@@ -2050,7 +2071,7 @@ const LEAVE_BG_MAP={'annual':'#ffeaea','half-am':'#fff3e0','half-pm':'#f3f0ff'};
 
 // 기술인 명단
 // 기술인 명단: 코드 기본값 (Firebase 없을 때 fallback)
-const WORKERS_FALLBACK=[]; // P4 Ph4: 근태탭에서 직접 입력
+const WORKERS_FALLBACK=[];
 window._dynamicWorkers = null; // Firebase 로드 후 채워짐
 
 // 현재 활성 기술인 명단 반환
