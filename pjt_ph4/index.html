@@ -940,24 +940,63 @@ window._mandayCache = window._mandayCache || {};
 window._checkCache = window._checkCache || {};
 window._progCache = window._progCache || {};
 (function(){
-  const _pNow = new Date();
-  const _pY = _pNow.getFullYear();
-  const _pM = _pNow.getMonth(); // 0-indexed
-  const _pMs = String(_pM+1).padStart(2,'0');
-  const _pDays = new Date(_pY, _pM+1, 0).getDate();
-  const _pTasks = [];
-  for(let _pd=1; _pd<=_pDays; _pd++){
-    const _pKey = _pY+'-'+_pMs+'-'+String(_pd).padStart(2,'0');
-    _pTasks.push(
-      getDoc(doc(db,'ph4_manday',_pKey))
-        .then(snap=>{ window._mandayCache[_pKey]=snap.exists()?(snap.data().md||{}):{};})
-        .catch(()=>{})
-    );
+  // 공수 preload: 시작일~오늘 전체 범위 (과거 달 공수도 누적·집계 반영)
+  var _msd=''; try{ _msd=localStorage.getItem('ph4_pjt_start_date')||''; }catch(e){}
+  var _mToday=(typeof getAppToday==='function')?getAppToday():new Date();
+  var _mStart=_msd?new Date(_msd+'T12:00:00'):new Date(_mToday.getFullYear(),0,1);
+  var _mMax=new Date(_mToday); _mMax.setDate(_mMax.getDate()-200);
+  if(_mStart<_mMax) _mStart=_mMax;
+  var _mp=function(n){return String(n).padStart(2,'0');};
+  const _pTasks=[];
+  for(var _md=new Date(_mStart); _md<=_mToday; _md.setDate(_md.getDate()+1)){
+    var _pKey=_md.getFullYear()+'-'+_mp(_md.getMonth()+1)+'-'+_mp(_md.getDate());
+    (function(pKey){
+      _pTasks.push(
+        getDoc(doc(db,'ph4_manday',pKey))
+          .then(snap=>{ window._mandayCache[pKey]=snap.exists()?(snap.data().md||{}):{};})
+          .catch(()=>{})
+      );
+    })(_pKey);
   }
   Promise.all(_pTasks).then(()=>{
     if(typeof window._updateHomeKPI==='function') window._updateHomeKPI();
   });
 })();
+
+// ===== 공정 데이터 자동 preload (홈/정산 공정율 표시용 - _progCache 미리 로드) =====
+// ZONES 정의 이후 실행되도록 지연 (module 평가 순서 대응)
+setTimeout(function(){
+  window._progCache = window._progCache || {};
+  // 시작일~오늘 범위의 모든 날짜 × 모든 zone 공정 체크를 미리 로드
+  var _sdStr = '';
+  try { _sdStr = localStorage.getItem('ph4_pjt_start_date') || ''; } catch(e){}
+  var _today = (typeof getAppToday==='function') ? getAppToday() : new Date();
+  var _start = _sdStr ? new Date(_sdStr+'T12:00:00') : new Date(_today.getFullYear(),0,1);
+  // 과도 조회 방지: 최대 200일
+  var _maxDays = 200;
+  var _earliest = new Date(_today); _earliest.setDate(_earliest.getDate()-_maxDays);
+  if(_start < _earliest) _start = _earliest;
+  var _zoneIds = (typeof ZONES!=='undefined') ? ZONES.map(function(z){return z.id;}) : [];
+  var _pad = function(n){ return String(n).padStart(2,'0'); };
+  var _gTasks = [];
+  for(var _d=new Date(_start); _d<=_today; _d.setDate(_d.getDate()+1)){
+    var _gk = _d.getFullYear()+'-'+_pad(_d.getMonth()+1)+'-'+_pad(_d.getDate());
+    (function(gk){
+      window._progCache[gk] = window._progCache[gk] || {};
+      _zoneIds.forEach(function(zid){
+        _gTasks.push(
+          getDoc(doc(db,'ph4_progress_'+gk, zid))
+            .then(function(snap){ window._progCache[gk][zid] = snap.exists()?(snap.data().checks||{}):{}; })
+            .catch(function(){ window._progCache[gk][zid] = window._progCache[gk][zid]||{}; })
+        );
+      });
+    })(_gk);
+  }
+  Promise.all(_gTasks).then(function(){
+    if(typeof window._updateHomeKPI==='function') window._updateHomeKPI();
+    if(typeof window._renderProgressUI==='function') window._renderProgressUI();
+  });
+}, 0);
 
 // ===== 체크 데이터 다중 날짜 일괄 조회 =====
 window._fbPreloadChecks = async function(keys){
