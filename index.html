@@ -327,7 +327,7 @@
           <button class="back" onclick="showView('home')" style="font-size:13px;">← 포털 홈</button>
           <h2 style="margin:0; font-size:18px; font-weight:800; color:#1A2540;">🏗️ PJT 관리</h2>
         </div>
-        <div id="pjt-home-cards" style="display:grid; grid-template-columns:repeat(auto-fill,minmax(260px,1fr)); gap:16px; margin-bottom:24px;"></div>
+        <div id="pjt-home-cards" style="display:grid; grid-template-columns:repeat(2,1fr); gap:20px; margin-bottom:24px;"></div>
       </div>
     </section>
 
@@ -600,25 +600,30 @@ function renderPjtHomeCards(){
   el.innerHTML='';
   PJT_SUBTABS.filter(st=>st.key!=='pjt_home').forEach(st=>{
     const card=document.createElement('div');
-    card.style.cssText='background:#fff;border:1px solid #dde4ef;border-radius:14px;padding:20px;cursor:pointer;transition:.15s';
+    card.style.cssText='background:#fff;border:1px solid #dde4ef;border-radius:14px;padding:22px 24px;cursor:pointer;transition:.15s';
     card.onmouseover=function(){this.style.borderColor='var(--blue)';this.style.boxShadow='0 2px 12px rgba(0,0,0,.08)'};
     card.onmouseout=function(){this.style.borderColor='#dde4ef';this.style.boxShadow=''};
     card.innerHTML=
-      '<div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">'
-      +'<span style="font-size:24px">'+st.emoji+'</span>'
-      +'<div><div style="font-size:15px;font-weight:700;color:#1A2540">'+st.name+'</div>'
-      +'<div style="font-size:11px;color:#5C6F8A;margin-top:2px">'+st.desc+'</div></div></div>'
-      +'<div id="pjt-kpi-'+st.key+'" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">'
-      +'<div style="background:#f4f7fb;border-radius:8px;padding:10px;text-align:center"><div style="font-size:18px;font-weight:800;color:#1D5BA6" id="kpi-pct-'+st.key+'">—</div><div style="font-size:10px;color:#86868b;margin-top:2px">공정율</div></div>'
-      +'<div style="background:#f4f7fb;border-radius:8px;padding:10px;text-align:center"><div style="font-size:18px;font-weight:800;color:#1A2540" id="kpi-day-'+st.key+'">—</div><div style="font-size:10px;color:#86868b;margin-top:2px">D+</div></div>'
-      +'<div style="background:#f4f7fb;border-radius:8px;padding:10px;text-align:center"><div style="font-size:18px;font-weight:800;color:#1D5BA6" id="kpi-md-'+st.key+'">—</div><div style="font-size:10px;color:#86868b;margin-top:2px">누적공수</div></div>'
+      '<div style="display:flex;align-items:center;gap:14px;margin-bottom:16px">'
+      +'<span style="font-size:32px">'+st.emoji+'</span>'
+      +'<div><div style="font-size:17px;font-weight:700;color:#1A2540">'+st.name+'</div>'
+      +'<div style="font-size:12px;color:#5C6F8A;margin-top:3px">'+st.desc+'</div></div>'
+      +'<button onclick="event.stopPropagation()" style="margin-left:auto;padding:8px 18px;background:#1D5BA6;color:#fff;border:none;border-radius:9px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;white-space:nowrap">바로가기 →</button>'
       +'</div>'
-      +'<button onclick="event.stopPropagation()" style="margin-top:12px;width:100%;padding:8px;background:#1D5BA6;color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit">바로가기 →</button>';
-    card.querySelector('button').onclick=function(){
+      +'<div id="pjt-kpi-'+st.key+'" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">'
+      +'<div style="background:#f4f7fb;border-radius:10px;padding:12px 16px;display:flex;align-items:center;justify-content:space-between"><div><div style="font-size:22px;font-weight:800;color:#1D5BA6" id="kpi-pct-'+st.key+'">—</div><div style="font-size:10px;color:#86868b;margin-top:2px">전체 공정율</div></div></div>'
+      +'<div style="background:#f4f7fb;border-radius:10px;padding:12px 16px;display:flex;align-items:center;justify-content:space-between"><div><div style="font-size:22px;font-weight:800;color:#1A2540" id="kpi-day-'+st.key+'">—</div><div style="font-size:10px;color:#86868b;margin-top:2px">프로젝트 D+</div></div></div>'
+      +'<div style="background:#f4f7fb;border-radius:10px;padding:12px 16px;display:flex;align-items:center;justify-content:space-between"><div><div style="font-size:22px;font-weight:800;color:#1D5BA6" id="kpi-md-'+st.key+'">—</div><div style="font-size:10px;color:#86868b;margin-top:2px">이달 누적공수</div></div></div>'
+      +'</div>';
+    card.querySelector('button').onclick=function(e){
+      e.stopPropagation();
       const m=MODULES.find(x=>x.key==='pjt');
-      if(m) openModule(m, st.key, st.url||null);
+      if(m && st.url) openModule(m, 'home', st.url);
     };
-    card.onclick=function(){ const m=MODULES.find(x=>x.key==='pjt'); if(m) openModule(m, st.key, st.url||null); };
+    card.onclick=function(){
+      const m=MODULES.find(x=>x.key==='pjt');
+      if(m && st.url) openModule(m, 'home', st.url);
+    };
     el.appendChild(card);
     // 시작일 D+ 계산
     const startKey='pjt_start_'+st.key;
