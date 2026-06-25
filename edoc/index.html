@@ -900,14 +900,14 @@ const DOC_CONFIG = {
     { key:'reason',    label:'퇴직 사유',   type:'textarea', ph:'퇴직 사유를 입력하세요' },
   ]},
   cert:     { label:'재직증명서', icon:'🪪',
-    approvers:['김종화','김영희'], cc:[],
+    approvers:['김종화'], cc:[],
     fields:[
     { key:'purpose',   label:'용도',   type:'text', ph:'예) 금융기관 제출용' },
     { key:'language',  label:'발급 언어', type:'select', opts:['한국어','영문(English)'] },
     { key:'copies',    label:'부수',   type:'number', ph:'1' },
   ]},
   purchase: { label:'구매품의서', icon:'🛒',
-    approvers:['김종화','김영희'], cc:[],
+    approvers:['김종화'], cc:[],
     fields:[
     { key:'item',      label:'구매 품목',   type:'text',   ph:'품목명을 입력하세요' },
     { key:'qty',       label:'수량',        type:'number', ph:'1' },
@@ -917,7 +917,7 @@ const DOC_CONFIG = {
     { key:'dueDate',   label:'필요일',      type:'date' },
   ]},
   expense:  { label:'지출결의서', icon:'💳',
-    approvers:['김종화','김영희'], cc:[],
+    approvers:['김종화'], cc:[],
     fields:[
     { key:'expDate',   label:'지출일',      type:'date' },
     { key:'category',  label:'지출 구분',   type:'select', opts:['식대','교통비','소모품','공구/자재','접대비','기타'] },
@@ -947,6 +947,7 @@ function renderDocMain(dtype) {
     </div>
   </div>`;
 }
+window.renderDocMain = renderDocMain;
 
 // ══════════════════════════════════════════════
 // 연차신청서 전용 모듈
@@ -1339,8 +1340,12 @@ window.renderDocList = async function(dtype) {
   </div>`;
 
   try {
+    console.log('[renderDocList] 시작:', dtype, 'db:', !!db, 'window._db:', !!window._db);
     const { getDocs, collection } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
-    const snap = await getDocs(collection(db, `edoc_${dtype}`));
+    console.log('[renderDocList] firestore import 완료');
+    const dbRef = window._db || db;
+    const snap = await getDocs(collection(dbRef, `edoc_${dtype}`));
+    console.log('[renderDocList] getDocs 완료, 문서수:', snap.size);
     const allDocs = []; snap.forEach(d=>allDocs.push({id:d.id,...d.data()}));
     const myUid = _user?.uid;
     // 볼 수 있는 문서:
