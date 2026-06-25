@@ -1204,6 +1204,11 @@ window.docDetail = function(d, dtype) {
     return prevDone && s.status === 'pending';
   });
   const isMyTurn = myStepIdx >= 0 && (d.status==='pending'||d.status==='reviewing');
+  console.log('[결재디버그]', {
+    myUid, myName: _myInfo?.name, docStatus: d.status,
+    line: line.map(s=>({role:s.role, name:s.name, uid:s.uid, status:s.status})),
+    myStepIdx, isMyTurn, isOwner
+  });
 
   // 최종 결재자: 회람/수신/작성 제외하고 마지막 결재 역할
   const approverSteps = line.filter(s => s.role!=='회람' && s.role!=='수신' && s.role!=='작성');
