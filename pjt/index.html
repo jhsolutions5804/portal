@@ -2092,8 +2092,9 @@ function initProgress(){
   renderProgress();
 }
 
-function getCksProg(zoneId){
-  const dateKey=toKey(getProgDate());
+function getCksProg(zoneId, useToday){
+  // useToday=true이면 항상 오늘 기준 누적 (공정율 계산용)
+  const dateKey=useToday?toKey(getAppToday()):toKey(getProgDate());
   if(window._fbGetProgChecks){
     const r=window._fbGetProgChecks(dateKey,zoneId);
     return r; // {merged, todayOnly, pastOnly}
@@ -2127,7 +2128,7 @@ function calcZone(z,cksObj){
 function updateProgressGlobal(){
   let grandChecked=0,grandMax=0,totalIn=0,totalInst=0;
   ZONES.forEach(z=>{
-    const cksObj=getCksProg(z.id);
+    const cksObj=getCksProg(z.id, true); // 공정율은 항상 오늘 기준
     const r=calcZone(z,cksObj);
     grandChecked+=r.totalChecked;grandMax+=r.mx;totalIn+=r.zIn;
     totalInst+=r.instDone;
@@ -2248,7 +2249,10 @@ function renderProgress(){
   list.innerHTML='';
   ZONES.forEach(z=>{
     const cksObj=getCksProg(z.id);
-    const{zIn,zAn,instBarPct,instLabel,zChk,pct}=calcZone(z,cksObj);
+    const{zIn,zAn,instBarPct,instLabel,zChk}=calcZone(z,cksObj);
+    // 섹터 공정율(%)은 항상 오늘 기준
+    const todayCks=getCksProg(z.id, true);
+    const pct=calcZone(z,todayCks).pct;
     const wasOpen=openIds.includes(z.id);
     const card=document.createElement('div');
     card.className='zone-card'+(wasOpen?' open':'');card.id='zone-'+z.id;
@@ -2977,7 +2981,7 @@ window.openProgPanel=function(zoneId){
   var z=(typeof ZONES!=='undefined')?ZONES.find(function(z){return z.id===zoneId;}):null;
   if(!z) return;
   var cksObj=getCksProg(zoneId);
-  var pct=calcZone(z,cksObj).pct;
+  var pct=calcZone(z, getCksProg(zoneId, true)).pct; // 공정율은 오늘 기준
   // selected 클래스 토글
   document.querySelectorAll('#zone-list .zone-card').forEach(function(el){
     el.classList.toggle('selected',el.id==='zone-'+zoneId);
