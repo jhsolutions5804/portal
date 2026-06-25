@@ -1292,11 +1292,13 @@ window._fbSubscribeProgress = async function(dateKey) {
   function prevDays(key, count) {
     const days=[];
     const d=new Date(key+'T12:00:00');
+    // PAST_DATES 고정 데이터의 마지막 날짜 (없으면 null → 모든 과거일 로드)
+    const lastFixed = (typeof PAST_DATES!=='undefined' && PAST_DATES.length) ? PAST_DATES[PAST_DATES.length-1] : null;
     for(let i=1;i<=count;i++){
       const p=new Date(d); p.setDate(d.getDate()-i);
       const pk=p.getFullYear()+'-'+pad(p.getMonth()+1)+'-'+pad(p.getDate());
-      if(pk>PAST_DATES[PAST_DATES.length-1]) days.push(pk);
-      else break;
+      // 고정 데이터가 없으면(null) 무조건 로드, 있으면 고정데이터 이후 날짜만 Firebase에서 로드
+      if(lastFixed===null || pk>lastFixed) days.push(pk);
     }
     return days;
   }
