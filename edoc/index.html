@@ -565,6 +565,9 @@ window.renderDailyDetail = function(d) {
       ${canRecall ? `<button onclick="docRecall('${d.id}','daily')" style="flex:1;padding:11px;background:#F59E0B;border:none;border-radius:10px;color:#fff;font-size:13px;font-weight:700;cursor:pointer;">↩️ 회수</button>` : ''}
       ${canDelete ? `<button onclick="docDelete('${d.id}','daily')" style="flex:1;padding:11px;background:#fff;border:1px solid #DC2626;border-radius:10px;color:#DC2626;font-size:13px;font-weight:700;cursor:pointer;">🗑️ 삭제</button>` : ''}
     </div>`:''}
+    <div style="margin-bottom:10px;">
+      <button onclick='printDocA4(${JSON.stringify(d).replace(/'/g,"&#39;")}, "daily")' style="width:100%;padding:12px;background:#fff;border:1px solid #1D5BA6;border-radius:12px;color:#1D5BA6;font-size:13px;font-weight:700;cursor:pointer;">🖨️ A4 출력 / PDF 저장</button>
+    </div>
     <button onclick="renderDailyList()" class="back-btn" style="width:100%;padding:11px;text-align:center;border-radius:10px;">목록으로</button>
   </div>`;
 };
@@ -890,16 +893,22 @@ const DOC_CONFIG = {
     { key:'reason',    label:'사유',   type:'textarea', ph:'휴가 사유를 입력하세요' },
     { key:'contact',   label:'비상연락처', type:'text', ph:'휴가 중 연락처' },
   ]},
-  resign:   { label:'퇴직원서',   icon:'📤', fields:[
+  resign:   { label:'퇴직원서',   icon:'📤',
+    approvers:['김종화','김영희','송지훈'], cc:['김민서'],
+    fields:[
     { key:'lastDate',  label:'퇴직 예정일', type:'date' },
     { key:'reason',    label:'퇴직 사유',   type:'textarea', ph:'퇴직 사유를 입력하세요' },
   ]},
-  cert:     { label:'재직증명서', icon:'🪪', fields:[
+  cert:     { label:'재직증명서', icon:'🪪',
+    approvers:['김종화','김영희'], cc:[],
+    fields:[
     { key:'purpose',   label:'용도',   type:'text', ph:'예) 금융기관 제출용' },
     { key:'language',  label:'발급 언어', type:'select', opts:['한국어','영문(English)'] },
     { key:'copies',    label:'부수',   type:'number', ph:'1' },
   ]},
-  purchase: { label:'구매품의서', icon:'🛒', fields:[
+  purchase: { label:'구매품의서', icon:'🛒',
+    approvers:['김종화','김영희'], cc:[],
+    fields:[
     { key:'item',      label:'구매 품목',   type:'text',   ph:'품목명을 입력하세요' },
     { key:'qty',       label:'수량',        type:'number', ph:'1' },
     { key:'unitPrice', label:'단가 (원)',    type:'number', ph:'0' },
@@ -907,7 +916,9 @@ const DOC_CONFIG = {
     { key:'purpose',   label:'구매 목적',   type:'textarea', ph:'구매 필요 사유' },
     { key:'dueDate',   label:'필요일',      type:'date' },
   ]},
-  expense:  { label:'지출결의서', icon:'💳', fields:[
+  expense:  { label:'지출결의서', icon:'💳',
+    approvers:['김종화','김영희'], cc:[],
+    fields:[
     { key:'expDate',   label:'지출일',      type:'date' },
     { key:'category',  label:'지출 구분',   type:'select', opts:['식대','교통비','소모품','공구/자재','접대비','기타'] },
     { key:'amount',    label:'금액 (원)',    type:'number', ph:'0' },
@@ -952,6 +963,33 @@ async function loadPortalUsers() {
     snap.forEach(d => _portalUsers.push({uid:d.id,...d.data()}));
     _portalUsers.sort((a,b)=>(a.empNo||'').localeCompare(b.empNo||'','ko',{numeric:true}));
   } catch(e) { console.warn('loadPortalUsers:', e.message); }
+}
+
+// 이름으로 portal_user 찾기 (결재라인 고정자 지정용)
+function findUserByName(name) {
+  const u = _portalUsers.find(u => u.name === name);
+  return u ? { uid:u.uid, name:u.name, rank:u.rank||'' } : { uid:'', name, rank:'' };
+}
+
+// 문서별 고정 결재라인 생성 (연차신청서와 동일한 회람 방식)
+// 반환: approvalLine 배열 (작성=본인 + 지정된 결재자/회람)
+function buildFixedApprovalLine(dtype) {
+  // 작성 단계 (본인)
+  const line = [
+    { role:'작성', uid:_user.uid, name:_myInfo?.name||'', rank:_myInfo?.rank||'', status:'draft' },
+  ];
+  const cfg = DOC_CONFIG[dtype] || {};
+  const approvers = cfg.approvers || [];  // 결재자 이름 배열
+  const ccList = cfg.cc || [];            // 회람 이름 배열
+  approvers.forEach((nm, i) => {
+    const u = findUserByName(nm);
+    line.push({ role: approvers.length>1?`결재${i+1}`:'결재', uid:u.uid, name:u.name, rank:u.rank, status:'pending' });
+  });
+  ccList.forEach(nm => {
+    const u = findUserByName(nm);
+    line.push({ role:'회람', uid:u.uid, name:u.name, rank:u.rank, status:'pending' });
+  });
+  return line;
 }
 
 function calcLeaveDays(startDate, endDate, leaveType) {
@@ -1235,12 +1273,26 @@ window.renderDocWrite = function(dtype) {
     </div>
     <div style="background:#EEF4FB;border-radius:10px;padding:11px 13px;font-size:11.5px;color:#1D5BA6;margin-bottom:14px;line-height:1.6;">
       💡 상신 후 관리자 결재 → 승인 시 게시 문건으로 이동합니다.
+      <div id="doc-apline-preview" style="margin-top:6px;color:#5C6F8A;"></div>
     </div>
     <div style="display:flex;gap:8px;">
       <button onclick="docSave('${dtype}','draft')" style="flex:1;padding:13px;background:#6B7280;border:none;border-radius:12px;color:#fff;font-size:13px;font-weight:700;cursor:pointer;">💾 임시저장</button>
       <button onclick="docSave('${dtype}','pending')" style="flex:1;padding:13px;background:#1D5BA6;border:none;border-radius:12px;color:#fff;font-size:13px;font-weight:700;cursor:pointer;">📨 상신</button>
     </div>
   </div>`;
+
+  // 결재라인 미리보기 표시
+  (async () => {
+    await loadPortalUsers();
+    const prev = document.getElementById('doc-apline-preview');
+    if (!prev) return;
+    const apps = cfg.approvers || [];
+    const ccs = cfg.cc || [];
+    if (!apps.length && !ccs.length) { prev.textContent = ''; return; }
+    let txt = '📋 결재선: ' + [myName||'(본인)', ...apps].join(' → ');
+    if (ccs.length) txt += '  |  회람: ' + ccs.join(', ');
+    prev.textContent = txt;
+  })();
 };
 
 window.docSave = async function(dtype, status) {
@@ -1249,7 +1301,19 @@ window.docSave = async function(dtype, status) {
   const title = document.getElementById('f-title')?.value?.trim();
   if (!title) { alert('제목을 입력해 주세요.'); return; }
 
-  const data = { title, dtype, status, authorUid:_user.uid, authorName:_myInfo?.name||_user.displayName||_user.email||'', createdAt:serverTimestamp() };
+  // 결재라인 고정자 확보를 위해 portal_users 로드
+  await loadPortalUsers();
+  if (!_myInfo?.name) await loadMyInfo();
+  const approvalLine = buildFixedApprovalLine(dtype);
+
+  const data = {
+    title, dtype, status,
+    authorUid:_user.uid,
+    authorName:_myInfo?.name||_user.displayName||_user.email||'',
+    authorRank:_myInfo?.rank||'', authorDept:_myInfo?.dept||'',
+    approvalLine,
+    createdAt:serverTimestamp()
+  };
   cfg.fields.forEach(f => {
     const el = document.getElementById('f-'+f.key);
     if (el) data[f.key] = el.value;
@@ -1309,6 +1373,110 @@ window.renderDocList = async function(dtype) {
   } catch(e) {
     document.getElementById('doc-list-wrap').innerHTML = `<div style="color:#DC2626;padding:20px;">오류: ${e.message}</div>`;
   }
+};
+
+// ── A4 출력 / PDF 저장 (모든 전자결재 문서 공통) ──
+window.printDocA4 = function(d, dtype) {
+  if (typeof d === 'string') { try { d = JSON.parse(d); } catch(e){} }
+  const TYPE_LABEL = { daily:'업무일지', leave:'연차신청서', resign:'퇴직원서', cert:'재직증명서', purchase:'구매품의서', expense:'지출결의서' };
+  const cfg = (window.DOC_CONFIG && window.DOC_CONFIG[dtype]) || DOC_CONFIG[dtype] || {};
+  const docLabel = TYPE_LABEL[dtype] || (cfg.label) || '문서';
+
+  // 본문 필드 행 구성
+  let bodyRows = '';
+  if (dtype === 'daily') {
+    bodyRows = `
+      <tr><th>작성일</th><td>${d.date||'-'}</td></tr>
+      <tr><th>프로젝트</th><td>${(d.pjtCode||'')+' '+(d.pjtName||'')||'-'}</td></tr>
+      <tr><th>오늘 진행한 업무</th><td style="white-space:pre-wrap;">${d.todayWork||'-'}</td></tr>
+      ${d.tomorrowWork?`<tr><th>내일 예정 업무</th><td style="white-space:pre-wrap;">${d.tomorrowWork}</td></tr>`:''}
+      ${d.issue?`<tr><th>이슈·특이사항</th><td style="white-space:pre-wrap;">${d.issue}</td></tr>`:''}`;
+  } else if (dtype === 'leave') {
+    bodyRows = `
+      <tr><th>휴가 종류</th><td>${d.leaveType||'-'}</td></tr>
+      <tr><th>시작일</th><td>${d.startDate||'-'}</td></tr>
+      <tr><th>종료일</th><td>${d.endDate||'-'}</td></tr>
+      <tr><th>일수</th><td>${d.days||'-'}일</td></tr>
+      <tr><th>사유</th><td style="white-space:pre-wrap;">${d.reason||'-'}</td></tr>
+      <tr><th>비상연락처</th><td>${d.contact||'-'}</td></tr>
+      <tr><th>업무 대리인</th><td>${d.deputyName||'-'}</td></tr>`;
+  } else {
+    bodyRows = (cfg.fields||[]).map(f =>
+      `<tr><th>${f.label}</th><td style="white-space:pre-wrap;">${d[f.key]||'-'}</td></tr>`
+    ).join('');
+  }
+
+  // 결재란 (도장 박스)
+  const line = d.approvalLine || [];
+  const approvers = line.filter(s => s.role!=='회람' && s.role!=='수신');
+  const ccs = line.filter(s => s.role==='회람' || s.role==='수신');
+  const stampCell = (s) => {
+    const done = s.status==='approved' || s.status==='done';
+    const rejected = s.status==='rejected';
+    return `<td style="text-align:center;vertical-align:top;width:90px;border:1px solid #000;">
+      <div style="font-size:11px;border-bottom:1px solid #000;padding:3px;background:#f3f3f3;">${s.role||''}</div>
+      <div style="height:54px;display:flex;align-items:center;justify-content:center;font-size:18px;color:${done?'#1a6e3a':rejected?'#b00':'#bbb'};">${done?'승인':rejected?'반려':''}</div>
+      <div style="font-size:11px;border-top:1px solid #000;padding:3px;">${s.name||''}<br><span style="font-size:9px;color:#555;">${s.rank||''}</span></div>
+    </td>`;
+  };
+  const approvalTable = `
+    <table style="border-collapse:collapse;margin-left:auto;">
+      <tr>${approvers.map(stampCell).join('')}</tr>
+    </table>`;
+
+  const fmtNow = new Date().toLocaleDateString('ko-KR',{year:'numeric',month:'long',day:'numeric'});
+
+  const html = `<!DOCTYPE html><html lang="ko"><head><meta charset="UTF-8">
+  <title>${d.title||docLabel}</title>
+  <style>
+    @page { size:A4; margin:18mm; }
+    *{ box-sizing:border-box; }
+    body{ font-family:'Malgun Gothic','맑은 고딕',sans-serif; color:#111; margin:0; }
+    .doc-wrap{ width:174mm; margin:0 auto; }
+    .doc-head{ display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:18px; }
+    .doc-title{ font-size:26px; font-weight:800; letter-spacing:6px; text-align:center; flex:1; padding-top:14px; }
+    h1.company{ font-size:15px; font-weight:700; color:#1D5BA6; margin:0 0 4px; }
+    table.info{ width:100%; border-collapse:collapse; margin-top:10px; }
+    table.info th{ background:#f3f6fb; border:1px solid #999; padding:8px 10px; font-size:12px; text-align:left; width:120px; color:#333; }
+    table.info td{ border:1px solid #999; padding:8px 10px; font-size:12px; }
+    .meta{ font-size:11px; color:#555; margin-top:6px; }
+    .cc{ font-size:11px; color:#444; margin-top:10px; }
+    .sign-area{ margin-top:40px; text-align:center; font-size:13px; line-height:2.2; }
+    .footer{ margin-top:30px; border-top:2px solid #1D5BA6; padding-top:8px; font-size:11px; color:#666; text-align:center; }
+    @media print { .no-print{ display:none; } }
+  </style></head><body>
+  <div class="doc-wrap">
+    <div class="doc-head">
+      <div><h1 class="company">제이에이치솔루션</h1><div class="meta">JH SOLUTIONS</div></div>
+      <div class="doc-title">${docLabel}</div>
+      <div style="min-width:200px;">${approvalTable}</div>
+    </div>
+    <div style="font-size:14px;font-weight:700;margin:6px 0 10px;border-bottom:2px solid #111;padding-bottom:6px;">${d.title||''}</div>
+    <table class="info">
+      <tr><th>작성자</th><td>${d.authorName||'-'}</td><th>소속</th><td>${d.authorDept||'-'}</td></tr>
+      <tr><th>직급</th><td>${d.authorRank||'-'}</td><th>작성일</th><td>${fmtNow}</td></tr>
+    </table>
+    <table class="info" style="margin-top:0;border-top:none;">
+      ${bodyRows}
+    </table>
+    ${ccs.length?`<div class="cc">📋 회람: ${ccs.map(c=>c.name).join(', ')}</div>`:''}
+    <div class="sign-area">
+      위와 같이 ${docLabel}를 제출합니다.<br><br>
+      ${fmtNow}<br><br>
+      신청인 : ${d.authorName||''} (서명)
+    </div>
+    <div class="footer">제이에이치솔루션 · 전자결재 시스템 · 출력일 ${fmtNow}</div>
+  </div>
+  <div class="no-print" style="text-align:center;margin:20px;">
+    <button onclick="window.print()" style="padding:10px 24px;background:#1D5BA6;color:#fff;border:none;border-radius:8px;font-size:14px;cursor:pointer;">🖨️ 인쇄 / PDF 저장</button>
+  </div>
+  <script>window.onload=()=>{ setTimeout(()=>window.print(), 400); };<\/script>
+  </body></html>`;
+
+  const w = window.open('', '_blank', 'width=900,height=1000');
+  if (!w) { alert('팝업이 차단되었습니다. 팝업을 허용해 주세요.'); return; }
+  w.document.write(html);
+  w.document.close();
 };
 
 window.docDetail = function(d, dtype) {
@@ -1420,6 +1588,9 @@ window.docDetail = function(d, dtype) {
     <div style="margin-bottom:10px;">
       <button onclick="${dtype==='leave' ? `renderLeaveWrite(${JSON.stringify(d).replace(/"/g,'&quot;')})` : `renderDocWrite('${dtype}')`}" style="width:100%;padding:13px;background:#1D5BA6;border:none;border-radius:12px;color:#fff;font-size:13px;font-weight:700;cursor:pointer;">📨 수정 후 상신하기</button>
     </div>` : ''}
+    <div style="margin-bottom:10px;">
+      <button onclick='printDocA4(${JSON.stringify(d).replace(/'/g,"&#39;")}, "${dtype}")' style="width:100%;padding:12px;background:#fff;border:1px solid #1D5BA6;border-radius:12px;color:#1D5BA6;font-size:13px;font-weight:700;cursor:pointer;">🖨️ A4 출력 / PDF 저장</button>
+    </div>
     <button onclick="${backFn}" class="back-btn" style="width:100%;padding:11px;text-align:center;border-radius:10px;">목록으로</button>
   </div>`;
 };
