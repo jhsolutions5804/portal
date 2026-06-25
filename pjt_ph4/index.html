@@ -468,7 +468,7 @@ body{font-family:-apple-system,'Apple SD Gothic Neo','Pretendard',sans-serif;bac
         <div class="home-kpi-card">
           <div class="home-kpi-lbl">전체 공정율</div>
           <div class="home-kpi-val blue" id="home-pct">—</div>
-          <div class="home-kpi-sub">183대 기준</div>
+          <div class="home-kpi-sub">11대 기준</div>
         </div>
         <div class="home-kpi-card">
           <div class="home-kpi-lbl">프로젝트 D+</div>
@@ -2815,7 +2815,7 @@ window.generateProgressPPT = async function() {
     const grandChecked = todayStats.reduce((s,z)=>s+z.totalChecked,0);
     const grandMax     = todayStats.reduce((s,z)=>s+z.mx,0);
     const TOTAL_PCT    = (grandChecked/grandMax*100).toFixed(1);
-    const TOTAL_QTY    = 183;
+    const TOTAL_QTY    = 11;
     const TOTAL_IN     = todayStats.reduce((s,z)=>s+z.반입,0);
     const TOTAL_INST   = todayStats.reduce((s,z)=>s+z.instDone,0);
 
