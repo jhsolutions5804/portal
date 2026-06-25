@@ -513,7 +513,7 @@ body{font-family:-apple-system,'Apple SD Gothic Neo','Pretendard',sans-serif;bac
               <div class="sci">📂</div>
               <div><div class="sct">공사일보 조회</div><div class="scd">누적 공사일보 열람</div></div>
             </div>
-            <div class="home-sc" onclick="document.getElementById('ppt-btn').click()">
+            <div class="home-sc" onclick="openPptDateModal()">
               <div class="sci">📈</div>
               <div><div class="sct">공정표 PPT</div><div class="scd">공정율 PPT 다운로드</div></div>
             </div>
@@ -705,7 +705,7 @@ body{font-family:-apple-system,'Apple SD Gothic Neo','Pretendard',sans-serif;bac
 
       <!-- PPT 생성 버튼 -->
       <div class="ppt-btn-wrap" style="display:none">
-        <button id="ppt-btn" onclick="generateProgressPPT()" style="padding:10px 20px;background:#1D5BA6;color:#fff;border:none;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:8px;font-family:inherit">
+        <button id="ppt-btn" onclick="openPptDateModal()" style="padding:10px 20px;background:#1D5BA6;color:#fff;border:none;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:8px;font-family:inherit">
           📊 PPT 다운로드
         </button>
         <div id="ppt-status" style="font-size:11px;color:#86868b;text-align:center;margin-top:8px;display:none"></div>
@@ -760,6 +760,20 @@ body{font-family:-apple-system,'Apple SD Gothic Neo','Pretendard',sans-serif;bac
 
 <!-- PDF 인쇄 영역 -->
 <div id="dr-print-area" style="display:none"></div>
+
+<!-- PPT 날짜 선택 모달 -->
+<div id="ppt-date-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:9000;align-items:center;justify-content:center">
+  <div style="background:#fff;border-radius:16px;padding:28px 32px;width:320px;box-shadow:0 8px 32px rgba(0,0,0,.18)">
+    <div style="font-size:17px;font-weight:700;color:#1A2540;margin-bottom:6px">📊 공정표 PPT 기준일 선택</div>
+    <div style="font-size:12px;color:#86868b;margin-bottom:20px">선택한 날짜의 공정 데이터로 PPT가 생성됩니다</div>
+    <label style="font-size:13px;color:#555;font-weight:600;display:block;margin-bottom:6px">기준일 (D-1 기준)</label>
+    <input type="date" id="ppt-date-inp" style="width:100%;padding:10px 12px;border:1.5px solid #dde4ef;border-radius:10px;font-size:14px;font-family:inherit;box-sizing:border-box;margin-bottom:18px">
+    <div style="display:flex;gap:10px">
+      <button onclick="closePptDateModal()" style="flex:1;padding:11px;background:#f5f5f7;color:#555;border:1px solid #e5e5e5;border-radius:10px;font-size:14px;cursor:pointer;font-family:inherit">취소</button>
+      <button onclick="runPptWithDate()" style="flex:2;padding:11px;background:#1D5BA6;color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit">📊 PPT 생성 · 다운로드</button>
+    </div>
+  </div>
+</div>
 
 <!-- 공수 집계표 모달 -->
 <div class="ks-modal" id="ks-modal">
@@ -843,6 +857,7 @@ body{font-family:-apple-system,'Apple SD Gothic Neo','Pretendard',sans-serif;bac
 <!-- Firebase SDK -->
 <script type="module">
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
+import { getAuth, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
 import { getFirestore, collection, addDoc, onSnapshot, deleteDoc, doc, query, orderBy, serverTimestamp, setDoc, getDoc, getDocs }
   from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
 
@@ -864,6 +879,12 @@ const db = getFirestore(app);
 
 // Firebase 연결 상태를 전역에 노출
 window._fbDb = db;
+// Firebase Auth 초기화 (portal 세션 재사용)
+const auth = getAuth(app);
+onAuthStateChanged(auth, function(user){
+  window._fbUser = user;
+  // Auth 상태와 무관하게 _fbReady 유지 (Auth 없이도 데이터 접근 시도)
+});
 window._fbReady = true;
 
 // ===== 기술인 명단 Firebase 관리 =====
@@ -2998,6 +3019,36 @@ document.getElementById('report-input').addEventListener('keydown',e=>{
 <script src="https://cdn.jsdelivr.net/npm/pptxgenjs@3.12.0/dist/pptxgen.bundle.js"></script>
 <script>
 // ===== PPT 생성 =====
+// ── PPT 날짜 선택 모달 ──
+window.openPptDateModal = function(){
+  var modal=document.getElementById('ppt-date-modal');
+  if(!modal) return;
+  // 기본값: 공정 탭 선택 날짜 또는 어제
+  var d=getProgDate?getProgDate():new Date();
+  var y=d.getFullYear(), m=String(d.getMonth()+1).padStart(2,'0'), dd=String(d.getDate()).padStart(2,'0');
+  var inp=document.getElementById('ppt-date-inp');
+  if(inp) inp.value=y+'-'+m+'-'+dd;
+  modal.style.display='flex';
+};
+window.closePptDateModal=function(){
+  var modal=document.getElementById('ppt-date-modal');
+  if(modal) modal.style.display='none';
+};
+window.runPptWithDate=async function(){
+  var inp=document.getElementById('ppt-date-inp');
+  if(!inp||!inp.value){ alert('날짜를 선택해 주세요.'); return; }
+  var parts=inp.value.split('-');
+  var selDate=new Date(parseInt(parts[0]),parseInt(parts[1])-1,parseInt(parts[2]));
+  closePptDateModal();
+  // progDayOffset을 임시 조정해서 선택 날짜로 PPT 생성
+  var today=getAppToday();
+  var diffMs=selDate.getTime()-new Date(today.getFullYear(),today.getMonth(),today.getDate()).getTime();
+  var savedOffset=typeof progDayOffset!=='undefined'?progDayOffset:0;
+  progDayOffset=Math.round(diffMs/(1000*60*60*24));
+  await generateProgressPPT();
+  progDayOffset=savedOffset;
+};
+
 window.generateProgressPPT = async function() {
   const btn = document.getElementById('ppt-btn');
   const status = document.getElementById('ppt-status');
