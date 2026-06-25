@@ -320,6 +320,17 @@
       <div class="foot">JH Solutions 업무 포털</div>
     </section>
 
+    <!-- PJT 홈 뷰 -->
+    <section id="view-pjt-home" style="display:none; flex:1; overflow-y:auto; padding:24px 20px;">
+      <div style="max-width:900px; margin:0 auto;">
+        <div style="display:flex; align-items:center; gap:10px; margin-bottom:20px;">
+          <button class="back" onclick="showView('home')" style="font-size:13px;">← 포털 홈</button>
+          <h2 style="margin:0; font-size:18px; font-weight:800; color:#1A2540;">🏗️ PJT 관리</h2>
+        </div>
+        <div id="pjt-home-cards" style="display:grid; grid-template-columns:repeat(auto-fill,minmax(260px,1fr)); gap:16px; margin-bottom:24px;"></div>
+      </div>
+    </section>
+
     <!-- Portal 관리 뷰 (관리자 전용) -->
     <section id="view-admin" style="display:none; flex:1; overflow-y:auto; padding:24px 20px;">
       <div style="max-width:860px; margin:0 auto;">
@@ -481,9 +492,9 @@ const firebaseConfig = {
   apiKey: "AIzaSyCyQxBJ_ftfM0ImBXubmqD5gfzFR54iPmE",
   authDomain: "p4ph2-fab-506a7.firebaseapp.com",
   projectId: "p4ph2-fab-506a7",
-  storageBucket: "p4ph2-fab-506a7.firebasestorage.app",
-  messagingSenderId: "36946317914",
-  appId: "1:36946317914:web:c6ad5f3a1b98130c99fe63"
+  storageBucket: "p4ph2-fab-506a7.appspot.com",
+  messagingSenderId: "369463179140",
+  appId: "1:369463179140:web:c6ad5f3a1b98130c99fe63"
 };
 const app=initializeApp(firebaseConfig);
 const auth=getAuth(app);
@@ -499,6 +510,7 @@ const MODULES=[
 ];
 // PJT별 서브 목록 (url: 각 PJT 전용 워크스페이스 URL)
 const PJT_SUBTABS=[
+  { key:'pjt_home', name:'PJT 홈', emoji:'🏠', desc:'진행 중인 프로젝트 현황', url:'' },
   { key:'p4ph2', name:'P4 Ph2 (FAB)', emoji:'🏭', desc:'귀뚜라미범양냉방 · FCU 설치', url:'https://jhsolutions5804.github.io/portal/pjt/' },
   { key:'p4ph4', name:'P4 Ph4 (SUP)', emoji:'🔧', desc:'귀뚜라미범양냉방 · SUP 설치', url:'https://jhsolutions5804.github.io/portal/pjt_ph4/' },
 ];
@@ -553,6 +565,7 @@ function showView(v){
   $('view-home').classList.toggle('off', v!=='home');
   $('view-embed').classList.toggle('on', v==='embed');
   $('view-admin').style.display = (v==='admin') ? 'block' : 'none';
+  if($('view-pjt-home')) $('view-pjt-home').style.display = (v==='pjt-home') ? 'flex' : 'none';
   $('view-org').classList.toggle('on', v==='org');
   $('view-emp-detail').style.display = (v==='emp-detail') ? 'block' : 'none';
   // 포털 홈이면 드롭다운 전부 닫기
@@ -570,6 +583,54 @@ function showView(v){
   });
   window.scrollTo(0,0);
 }
+
+// PJT 홈 표시
+function showPjtHome(){
+  showView('pjt-home');
+  // 사이드바 활성화
+  document.querySelectorAll('.sb-item').forEach(b=>b.classList.remove('active'));
+  const pjtBtn=document.querySelector('[data-mod="pjt"]');
+  if(pjtBtn){ pjtBtn.classList.add('active'); }
+  renderPjtHomeCards();
+}
+
+function renderPjtHomeCards(){
+  const el=document.getElementById('pjt-home-cards');
+  if(!el) return;
+  el.innerHTML='';
+  PJT_SUBTABS.filter(st=>st.key!=='pjt_home').forEach(st=>{
+    const card=document.createElement('div');
+    card.style.cssText='background:#fff;border:1px solid #dde4ef;border-radius:14px;padding:20px;cursor:pointer;transition:.15s';
+    card.onmouseover=function(){this.style.borderColor='var(--blue)';this.style.boxShadow='0 2px 12px rgba(0,0,0,.08)'};
+    card.onmouseout=function(){this.style.borderColor='#dde4ef';this.style.boxShadow=''};
+    card.innerHTML=
+      '<div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">'
+      +'<span style="font-size:24px">'+st.emoji+'</span>'
+      +'<div><div style="font-size:15px;font-weight:700;color:#1A2540">'+st.name+'</div>'
+      +'<div style="font-size:11px;color:#5C6F8A;margin-top:2px">'+st.desc+'</div></div></div>'
+      +'<div id="pjt-kpi-'+st.key+'" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">'
+      +'<div style="background:#f4f7fb;border-radius:8px;padding:10px;text-align:center"><div style="font-size:18px;font-weight:800;color:#1D5BA6" id="kpi-pct-'+st.key+'">—</div><div style="font-size:10px;color:#86868b;margin-top:2px">공정율</div></div>'
+      +'<div style="background:#f4f7fb;border-radius:8px;padding:10px;text-align:center"><div style="font-size:18px;font-weight:800;color:#1A2540" id="kpi-day-'+st.key+'">—</div><div style="font-size:10px;color:#86868b;margin-top:2px">D+</div></div>'
+      +'<div style="background:#f4f7fb;border-radius:8px;padding:10px;text-align:center"><div style="font-size:18px;font-weight:800;color:#1D5BA6" id="kpi-md-'+st.key+'">—</div><div style="font-size:10px;color:#86868b;margin-top:2px">누적공수</div></div>'
+      +'</div>'
+      +'<button onclick="event.stopPropagation()" style="margin-top:12px;width:100%;padding:8px;background:#1D5BA6;color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit">바로가기 →</button>';
+    card.querySelector('button').onclick=function(){
+      const m=MODULES.find(x=>x.key==='pjt');
+      if(m) openModule(m, st.key, st.url||null);
+    };
+    card.onclick=function(){ const m=MODULES.find(x=>x.key==='pjt'); if(m) openModule(m, st.key, st.url||null); };
+    el.appendChild(card);
+    // 시작일 D+ 계산
+    const startKey='pjt_start_'+st.key;
+    const sd=localStorage.getItem(startKey)||localStorage.getItem('pjt_start_date');
+    if(sd){
+      const diff=Math.floor((new Date()-new Date(sd))/(1000*60*60*24));
+      const dayEl=document.getElementById('kpi-day-'+st.key);
+      if(dayEl) dayEl.textContent=diff+'일';
+    }
+  });
+}
+
 let _activeMod=null;
 let _activeSub=null;
 let _embUrl=null;
@@ -1001,6 +1062,7 @@ function renderMenu(){
     card.className='mcard'+(allowed?'':' locked');
     card.innerHTML=`<div class="ic ${m.ic}">${m.emoji}</div><div class="tx"><h3>${m.name}</h3><p>${m.desc}</p></div>${allowed?'<span class="arrow">›</span>':'<span class="lockbadge">🔒 권한 없음</span>'}`;
     if(allowed) card.onclick=()=>{
+      if(m.key==='pjt'){ showPjtHome(); return; }
       const fs=SUBTABS[m.key]?SUBTABS[m.key][0]:null;
       openModule(m, fs?fs.key:null, fs?fs.url||null:null);
     };
@@ -1072,7 +1134,10 @@ function renderMenu(){
 }
 function openModule(m, tab, overrideUrl){
   const actualUrl=overrideUrl||m.url;
-  if(!actualUrl){ toast(m.name+' 메뉴는 준비 중입니다.'); return; }
+  if(tab==='pjt_home'||m.key==='pjt'&&tab===null){
+    showPjtHome(); return;
+  }
+  if(!actualUrl){ toast(m.name+' 워크스페이스 준비 중입니다.'); return; }
   _activeMod=m.key;
   _activeSub=overrideUrl?tab:(SUBTABS[m.key]?(tab||SUBTABS[m.key][0].key):null);
   const fullUrl=overrideUrl?overrideUrl:(m.url+(tab?('&tab='+tab):''));
