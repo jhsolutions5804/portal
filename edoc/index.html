@@ -140,6 +140,19 @@ window.goTab = function(key, afterFn) {
   }
 };
 
+// KPI 카드 클릭 → 해당 패널로 스크롤 + 강조
+window.edocScrollPanel = function(panelId) {
+  // 항상 홈 탭에서 동작
+  const el = document.getElementById(panelId);
+  if (!el) return;
+  const card = el.closest('.panel') || el;
+  card.scrollIntoView({ behavior:'smooth', block:'center' });
+  card.style.transition = 'box-shadow .25s, border-color .25s';
+  const origShadow = card.style.boxShadow;
+  card.style.boxShadow = '0 0 0 3px #5BA4CF';
+  setTimeout(()=>{ card.style.boxShadow = origShadow; }, 1200);
+};
+
 window.addEventListener('message', e => {
   const d = e.data;
   if (!d || d.source !== 'jh-portal') return;
@@ -619,9 +632,9 @@ async function renderEdocHome() {
     const kpi = document.getElementById('edoc-home-kpi');
     if (kpi) kpi.innerHTML = `
       <div class="kpi-card warn" onclick="goTab('approve')" style="cursor:pointer;"><div class="kpi-label">결재 요청</div><div class="kpi-val">${myApprove.length}<span class="kpi-unit">건</span></div><div class="kpi-link">확인하기 ›</div></div>
-      <div class="kpi-card"><div class="kpi-label">수신함</div><div class="kpi-val">${myInbox.length}<span class="kpi-unit">건</span></div><div class="kpi-link">보러가기 ›</div></div>
-      <div class="kpi-card"><div class="kpi-label">내 문서</div><div class="kpi-val">${myDocs.length}<span class="kpi-unit">건</span></div><div class="kpi-link">전체 보기 ›</div></div>
-      <div class="kpi-card"><div class="kpi-label">게시 문건</div><div class="kpi-val">${postedAll.length}<span class="kpi-unit">건</span></div><div class="kpi-link">조회하기 ›</div></div>`;
+      <div class="kpi-card" onclick="edocScrollPanel('panel-inbox')" style="cursor:pointer;"><div class="kpi-label">수신함</div><div class="kpi-val">${myInbox.length}<span class="kpi-unit">건</span></div><div class="kpi-link">보러가기 ›</div></div>
+      <div class="kpi-card" onclick="edocScrollPanel('panel-my-docs')" style="cursor:pointer;"><div class="kpi-label">내 문서</div><div class="kpi-val">${myDocs.length}<span class="kpi-unit">건</span></div><div class="kpi-link">전체 보기 ›</div></div>
+      <div class="kpi-card" onclick="edocScrollPanel('panel-posted')" style="cursor:pointer;"><div class="kpi-label">게시 문건</div><div class="kpi-val">${postedAll.length}<span class="kpi-unit">건</span></div><div class="kpi-link">조회하기 ›</div></div>`;
 
     const rowHtml = (d, showApproveBtn=false) => `
       <div class="panel-row" onclick="openDocFromHome(${JSON.stringify(d).replace(/"/g,'&quot;')})">
@@ -1204,11 +1217,6 @@ window.docDetail = function(d, dtype) {
     return prevDone && s.status === 'pending';
   });
   const isMyTurn = myStepIdx >= 0 && (d.status==='pending'||d.status==='reviewing');
-  console.log('[결재디버그]', {
-    myUid, myName: _myInfo?.name, docStatus: d.status,
-    line: line.map(s=>({role:s.role, name:s.name, uid:s.uid, status:s.status})),
-    myStepIdx, isMyTurn, isOwner
-  });
 
   // 최종 결재자: 회람/수신/작성 제외하고 마지막 결재 역할
   const approverSteps = line.filter(s => s.role!=='회람' && s.role!=='수신' && s.role!=='작성');
