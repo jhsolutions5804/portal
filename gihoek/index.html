@@ -260,6 +260,56 @@ function tabSilent(t){ curTab=t; document.querySelectorAll('.tab').forEach(x=>x.
 window.addEventListener('message',(e)=>{ const d=e.data; if(d&&d.source==='jh-portal'&&d.action==='goTab'&&['home','pjt','comp','est','settle','acct'].includes(d.key)) tab(d.key); });
 
 // ── 기획 홈 대시보드 ──
+// ===== 기획 홈 KPI 목록 팝업 (B안 디자인) =====
+window.planShowList = function(kind){
+  const won=v=>'\u20a9'+Math.round(v||0).toLocaleString();
+  const TITLES={ pjt:'\ud83d\udcc1 \ud504\ub85c\uc81d\ud2b8', est:'\ud83d\udcc4 \uc720\ud6a8 \uacac\uc801', bill:'\ud83d\udcb3 \uccad\uad6c \ub0b4\uc5ed', due:'\ud83d\udcb0 \ubbf8\uc218\uae08 \ud604\ud669' };
+  const EMPTY={ pjt:'\ub4f1\ub85d\ub41c \ud504\ub85c\uc81d\ud2b8\uac00 \uc5c6\uc2b5\ub2c8\ub2e4', est:'\uc720\ud6a8\ud55c \uacac\uc801\uc774 \uc5c6\uc2b5\ub2c8\ub2e4', bill:'\uccad\uad6c \ub0b4\uc5ed\uc774 \uc5c6\uc2b5\ub2c8\ub2e4', due:'\ubbf8\uc218\uae08\uc774 \uc5c6\uc2b5\ub2c8\ub2e4' };
+  const STATUS_BG={active:'#EAF3DE',void:'#F1EFE8',run:'#E6F1FB',done:'#E1F5EE'};
+  const STATUS_FG={active:'#27500A',void:'#444441',run:'#0C447C',done:'#085041'};
+  const STATUS_LBL={active:'\uc720\ud6a8',void:'\ud3d0\uae30',run:'\uc9c4\ud589\uc911',done:'\uc644\ub8cc'};
+
+  let rows=[];
+  if(kind==='pjt'){
+    rows=projects.map(p=>({badge:STATUS_LBL[p.status]||'\uc9c4\ud589\uc911',bg:STATUS_BG[p.status]||'#E6F1FB',fg:STATUS_FG[p.status]||'#0C447C',
+      title:(p.code?'['+p.code+'] ':'')+(p.name||'(\uc774\ub984\uc5c6\uc74c)'),meta:(p.client||'')+(p.type?' \u00b7 '+p.type.toUpperCase():''),right:won(pjtBilled(p.id)),onclick:"tab(&#39;pjt&#39;)"}));
+  } else if(kind==='est'){
+    rows=estimates.filter(e=>isActive(e)).map(e=>({badge:'\uacac\uc801',bg:'#E6F1FB',fg:'#0C447C',
+      title:e.title||'(\uc81c\ubaa9\uc5c6\uc74c)',meta:(e.no||'')+(e.client&&e.client.company?' \u00b7 '+e.client.company:''),right:won(estSupply(e)),onclick:"tab(&#39;est&#39;)"}));
+  } else if(kind==='bill'){
+    rows=settlements.filter(s=>s.docType==='invoice'&&setActive(s)).map(s=>({badge:'\uccad\uad6c',bg:'#FAEEDA',fg:'#633806',
+      title:s.no||'(\ubc88\ud638\uc5c6\uc74c)',meta:(s.recipient&&s.recipient.company?s.recipient.company:'')+(s.baseMonth?' \u00b7 '+s.baseMonth:''),right:won(s.total||s.amount),onclick:"tab(&#39;settle&#39;)"}));
+  } else if(kind==='due'){
+    rows=projects.map(p=>{const bill=pjtBilled(p.id),paid=pjtPaid(p.id),due=bill-paid;return {due,p,bill,paid};})
+      .filter(x=>x.due>0).map(x=>({badge:'\ubbf8\uc218',bg:'#FCEBEB',fg:'#791F1F',
+      title:(x.p.code?'['+x.p.code+'] ':'')+(x.p.name||''),meta:'\uccad\uad6c '+won(x.bill)+' \u00b7 \uc218\uae08 '+won(x.paid),right:won(x.due),onclick:"tab(&#39;settle&#39;)"}));
+  }
+
+  const body = rows.length ? rows.map(r=>`
+    <div onclick="planCloseList();${r.onclick}" style="display:flex;align-items:center;gap:12px;padding:13px 18px;border-bottom:1px solid #EEF2F7;cursor:pointer;" onmouseover="this.style.background='#F7F9FC'" onmouseout="this.style.background='transparent'">
+      <span style="flex-shrink:0;font-size:11px;font-weight:600;padding:4px 10px;border-radius:7px;background:${r.bg};color:${r.fg};white-space:nowrap;">${r.badge}</span>
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:13px;font-weight:600;color:#1A2540;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${r.title}</div>
+        <div style="font-size:11px;color:#5C6F8A;margin-top:3px;">${r.meta}</div>
+      </div>
+      <span style="flex-shrink:0;font-size:12px;font-weight:700;color:#1D5BA6;">${r.right}</span>
+      <span style="flex-shrink:0;font-size:15px;color:#C5CEDB;">\u203a</span>
+    </div>`).join('') : `<div style="padding:48px;text-align:center;color:#9AAABF;font-size:13px;">${EMPTY[kind]}</div>`;
+
+  let modal=document.getElementById('plan-list-modal');
+  if(!modal){ modal=document.createElement('div'); modal.id='plan-list-modal';
+    modal.style.cssText='position:fixed;inset:0;background:rgba(19,51,92,0.45);z-index:9999;display:flex;align-items:flex-start;justify-content:center;padding:40px 20px;';
+    modal.onclick=(e)=>{ if(e.target===modal) planCloseList(); }; document.body.appendChild(modal); }
+  modal.innerHTML=`<div style="background:#fff;border-radius:16px;max-width:600px;width:100%;max-height:80vh;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,0.3);">
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:18px 22px;border-bottom:1px solid #DDE4EF;">
+      <div style="font-size:17px;font-weight:800;color:#13335C;">${TITLES[kind]||'\ubaa9\ub85d'} <span style="color:#5BA4CF;">(${rows.length})</span></div>
+      <button onclick="planCloseList()" style="border:none;background:#F4F7FB;width:32px;height:32px;border-radius:8px;cursor:pointer;font-size:18px;color:#5C6F8A;">\u2715</button>
+    </div>
+    <div style="overflow-y:auto;">${body}</div></div>`;
+  modal.style.display='flex';
+};
+window.planCloseList=function(){ const m=document.getElementById('plan-list-modal'); if(m) m.style.display='none'; };
+
 function renderPlanHome(){
   const el=$('v-home'); if(!el)return;
   const C={blue:'#1D5BA6',blueLt:'#E8F0FB',border:'#DDE4EF',text:'#1A2540',sub:'#5C6F8A',mute:'#9AAABF',green:'#16A34A',shadow:'0 1px 4px rgba(29,91,166,0.08)'};
@@ -274,22 +324,22 @@ function renderPlanHome(){
     <div style="font-size:20px;font-weight:800;color:${C.text};margin-bottom:4px;">기획 홈</div>
     <div style="font-size:12px;color:${C.sub};margin-bottom:18px;">영업·정산·회계 현황 한눈에 보기</div>
     <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:18px;">
-      <div onclick="tab('pjt')" style="background:#fff;border:1px solid ${C.border};border-radius:12px;padding:13px 14px;cursor:pointer;box-shadow:${C.shadow};">
+      <div onclick="planShowList('pjt')" style="background:#fff;border:1px solid ${C.border};border-radius:12px;padding:13px 14px;cursor:pointer;box-shadow:${C.shadow};">
         <div style="font-size:11px;color:${C.sub};font-weight:600;margin-bottom:6px;">프로젝트 수</div>
         <div style="font-size:22px;font-weight:800;color:${C.blue};">${projects.length}<span style="font-size:13px;font-weight:500;color:${C.mute};margin-left:4px;">개</span></div>
         <div style="font-size:10px;color:${C.blue};margin-top:6px;">보러가기 ›</div>
       </div>
-      <div onclick="tab('est')" style="background:#fff;border:1px solid ${C.border};border-radius:12px;padding:13px 14px;cursor:pointer;box-shadow:${C.shadow};">
+      <div onclick="planShowList('est')" style="background:#fff;border:1px solid ${C.border};border-radius:12px;padding:13px 14px;cursor:pointer;box-shadow:${C.shadow};">
         <div style="font-size:11px;color:${C.sub};font-weight:600;margin-bottom:6px;">유효 견적</div>
         <div style="font-size:22px;font-weight:800;color:${C.blue};">${estCnt}<span style="font-size:13px;font-weight:500;color:${C.mute};margin-left:4px;">건</span></div>
         <div style="font-size:10px;color:${C.blue};margin-top:6px;">보러가기 ›</div>
       </div>
-      <div onclick="tab('settle')" style="background:#fff;border:1px solid ${C.border};border-radius:12px;padding:13px 14px;cursor:pointer;box-shadow:${C.shadow};">
+      <div onclick="planShowList('bill')" style="background:#fff;border:1px solid ${C.border};border-radius:12px;padding:13px 14px;cursor:pointer;box-shadow:${C.shadow};">
         <div style="font-size:11px;color:${C.sub};font-weight:600;margin-bottom:6px;">총 청구액</div>
         <div style="font-size:16px;font-weight:800;color:${C.blue};">${won(totBill)}</div>
         <div style="font-size:10px;color:${C.blue};margin-top:6px;">정산 보러가기 ›</div>
       </div>
-      <div onclick="tab('acct')" style="background:#fff;border:1px solid ${C.border};border-radius:12px;padding:13px 14px;cursor:pointer;box-shadow:${C.shadow};">
+      <div onclick="planShowList('due')" style="background:#fff;border:1px solid ${C.border};border-radius:12px;padding:13px 14px;cursor:pointer;box-shadow:${C.shadow};">
         <div style="font-size:11px;color:${C.sub};font-weight:600;margin-bottom:6px;">미수금 (청구-수금)</div>
         <div style="font-size:16px;font-weight:800;color:${totBill-totPaid>0?'#DC2626':C.blue};">${won(totBill-totPaid)}</div>
         <div style="font-size:10px;color:${C.blue};margin-top:6px;">회계 보러가기 ›</div>
