@@ -546,7 +546,8 @@ body{font-family:-apple-system,'Apple SD Gothic Neo','Pretendard',sans-serif;bac
       <div class="today-nav">
         <button class="nav-arrow" onclick="changeViewDay(-1)">‹</button>
         <div style="flex:1;text-align:center">
-          <div class="today-title" id="today-title">오늘 일정</div>
+          <div class="today-title" id="today-title" onclick="openTodayDatePicker()" style="cursor:pointer" title="날짜 클릭으로 이동">오늘 일정</div>
+          <input type="date" id="today-date-picker" onchange="pickTodayDate(this.value)" style="position:absolute;left:50%;transform:translateX(-50%);top:100%;opacity:0;width:1px;height:1px;pointer-events:none">
           <div class="prog-bar-wrap"><div class="prog-bar" id="prog-bar" style="width:0%"></div></div>
         </div>
         <button class="nav-arrow" onclick="changeViewDay(1)">›</button>
@@ -1521,6 +1522,16 @@ window.selectName=function(el){
 // ===== TODAY =====
 let viewDayOffset=0;
 function getViewDate(){const b=getAppToday();b.setDate(b.getDate()+viewDayOffset);return b;}
+window.openTodayDatePicker=function(){
+  var inp=document.getElementById('today-date-picker');
+  if(inp){ inp.value=toKey(viewDate||getAppToday()); try{inp.showPicker()}catch(e){inp.click();} }
+};
+window.pickTodayDate=function(val){
+  if(!val) return;
+  var parts=val.split('-');
+  viewDate=new Date(parseInt(parts[0]),parseInt(parts[1])-1,parseInt(parts[2]));
+  renderToday();
+};
 window.changeViewDay=function(dir){viewDayOffset+=dir;renderToday();};
 
 function initToday(){viewDayOffset=0;renderToday();}
