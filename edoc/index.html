@@ -140,25 +140,52 @@ window.goTab = function(key, afterFn) {
   }
 };
 
-// KPI 카드 클릭 → 해당 패널로 스크롤 + 강조
-window.edocScrollPanel = function(panelId) {
-  const el = document.getElementById(panelId);
-  if (!el) return;
-  const card = el.closest('.panel') || el;
-  // iframe 내부에서도 동작하도록 스크롤
-  try {
-    card.scrollIntoView({ behavior:'smooth', block:'center' });
-  } catch(e) {
-    card.scrollIntoView();
+// KPI 카드 클릭 → 해당 목록 전체를 모달로 표시
+window.edocShowList = function(kind) {
+  const lists = window._edocLists || {};
+  const TITLES = { inbox:'📨 수신함 (회람)', mydocs:'📝 내가 작성한 문서', posted:'📤 게시된 문건', approve:'✍️ 결재할 문서' };
+  const EMPTY = { inbox:'수신된 문서가 없습니다', mydocs:'작성한 문서가 없습니다', posted:'게시된 문건이 없습니다', approve:'결재할 문서가 없습니다' };
+  const TYPE_LABEL = { daily:'업무일지', leave:'연차신청서', resign:'퇴직원서', cert:'재직증명서', purchase:'구매품의서', expense:'지출결의서' };
+  const STATUS_LABEL = { draft:'임시저장', pending:'결재대기', reviewing:'검토중', approved:'승인', rejected:'반려', posted:'게시' };
+  const STATUS_COLOR = { draft:'#9AAABF', pending:'#F59E0B', reviewing:'#1D5BA6', approved:'#16A34A', rejected:'#DC2626', posted:'#16A34A' };
+  const arr = lists[kind] || [];
+
+  const fmtD = (ts) => {
+    if(!ts) return '';
+    const d = ts.seconds ? new Date(ts.seconds*1000) : new Date(ts);
+    return `${d.getMonth()+1}월 ${d.getDate()}일`;
+  };
+
+  const rows = arr.length ? arr.map(d => `
+    <div class="elist-row" onclick="edocCloseList();openDocFromHome(${JSON.stringify(d).replace(/"/g,'&quot;')})">
+      <span class="doc-badge ${d.status==='posted'?'posted':''}">${TYPE_LABEL[d.dtype]||d.dtype}</span>
+      <span class="doc-title">${d.title||'(제목없음)'}</span>
+      <span style="font-size:11px;font-weight:700;color:${STATUS_COLOR[d.status]||'#9AAABF'};white-space:nowrap;">${STATUS_LABEL[d.status]||d.status}</span>
+      <span class="doc-date">${fmtD(d.createdAt)}</span>
+    </div>`).join('') : `<div class="panel-empty" style="padding:40px;text-align:center;">${EMPTY[kind]||'문서가 없습니다'}</div>`;
+
+  let modal = document.getElementById('edoc-list-modal');
+  if (!modal) {
+    modal = document.createElement('div');
+    modal.id = 'edoc-list-modal';
+    modal.style.cssText = 'position:fixed;inset:0;background:rgba(19,51,92,0.45);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px;';
+    modal.onclick = (e)=>{ if(e.target===modal) edocCloseList(); };
+    document.body.appendChild(modal);
   }
-  // 강조 효과 (확실하게 눈에 띄도록)
-  card.style.transition = 'box-shadow .2s, transform .2s';
-  card.style.boxShadow = '0 0 0 3px #1D5BA6, 0 4px 16px rgba(29,91,166,0.25)';
-  card.style.transform = 'scale(1.01)';
-  setTimeout(()=>{
-    card.style.boxShadow = '';
-    card.style.transform = '';
-  }, 1500);
+  modal.innerHTML = `
+    <div style="background:#fff;border-radius:16px;max-width:680px;width:100%;max-height:80vh;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,0.3);">
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:18px 22px;border-bottom:1px solid #DDE4EF;">
+        <div style="font-size:17px;font-weight:800;color:#13335C;">${TITLES[kind]||'문서 목록'} <span style="color:#5BA4CF;">(${arr.length})</span></div>
+        <button onclick="edocCloseList()" style="border:none;background:#F4F7FB;width:32px;height:32px;border-radius:8px;cursor:pointer;font-size:18px;color:#5C6F8A;">✕</button>
+      </div>
+      <div style="overflow-y:auto;padding:12px 16px;">${rows}</div>
+    </div>`;
+  modal.style.display = 'flex';
+};
+
+window.edocCloseList = function() {
+  const m = document.getElementById('edoc-list-modal');
+  if (m) m.style.display = 'none';
 };
 
 window.addEventListener('message', e => {
@@ -636,13 +663,16 @@ async function renderEdocHome() {
     myApprove = dedup(myApprove); myInbox = dedup(myInbox);
     myDocs = dedup(myDocs); postedAll = dedup(postedAll);
 
+    // 전역 저장 (KPI 카드 '전체 보기'에서 사용)
+    window._edocLists = { approve: myApprove, inbox: myInbox, mydocs: myDocs, posted: postedAll };
+
     // KPI
     const kpi = document.getElementById('edoc-home-kpi');
     if (kpi) kpi.innerHTML = `
       <div class="kpi-card warn" onclick="goTab('approve')" style="cursor:pointer;"><div class="kpi-label">결재 요청</div><div class="kpi-val">${myApprove.length}<span class="kpi-unit">건</span></div><div class="kpi-link">확인하기 ›</div></div>
-      <div class="kpi-card" onclick="edocScrollPanel('panel-inbox')" style="cursor:pointer;"><div class="kpi-label">수신함</div><div class="kpi-val">${myInbox.length}<span class="kpi-unit">건</span></div><div class="kpi-link">보러가기 ›</div></div>
-      <div class="kpi-card" onclick="edocScrollPanel('panel-my-docs')" style="cursor:pointer;"><div class="kpi-label">내 문서</div><div class="kpi-val">${myDocs.length}<span class="kpi-unit">건</span></div><div class="kpi-link">전체 보기 ›</div></div>
-      <div class="kpi-card" onclick="edocScrollPanel('panel-posted')" style="cursor:pointer;"><div class="kpi-label">게시 문건</div><div class="kpi-val">${postedAll.length}<span class="kpi-unit">건</span></div><div class="kpi-link">조회하기 ›</div></div>`;
+      <div class="kpi-card" onclick="edocShowList('inbox')" style="cursor:pointer;"><div class="kpi-label">수신함</div><div class="kpi-val">${myInbox.length}<span class="kpi-unit">건</span></div><div class="kpi-link">보러가기 ›</div></div>
+      <div class="kpi-card" onclick="edocShowList('mydocs')" style="cursor:pointer;"><div class="kpi-label">내 문서</div><div class="kpi-val">${myDocs.length}<span class="kpi-unit">건</span></div><div class="kpi-link">전체 보기 ›</div></div>
+      <div class="kpi-card" onclick="edocShowList('posted')" style="cursor:pointer;"><div class="kpi-label">게시 문건</div><div class="kpi-val">${postedAll.length}<span class="kpi-unit">건</span></div><div class="kpi-link">조회하기 ›</div></div>`;
 
     const rowHtml = (d, showApproveBtn=false) => `
       <div class="panel-row" onclick="openDocFromHome(${JSON.stringify(d).replace(/"/g,'&quot;')})">
@@ -1479,6 +1509,8 @@ body{font-family:-apple-system,'Apple SD Gothic Neo','Pretendard',sans-serif;bac
 .panel-head{font-size:12px;font-weight:700;color:#1D5BA6;padding:11px 14px;background:#E8F0FB;border-bottom:1px solid #DDE4EF;}
 .panel-list{padding:6px 0;}
 .panel-row{display:flex;align-items:center;gap:8px;padding:9px 14px;cursor:pointer;border-bottom:1px solid #F4F7FB;font-size:12px;}
+.elist-row{display:flex;align-items:center;gap:10px;padding:13px 14px;cursor:pointer;border-bottom:1px solid #F4F7FB;font-size:13px;border-radius:8px;}
+.elist-row:hover{background:#F4F7FB;}
 .panel-row:hover{background:#F8FAFD;}
 .panel-empty{text-align:center;padding:28px;color:#9AAABF;font-size:12px;}
 .doc-badge{font-size:10px;font-weight:700;background:#E8F0FB;color:#1D5BA6;padding:2px 7px;border-radius:8px;white-space:nowrap;flex-shrink:0;}
