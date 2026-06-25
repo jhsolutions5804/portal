@@ -486,7 +486,13 @@ window.renderDailyDetail = function(d) {
   const STATUS_LABEL = { draft:'임시저장', pending:'결재대기', reviewing:'검토중', approved:'승인', rejected:'반려', posted:'게시' };
   const STATUS_COLOR = { draft:'#9AAABF', pending:'#F59E0B', reviewing:'#3B82F6', approved:'#16A34A', rejected:'#DC2626', posted:'#1D5BA6' };
   const fmtD = s => s ? s.replace(/(\d{4})-(\d{2})-(\d{2})/,'$1.$2.$3') : '-';
+  const myUid = _user?.uid;
+  const isOwner = myUid && d.authorUid === myUid;
   const canApprove = _isAdmin && (d.status==='pending'||d.status==='reviewing');
+  // 작성자: 임시저장/반려 상태면 수정·삭제 가능, 관리자는 항상 삭제 가능
+  const canEdit = isOwner && (d.status==='draft' || d.status==='rejected');
+  const canDelete = (isOwner && (d.status==='draft'||d.status==='rejected')) || _isAdmin;
+  const canRecall = isOwner && (d.status==='pending' || d.status==='reviewing');
 
   const apLine = (d.approvalLine||[
     {role:'작성',name:d.authorName||'',status:'done'},
@@ -554,6 +560,10 @@ window.renderDailyDetail = function(d) {
       <button onclick="dailyApprove('${d.id}','approved')" style="flex:1;padding:12px;background:#16A34A;border:none;border-radius:10px;color:#fff;font-size:13px;font-weight:700;cursor:pointer;">✅ 승인</button>
       <button onclick="dailyApprove('${d.id}','rejected')" style="flex:1;padding:12px;background:#DC2626;border:none;border-radius:10px;color:#fff;font-size:13px;font-weight:700;cursor:pointer;">❌ 반려</button>
       <button onclick="dailyApprove('${d.id}','posted')" style="flex:1;padding:12px;background:#1D5BA6;border:none;border-radius:10px;color:#fff;font-size:13px;font-weight:700;cursor:pointer;">📤 게시</button>
+    </div>`:''}
+    ${(canRecall||canDelete)?`<div style="display:flex;gap:8px;margin-bottom:10px;">
+      ${canRecall ? `<button onclick="docRecall('${d.id}','daily')" style="flex:1;padding:11px;background:#F59E0B;border:none;border-radius:10px;color:#fff;font-size:13px;font-weight:700;cursor:pointer;">↩️ 회수</button>` : ''}
+      ${canDelete ? `<button onclick="docDelete('${d.id}','daily')" style="flex:1;padding:11px;background:#fff;border:1px solid #DC2626;border-radius:10px;color:#DC2626;font-size:13px;font-weight:700;cursor:pointer;">🗑️ 삭제</button>` : ''}
     </div>`:''}
     <button onclick="renderDailyList()" class="back-btn" style="width:100%;padding:11px;text-align:center;border-radius:10px;">목록으로</button>
   </div>`;
@@ -1335,7 +1345,8 @@ window.docRecall = async function(docId, dtype) {
     const { doc, setDoc } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
     await setDoc(doc(db, `edoc_${dtype}`, docId), { status:'draft', recalledAt:serverTimestamp() }, { merge:true });
     alert('✅ 회수 완료. 임시저장 상태로 변경되었습니다.');
-    renderDocList(dtype);
+    if (dtype === 'daily' && typeof renderDailyList === 'function') renderDailyList();
+    else renderDocList(dtype);
   } catch(e) { alert('오류: '+e.message); }
 };
 
@@ -1346,7 +1357,8 @@ window.docDelete = async function(docId, dtype) {
     const { doc, deleteDoc } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
     await deleteDoc(doc(db, `edoc_${dtype}`, docId));
     alert('🗑️ 삭제 완료');
-    renderDocList(dtype);
+    if (dtype === 'daily' && typeof renderDailyList === 'function') renderDailyList();
+    else renderDocList(dtype);
   } catch(e) { alert('오류: '+e.message); }
 };
 
