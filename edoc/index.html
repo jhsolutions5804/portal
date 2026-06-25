@@ -142,15 +142,23 @@ window.goTab = function(key, afterFn) {
 
 // KPI 카드 클릭 → 해당 패널로 스크롤 + 강조
 window.edocScrollPanel = function(panelId) {
-  // 항상 홈 탭에서 동작
   const el = document.getElementById(panelId);
   if (!el) return;
   const card = el.closest('.panel') || el;
-  card.scrollIntoView({ behavior:'smooth', block:'center' });
-  card.style.transition = 'box-shadow .25s, border-color .25s';
-  const origShadow = card.style.boxShadow;
-  card.style.boxShadow = '0 0 0 3px #5BA4CF';
-  setTimeout(()=>{ card.style.boxShadow = origShadow; }, 1200);
+  // iframe 내부에서도 동작하도록 스크롤
+  try {
+    card.scrollIntoView({ behavior:'smooth', block:'center' });
+  } catch(e) {
+    card.scrollIntoView();
+  }
+  // 강조 효과 (확실하게 눈에 띄도록)
+  card.style.transition = 'box-shadow .2s, transform .2s';
+  card.style.boxShadow = '0 0 0 3px #1D5BA6, 0 4px 16px rgba(29,91,166,0.25)';
+  card.style.transform = 'scale(1.01)';
+  setTimeout(()=>{
+    card.style.boxShadow = '';
+    card.style.transform = '';
+  }, 1500);
 };
 
 window.addEventListener('message', e => {
