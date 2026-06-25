@@ -205,6 +205,10 @@ const isActive=e=> e.status!=='void' && e.status!=='closed';
 const pjtEstSum=pid=>estimates.filter(e=>e.pjtId===pid && isActive(e)).reduce((s,e)=>s+estSupply(e),0);
 const pjtBilled=pid=>settlements.filter(s=>s.pjtId===pid&&s.docType==='invoice'&&s.status!=='void').reduce((a,s)=>a+(s.amount||0),0);
 const pjtPaid =pid=>settlements.filter(s=>s.pjtId===pid&&s.docType==='payment'&&s.status!=='void').reduce((a,s)=>a+(s.amount||0),0);
+// 완결된 청구 합계 (status==='done')
+const pjtDone =pid=>settlements.filter(s=>s.pjtId===pid&&s.docType==='invoice'&&s.status==='done').reduce((a,s)=>a+(s.amount||0),0);
+// 미수금 = 대금청구 누계 - 완결된 청구서 합계
+const pjtDue  =pid=>pjtBilled(pid)-pjtDone(pid);
 
 const SEED_COMPANIES=[
   {id:'jhsol', company:'제이에이치솔루션', ceo:'김종화', bizno:'383-09-02847', tel:'010-6650-5804', email:'jh.kim@jhsol.kr', address:'', roleSupplier:true,  roleClient:false},
@@ -280,9 +284,9 @@ window.planShowList = function(kind){
     rows=settlements.filter(s=>s.docType==='invoice'&&setActive(s)).map(s=>({badge:'\uccad\uad6c',bg:'#FAEEDA',fg:'#633806',
       title:s.no||'(\ubc88\ud638\uc5c6\uc74c)',meta:(s.recipient&&s.recipient.company?s.recipient.company:'')+(s.baseMonth?' \u00b7 '+s.baseMonth:''),right:won(s.total||s.amount),onclick:"tab(&#39;settle&#39;)"}));
   } else if(kind==='due'){
-    rows=projects.map(p=>{const bill=pjtBilled(p.id),paid=pjtPaid(p.id),due=bill-paid;return {due,p,bill,paid};})
+    rows=projects.map(p=>{const bill=pjtBilled(p.id),done=pjtDone(p.id),due=pjtDue(p.id);return {due,p,bill,done};})
       .filter(x=>x.due>0).map(x=>({badge:'\ubbf8\uc218',bg:'#FCEBEB',fg:'#791F1F',
-      title:(x.p.code?'['+x.p.code+'] ':'')+(x.p.name||''),meta:'\uccad\uad6c '+won(x.bill)+' \u00b7 \uc218\uae08 '+won(x.paid),right:won(x.due),onclick:"tab(&#39;settle&#39;)"}));
+      title:(x.p.code?'['+x.p.code+'] ':'')+(x.p.name||''),meta:'\uccad\uad6c '+won(x.bill)+' \u00b7 \uc644\uacb0 '+won(x.done),right:won(x.due),onclick:"tab(&#39;settle&#39;)"}));
   }
 
   const body = rows.length ? rows.map(r=>`
@@ -319,6 +323,7 @@ function renderPlanHome(){
   const totEst=projects.reduce((a,p)=>a+pjtEstSum(p.id),0);
   const totBill=projects.reduce((a,p)=>a+pjtBilled(p.id),0);
   const totPaid=projects.reduce((a,p)=>a+pjtPaid(p.id),0);
+  const totDue=projects.reduce((a,p)=>a+pjtDue(p.id),0);
   const estCnt=estimates.filter(e=>isActive(e)).length;
   el.innerHTML=`<div style="padding:20px;max-width:760px;margin:0 auto;">
     <div style="font-size:20px;font-weight:800;color:${C.text};margin-bottom:4px;">기획 홈</div>
@@ -341,7 +346,7 @@ function renderPlanHome(){
       </div>
       <div onclick="planShowList('due')" style="background:#fff;border:1px solid ${C.border};border-radius:12px;padding:13px 14px;cursor:pointer;box-shadow:${C.shadow};">
         <div style="font-size:11px;color:${C.sub};font-weight:600;margin-bottom:6px;">미수금 (청구-수금)</div>
-        <div style="font-size:16px;font-weight:800;color:${totBill-totPaid>0?'#DC2626':C.blue};">${won(totBill-totPaid)}</div>
+        <div style="font-size:16px;font-weight:800;color:${totBill-totPaid>0?'#DC2626':C.blue};">${won(totDue)}</div>
         <div style="font-size:10px;color:${C.blue};margin-top:6px;">회계 보러가기 ›</div>
       </div>
     </div>
@@ -756,12 +761,13 @@ const setActive=s=>s.status!=='void';
 function renderSettle(){ settleDraft=null; viewSetId=null;
   const inv=settlements.filter(s=>s.docType==='invoice'&&setActive(s)).reduce((a,s)=>a+(s.total||0),0);
   const pay=settlements.filter(s=>s.docType==='payment'&&setActive(s)).reduce((a,s)=>a+(s.total||0),0);
+  const done=settlements.filter(s=>s.docType==='invoice'&&s.status==='done').reduce((a,s)=>a+(s.amount||0),0);
   const sorted=[...settlements].sort((a,b)=>(b.issueDate||'').localeCompare(a.issueDate||'')||(b.no||'').localeCompare(a.no||'')||((b.createdAt?.seconds||0)-(a.createdAt?.seconds||0)));
   $('v-settle').innerHTML=`<div class="sec-h"><h2>정산</h2><button class="btn pri sm" onclick="newSettle()">+ 정산서 발행</button></div>
     <div class="sumgrid" style="grid-template-columns:1fr 1fr 1fr;margin-bottom:16px">
       <div class="sumcell"><div class="l">대금청구 누계</div><div class="v">${won(inv)}</div></div>
       <div class="sumcell"><div class="l">지급예정 누계</div><div class="v">${won(pay)}</div></div>
-      <div class="sumcell"><div class="l">미수 잔금 (청구−지급)</div><div class="v" style="color:${(inv-pay)>0?'#DC2626':'#16A34A'}">${won(inv-pay)}</div></div></div>
+      <div class="sumcell"><div class="l">미수 잔금 (청구−완결)</div><div class="v" style="color:${(inv-done)>0?'#DC2626':'#16A34A'}">${won(inv-done)}</div></div></div>
     ${sorted.length? sorted.map(s=>{ const p=projects.find(x=>x.id===s.pjtId); const v=!setActive(s);
       return `<div class="litem ${v?'void':''}" onclick="openSettle('${s.id}')"><div class="d"><div class="ti">${s.docType==='invoice'?'대금청구서':'지급예정서'} <span class="pill">${s.no}</span>${v?'<span class="void-tag">폐기</span>':''}${s.status==='done'?'<span class="void-tag" style="background:#E1F5EE;color:#085041">✓ 완결</span>':''}</div><div class="mt"><span class="pill">${p?p.code:'-'}</span> &nbsp;기준월 ${s.baseMonth} · 발행 ${s.issueDate}${s.recipient?.company?' · '+s.recipient.company:''}</div></div><div class="amt">${won(s.total)}</div></div>`;
     }).join('') : '<div class="empty">발행된 정산서가 없습니다.</div>'}`;
