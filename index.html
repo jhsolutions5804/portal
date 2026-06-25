@@ -997,6 +997,24 @@ async function createEmployee(){
       _pw: btoa(unescape(encodeURIComponent(pw))),  // 관리자 비밀번호 초기화용
       createdAt:serverTimestamp()
     });
+    // 4) workers 컬렉션에 근로자 명부 자동 생성 (portal ↔ hr 연동)
+    try{
+      const wid=name+'_portal_'+targetUid.slice(0,6);
+      // empNo: 가입연도 2자리 + 순번 (기존 worker 수 기반)
+      const wSnap=await getDocs(collection(db,'workers'));
+      const yy=new Date().getFullYear().toString().slice(2);
+      let maxSeq=0;
+      wSnap.forEach(d=>{ const no=d.data().empNo||''; if(no.length===5&&no.slice(0,2)===yy) maxSeq=Math.max(maxSeq,parseInt(no.slice(2))||0); });
+      const empNo=yy+String(maxSeq+1).padStart(3,'0');
+      await setDoc(doc(db,'workers',wid),{
+        name, rank, dept, empNo,
+        portalUid: targetUid,
+        phone:'', address:'', jumin:'', job:'', empType:'office',
+        hireDate:'', bankAccount:'', registeredAt: new Date().toISOString()
+      });
+      // portal_users에 empNo 동기화
+      await updateDoc(doc(db,'portal_users',targetUid),{empNo});
+    }catch(we){ console.warn('workers 연동 실패:', we); }
     showMsg(msg,'ok',`✅ ${name} (${email}) 계정이 생성되었습니다.`);
     ['cr-name','cr-id','cr-pw'].forEach(i=>$(i).value='');
     $('cr-rank').value=''; $('cr-dept').value='';
@@ -1009,6 +1027,42 @@ async function createEmployee(){
 
 /* ---------- Portal 관리: 직원 목록 + 접근 권한 ---------- */
 let _allUsers = [];
+
+// ===== workers 연동 함수 (A4+B6) =====
+window.syncWorker = async function(uid){
+  if(!confirm('이 계정의 근로자 명부(workers)를 생성·연동합니다.')) return;
+  const u = _allUsers.find(x=>x.uid===uid); if(!u){ alert('계정 정보를 찾을 수 없습니다.'); return; }
+  try{
+    // 이미 portalUid로 연결된 workers 문서 있는지 확인
+    const wq = await getDocs(query(collection(db,'workers'),where('portalUid','==',uid)));
+    let empNo = u.empNo;
+    if(!wq.empty){
+      // 이미 연동된 문서 있음 → empNo만 동기화
+      empNo = wq.docs[0].data().empNo || empNo;
+      await updateDoc(wq.docs[0].ref,{name:u.name,rank:u.rank||'',dept:u.dept||''});
+    } else {
+      // 신규 생성
+      const wSnap = await getDocs(collection(db,'workers'));
+      const yy = new Date().getFullYear().toString().slice(2);
+      let maxSeq=0;
+      wSnap.forEach(d=>{ const no=d.data().empNo||''; if(no.length===5&&no.slice(0,2)===yy) maxSeq=Math.max(maxSeq,parseInt(no.slice(2))||0); });
+      empNo = empNo || (yy+String(maxSeq+1).padStart(3,'0'));
+      const wid = (u.name||'noname')+'_portal_'+uid.slice(0,6);
+      await setDoc(doc(db,'workers',wid),{
+        name:u.name||'', rank:u.rank||'', dept:u.dept||'', empNo,
+        portalUid:uid,
+        phone:u.phone||'', address:'', jumin:'', job:'', empType:'office',
+        hireDate:'', bankAccount:'', registeredAt:new Date().toISOString()
+      });
+    }
+    // portal_users에 empNo 반영
+    await updateDoc(doc(db,'portal_users',uid),{empNo});
+    const idx = _allUsers.findIndex(x=>x.uid===uid);
+    if(idx>=0) _allUsers[idx].empNo = empNo;
+    toast('✅ '+u.name+' 근로자 명부 연동 완료 (사번: '+empNo+')');
+    loadPerms();
+  }catch(e){ alert('연동 실패: '+e.message); }
+};
 
 async function loadPerms(){
   const pbox=$('p-perms'); if(!pbox) return;
@@ -1031,7 +1085,8 @@ async function loadPerms(){
     pbox.innerHTML='';
     nonAdmins.forEach(u=>{
       const el=document.createElement('div'); el.className='perm';
-      el.innerHTML=`<div class="nm" style="cursor:pointer;" onclick="openEmpDetail('${u.uid}')">${u.name||'-'} <span class="em">(${u.rank||''} · ${u.email||''})</span></div><div class="chips">${MODULES.map(m=>`<span class="chip ${(u.perms&&u.perms[m.key])?'on':''}" data-u="${u.uid}" data-k="${m.key}">${m.name}</span>`).join('')}</div>`;
+      const noWorker=!u.empNo; // empNo 없으면 workers 미연동 가능성
+      el.innerHTML=`<div class="nm" style="cursor:pointer;" onclick="openEmpDetail('${u.uid}')">${u.name||'-'} <span class="em">(${u.rank||''} · ${u.email||''})</span>${noWorker?'&nbsp;<span style="font-size:10px;background:#FAEEDA;color:#633806;padding:1px 6px;border-radius:4px;">명부미연동</span>':''}</div><div class="chips">${MODULES.map(m=>`<span class="chip ${(u.perms&&u.perms[m.key])?'on':''}" data-u="${u.uid}" data-k="${m.key}">${m.name}</span>`).join('')}${noWorker?`<button onclick="syncWorker('${u.uid}')" style="font-size:11px;padding:2px 8px;border:1px solid #1D5BA6;color:#1D5BA6;background:#fff;border-radius:4px;cursor:pointer;margin-left:4px;">근무자 연동</button>`:''}</div>`;
       pbox.appendChild(el);
     });
   }catch(e){ pbox.innerHTML=`<div class="empty">불러오기 실패: ${e.code||e.message}</div>`; }
@@ -1150,6 +1205,14 @@ async function saveEmpDetail(){
     await updateDoc(doc(db,'portal_users',_editUid),updates);
     const idx=_allUsers.findIndex(x=>x.uid===_editUid);
     if(idx>=0) Object.assign(_allUsers[idx],updates);
+    // workers 컬렉션 동기화 (portalUid로 연결된 문서 업데이트)
+    try{
+      const wq=await getDocs(query(collection(db,'workers'),where('portalUid','==',_editUid)));
+      if(!wq.empty){
+        const wRef=wq.docs[0].ref;
+        await updateDoc(wRef,{name,rank,dept,empNo});
+      }
+    }catch(we){ console.warn('workers 동기화 실패:', we); }
     toast('✅ 저장되었습니다.');
     showView('admin');
     loadPerms();
