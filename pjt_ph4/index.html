@@ -448,7 +448,7 @@ body{font-family:-apple-system,'Apple SD Gothic Neo','Pretendard',sans-serif;bac
         <div class="logo-sub">귀뚜라미범양냉방 · SUP 설치</div>
       </div>
       <span class="date-badge" id="today-badge"></span>
-      <a href="daily-report.html" style="font-size:12px;color:#1D5BA6;background:#e8f0fb;padding:5px 11px;border-radius:8px;text-decoration:none;font-weight:600;white-space:nowrap;">📋 공사일보</a>
+      <a href="https://jhsolutions5804.github.io/p4ph2-fab-workspace/daily-report.html" style="font-size:12px;color:#1D5BA6;background:#e8f0fb;padding:5px 11px;border-radius:8px;text-decoration:none;font-weight:600;white-space:nowrap;">📋 공사일보</a>
     </div>
     <div class="tab-bar">
       <button class="tab active" onclick="switchTab('today',this)">오늘</button>
@@ -505,7 +505,7 @@ body{font-family:-apple-system,'Apple SD Gothic Neo','Pretendard',sans-serif;bac
               <div class="sci">📅</div>
               <div><div class="sct">오늘 일정</div><div class="scd">일정 확인 및 보고</div></div>
             </div>
-            <div class="home-sc" onclick="window.open('daily-report.html','_blank')">
+            <div class="home-sc" onclick="window.open('https://jhsolutions5804.github.io/p4ph2-fab-workspace/daily-report.html','_blank')">
               <div class="sci">📋</div>
               <div><div class="sct">공사일보 작성</div><div class="scd">오늘 공사일보 작성</div></div>
             </div>
@@ -513,7 +513,7 @@ body{font-family:-apple-system,'Apple SD Gothic Neo','Pretendard',sans-serif;bac
               <div class="sci">📂</div>
               <div><div class="sct">공사일보 조회</div><div class="scd">누적 공사일보 열람</div></div>
             </div>
-            <div class="home-sc" onclick="document.getElementById('ppt-btn').click()">
+            <div class="home-sc" onclick="openPptDateModal()">
               <div class="sci">📈</div>
               <div><div class="sct">공정표 PPT</div><div class="scd">공정율 PPT 다운로드</div></div>
             </div>
@@ -705,7 +705,7 @@ body{font-family:-apple-system,'Apple SD Gothic Neo','Pretendard',sans-serif;bac
 
       <!-- PPT 생성 버튼 -->
       <div class="ppt-btn-wrap" style="display:none">
-        <button id="ppt-btn" onclick="generateProgressPPT()" style="padding:10px 20px;background:#1D5BA6;color:#fff;border:none;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:8px;font-family:inherit">
+        <button id="ppt-btn" onclick="openPptDateModal()" style="padding:10px 20px;background:#1D5BA6;color:#fff;border:none;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:8px;font-family:inherit">
           📊 PPT 다운로드
         </button>
         <div id="ppt-status" style="font-size:11px;color:#86868b;text-align:center;margin-top:8px;display:none"></div>
@@ -760,6 +760,20 @@ body{font-family:-apple-system,'Apple SD Gothic Neo','Pretendard',sans-serif;bac
 
 <!-- PDF 인쇄 영역 -->
 <div id="dr-print-area" style="display:none"></div>
+
+<!-- PPT 날짜 선택 모달 -->
+<div id="ppt-date-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:9000;align-items:center;justify-content:center">
+  <div style="background:#fff;border-radius:16px;padding:28px 32px;width:320px;box-shadow:0 8px 32px rgba(0,0,0,.18)">
+    <div style="font-size:17px;font-weight:700;color:#1A2540;margin-bottom:6px">📊 공정표 PPT 기준일 선택</div>
+    <div style="font-size:12px;color:#86868b;margin-bottom:20px">선택한 날짜의 공정 데이터로 PPT가 생성됩니다</div>
+    <label style="font-size:13px;color:#555;font-weight:600;display:block;margin-bottom:6px">기준일 (D-1 기준)</label>
+    <input type="date" id="ppt-date-inp" style="width:100%;padding:10px 12px;border:1.5px solid #dde4ef;border-radius:10px;font-size:14px;font-family:inherit;box-sizing:border-box;margin-bottom:18px">
+    <div style="display:flex;gap:10px">
+      <button onclick="closePptDateModal()" style="flex:1;padding:11px;background:#f5f5f7;color:#555;border:1px solid #e5e5e5;border-radius:10px;font-size:14px;cursor:pointer;font-family:inherit">취소</button>
+      <button onclick="runPptWithDate()" style="flex:2;padding:11px;background:#1D5BA6;color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit">📊 PPT 생성 · 다운로드</button>
+    </div>
+  </div>
+</div>
 
 <!-- 공수 집계표 모달 -->
 <div class="ks-modal" id="ks-modal">
@@ -843,6 +857,7 @@ body{font-family:-apple-system,'Apple SD Gothic Neo','Pretendard',sans-serif;bac
 <!-- Firebase SDK -->
 <script type="module">
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
+import { getAuth, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
 import { getFirestore, collection, addDoc, onSnapshot, deleteDoc, doc, query, orderBy, serverTimestamp, setDoc, getDoc, getDocs }
   from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
 
@@ -864,6 +879,12 @@ const db = getFirestore(app);
 
 // Firebase 연결 상태를 전역에 노출
 window._fbDb = db;
+// Firebase Auth 초기화 (portal 세션 재사용)
+const auth = getAuth(app);
+onAuthStateChanged(auth, function(user){
+  window._fbUser = user;
+  // Auth 상태와 무관하게 _fbReady 유지 (Auth 없이도 데이터 접근 시도)
+});
 window._fbReady = true;
 
 // ===== 기술인 명단 Firebase 관리 =====
@@ -1219,7 +1240,7 @@ function applyChecksToUI(dateKey, checks) {
 // 화면 표시: 해당 날짜까지 모든 날짜 체크 누적 병합
 
 // 과거 데이터 — 날짜별 신규 체크만 (당일 새로 추가된 항목)
-const PAST_PROGRESS_DAILY = {}; // P4 Ph4: 과거 데이터 없음
+const PAST_PROGRESS_DAILY = {};
 
 // 날짜 목록 (정렬된 과거 날짜들)
 const PAST_DATES = Object.keys(PAST_PROGRESS_DAILY).sort();
@@ -1408,7 +1429,25 @@ const ZONES=[
 ];
 
 // ===== 일정 데이터 =====
-const ALL_SCHEDULE={}; // P4 Ph4: 일정은 앱에서 직접 입력
+const ALL_SCHEDULE={}; // P4 Ph4: 일정 앱에서 직접 입력
+
+// ===== 2026년 한국 공휴일 =====
+const HOLIDAYS={
+  '2026-01-01':'신정','2026-01-28':'설날 연휴','2026-01-29':'설날','2026-01-30':'설날 연휴',
+  '2026-03-01':'삼일절','2026-05-05':'어린이날','2026-05-24':'부처님오신날',
+  '2026-06-06':'현충일','2026-08-15':'광복절',
+  '2026-09-24':'추석 연휴','2026-09-25':'추석','2026-09-26':'추석 연휴',
+  '2026-10-03':'개천절','2026-10-09':'한글날','2026-12-25':'크리스마스',
+};
+
+// ===== 유틸 =====
+function pad(n){return String(n).padStart(2,'0');}
+function toKey(d){return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());}
+function getAppToday(){
+  const now=new Date();
+  if(now.getHours()<6)now.setDate(now.getDate()-1);
+  now.setHours(0,0,0,0);return now;
+}
 function getLeavesFromSchedule(key){
   var fromSched=(ALL_SCHEDULE[key]||[]).filter(function(i){return i.tag==='leave'&&i.leaveInfo;}).map(function(i){return i.leaveInfo;});
   var fromFB=window._edocLeaveItemsForKey?window._edocLeaveItemsForKey(key):[];
@@ -2303,18 +2342,7 @@ window.addWorkerFromUI = async function(){
   var name=document.getElementById('worker-add-name').value.trim();
   var role=document.getElementById('worker-add-role').value;
   if(!name){ alert('이름을 입력하세요.'); return; }
-  if(!window._fbAddWorker){
-    var name_=document.getElementById('worker-add-name').value.trim();
-    var role_=document.getElementById('worker-add-role').value;
-    setTimeout(function(){
-      if(window._fbAddWorker){ window._fbAddWorker(name_, role_||'').then(function(){
-        if(window._refreshWorkerArrays) window._refreshWorkerArrays();
-        renderWorkerMgmtList();
-      }); document.getElementById('worker-add-name').value=''; }
-      else { alert('Firebase 연결을 확인하세요.'); }
-    }, 1500);
-    return;
-  }
+  if(!window._fbAddWorker){ alert('Firebase 준비 중입니다. 잠시 후 시도해주세요.'); return; }
   await window._fbAddWorker(name, role);
   document.getElementById('worker-add-name').value='';
   if(window._refreshWorkerArrays) window._refreshWorkerArrays();
@@ -2725,8 +2753,9 @@ function waitForFirebaseAndInit() {
       });
     }
     initToday();
-    // PC에서 홈 탭 자동 활성화
-    if(window.innerWidth>=900){
+    // 탭바가 있으면 홈 탭 자동 활성화 (portal iframe 포함)
+    var _hasPcNav=document.querySelector('.pc-topnav');
+    if(_hasPcNav){
       switchTab('home',null);
       document.querySelectorAll('.pc-tnav-btn').forEach(function(b){
         b.classList.toggle('active',b.dataset.tab==='home');
@@ -2774,6 +2803,36 @@ document.getElementById('report-input').addEventListener('keydown',e=>{
 <script src="https://cdn.jsdelivr.net/npm/pptxgenjs@3.12.0/dist/pptxgen.bundle.js"></script>
 <script>
 // ===== PPT 생성 =====
+// ── PPT 날짜 선택 모달 ──
+window.openPptDateModal = function(){
+  var modal=document.getElementById('ppt-date-modal');
+  if(!modal) return;
+  // 기본값: 공정 탭 선택 날짜 또는 어제
+  var d=getProgDate?getProgDate():new Date();
+  var y=d.getFullYear(), m=String(d.getMonth()+1).padStart(2,'0'), dd=String(d.getDate()).padStart(2,'0');
+  var inp=document.getElementById('ppt-date-inp');
+  if(inp) inp.value=y+'-'+m+'-'+dd;
+  modal.style.display='flex';
+};
+window.closePptDateModal=function(){
+  var modal=document.getElementById('ppt-date-modal');
+  if(modal) modal.style.display='none';
+};
+window.runPptWithDate=async function(){
+  var inp=document.getElementById('ppt-date-inp');
+  if(!inp||!inp.value){ alert('날짜를 선택해 주세요.'); return; }
+  var parts=inp.value.split('-');
+  var selDate=new Date(parseInt(parts[0]),parseInt(parts[1])-1,parseInt(parts[2]));
+  closePptDateModal();
+  // progDayOffset을 임시 조정해서 선택 날짜로 PPT 생성
+  var today=getAppToday();
+  var diffMs=selDate.getTime()-new Date(today.getFullYear(),today.getMonth(),today.getDate()).getTime();
+  var savedOffset=typeof progDayOffset!=='undefined'?progDayOffset:0;
+  progDayOffset=Math.round(diffMs/(1000*60*60*24));
+  await generateProgressPPT();
+  progDayOffset=savedOffset;
+};
+
 window.generateProgressPPT = async function() {
   const btn = document.getElementById('ppt-btn');
   const status = document.getElementById('ppt-status');
