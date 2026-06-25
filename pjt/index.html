@@ -2877,7 +2877,7 @@ function _updateHomeKPI(){
   if(typeof ZONES!=='undefined' && typeof getCksProg==='function' && typeof calcZone==='function'){
     var gc=0,gm=0;
     ZONES.forEach(function(z){
-      var r=calcZone(z,getCksProg(z.id));
+      var r=calcZone(z,getCksProg(z.id, true)); // 공정율은 항상 오늘 기준
       gc+=r.totalChecked; gm+=r.mx;
     });
     pctStr=gm>0?(gc/gm*100).toFixed(1)+'%':'0.0%';
