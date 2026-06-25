@@ -16,9 +16,9 @@
     apiKey: "AIzaSyCyQxBJ_ftfM0ImBXubmqD5gfzFR54iPmE",
     authDomain: "p4ph2-fab-506a7.firebaseapp.com",
     projectId: "p4ph2-fab-506a7",
-    storageBucket: "p4ph2-fab-506a7.firebasestorage.app",
-    messagingSenderId: "36946317914",
-    appId: "1:36946317914:web:c6ad5f3a1b98130c99fe63"
+    storageBucket: "p4ph2-fab-506a7.appspot.com",
+    messagingSenderId: "369463179140",
+    appId: "1:369463179140:web:c6ad5f3a1b98130c99fe63"
   };
 
   const app  = initializeApp(firebaseConfig);
@@ -897,10 +897,12 @@ async function renderHome() {
     <div class="hm-sec">업무 흐름 (의존 순서대로)</div>
     <div class="hm-flow">
       <div class="hm-fc full" onclick="goTab('roster')"><div class="hm-step">1</div><div class="hm-fb"><div class="stage">입사 · 인사 마스터 (모든 단계의 기준)</div><div class="ttl">근로자 명부</div><div class="hm-pills"><span class="hm-pill">등록</span><span class="hm-pill">조회 · 상세</span></div></div><div class="hm-chev">›</div></div>
-      <div class="hm-fc full" onclick="goTab('labor')"><div class="hm-step">2</div><div class="hm-fb"><div class="stage">계약 · 시급 입력 → 연봉 자동 산정</div><div class="ttl">계약서</div><div class="hm-pills"><span class="hm-pill">근로계약서</span><span class="hm-arrow">→</span><span class="hm-pill" onclick="event.stopPropagation();goTab('annual')">연봉계약서</span></div></div><div class="hm-chev">›</div></div>
-      <div class="hm-fc" onclick="goTab('overtime')"><div class="hm-step">3</div><div class="hm-fb"><div class="stage">근무 · 통상임금 자동 계산</div><div class="ttl">초과근로</div></div><div class="hm-chev">›</div></div>
-      <div class="hm-fc" onclick="goTab('payslip')"><div class="hm-step">4</div><div class="hm-fb"><div class="stage">급여 · 연봉 + 초과근로 연동</div><div class="ttl">급여명세서</div></div><div class="hm-chev">›</div></div>
-      <div class="hm-fc full" onclick="goTab('retire')"><div class="hm-step">5</div><div class="hm-fb"><div class="stage">퇴직 · 재직기간 × 평균임금</div><div class="ttl">퇴직금 정산</div></div><div class="hm-chev">›</div></div>
+      <div class="hm-fc" onclick="goTab('labor')"><div class="hm-step">2</div><div class="hm-fb"><div class="stage">시급 입력 → 연봉 자동 산정</div><div class="ttl">근로계약서</div></div><div class="hm-chev">›</div></div>
+      <div class="hm-fc" onclick="goTab('annual')"><div class="hm-step">3</div><div class="hm-fb"><div class="stage">근로계약서 시급 연동</div><div class="ttl">연봉계약서</div></div><div class="hm-chev">›</div></div>
+      <div class="hm-fc" onclick="goTab('overtime')"><div class="hm-step">4</div><div class="hm-fb"><div class="stage">근무 · 통상임금 자동 계산</div><div class="ttl">초과근로</div></div><div class="hm-chev">›</div></div>
+      <div class="hm-fc" onclick="goTab('payslip')"><div class="hm-step">5</div><div class="hm-fb"><div class="stage">급여 · 연봉 + 초과근로 연동</div><div class="ttl">급여명세서</div></div><div class="hm-chev">›</div></div>
+      <div class="hm-fc" onclick="goTab('retire')"><div class="hm-step">6</div><div class="hm-fb"><div class="stage">퇴직 · 재직기간 × 평균임금</div><div class="ttl">퇴직금 정산</div></div><div class="hm-chev">›</div></div>
+      <div class="hm-fc full" onclick="goTab('leave')"><div class="hm-step">7</div><div class="hm-fb"><div class="stage">근로기준법 자동 산정 · 전 직원</div><div class="ttl">연차 현황</div></div><div class="hm-chev">›</div></div>
     </div>
   </div>`;
   loadHomeKpis();
@@ -3957,7 +3959,7 @@ window.renderLeaveStatusMain = async () => {
         <td style="padding:11px 12px;border-bottom:1px solid #EEF2F7;font-weight:600;color:#1A2540;">${w.name||'-'}</td>
         <td style="padding:11px 12px;border-bottom:1px solid #EEF2F7;color:#5C6F8A;">${w.dept||'-'}</td>
         <td style="padding:11px 12px;border-bottom:1px solid #EEF2F7;color:#5C6F8A;">${w.rank||'-'}</td>
-        <td style="padding:11px 12px;border-bottom:1px solid #EEF2F7;color:#5C6F8A;font-size:12px;">${w.hireDate||'<span style=\\'color:#DC2626;\\'>미등록</span>'}</td>
+        <td style="padding:11px 12px;border-bottom:1px solid #EEF2F7;color:#5C6F8A;font-size:12px;">${w.hireDate||'<span style="color:#DC2626;">미등록</span>'}</td>
         <td style="padding:11px 12px;border-bottom:1px solid #EEF2F7;color:#5C6F8A;font-size:12px;">${noHire?'-':g.detail}</td>
         <td style="padding:11px 12px;border-bottom:1px solid #EEF2F7;text-align:center;font-weight:700;color:#1D5BA6;">${noHire?'-':g.granted}</td>
         <td style="padding:11px 12px;border-bottom:1px solid #EEF2F7;text-align:center;font-weight:700;color:#F59E0B;">${used}</td>
