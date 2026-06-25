@@ -2948,8 +2948,9 @@ function waitForFirebaseAndInit() {
       });
     }
     initToday();
-    // PC에서 홈 탭 자동 활성화
-    if(window.innerWidth>=900){
+    // 탭바가 있으면 홈 탭 자동 활성화 (portal iframe 포함)
+    var _hasPcNav=document.querySelector('.pc-topnav');
+    if(_hasPcNav){
       switchTab('home',null);
       document.querySelectorAll('.pc-tnav-btn').forEach(function(b){
         b.classList.toggle('active',b.dataset.tab==='home');
