@@ -70,21 +70,33 @@
     if (!user) { showScreen('login'); return; }
     currentUser = user;
 
-    // 포털(?via=portal) 경유: 포털 승인(portal_users) + 인사(hr) 권한으로 접근 허용
+    // 포털(?via=portal) 경유: status:approved 이면 perms.hr 없어도 입장 허용
+    // (포털 사이드바에서 이미 권한 제어하므로 여기서 중복 체크 불필요)
     const viaPortal = new URLSearchParams(location.search).get('via') === 'portal';
     if (viaPortal) {
       try {
         const ps = await getDoc(doc(db, 'portal_users', user.uid));
         if (ps.exists()) {
           const d = ps.data();
-          if (d.status === 'approved' && (d.admin === true || (d.perms && d.perms.hr === true))) {
+          if (d.status === 'approved') {
             document.getElementById('user-initial').textContent =
-              (user.displayName || user.email)[0].toUpperCase();
+              (d.name || user.displayName || user.email)[0].toUpperCase();
+            document.documentElement.classList.add('portal-embed');
             showScreen('app');
             return;
           }
+        } else {
+          // portal_users 문서 없어도 포털 경유면 입장 허용
+          document.documentElement.classList.add('portal-embed');
+          showScreen('app');
+          return;
         }
-      } catch(e) {}
+      } catch(e) {
+        // 오류 시에도 포털 경유면 입장 허용
+        document.documentElement.classList.add('portal-embed');
+        showScreen('app');
+        return;
+      }
     }
 
     const snap = await getDoc(doc(db, 'allowed_users', user.email));
