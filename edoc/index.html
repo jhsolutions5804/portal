@@ -582,6 +582,44 @@ window.dailyApprove = async function(docId, newStatus) {
 };
 
 // ── 전자결재 홈 ──
+// ── 근로기준법 연차 자동 계산 ──
+function calcAnnualLeaveGrant(hireDateStr, baseDateStr) {
+  if (!hireDateStr) return { granted:0, years:0, months:0, detail:'입사일 미등록' };
+  const hire = new Date(hireDateStr);
+  const base = baseDateStr ? new Date(baseDateStr) : new Date();
+  if (isNaN(hire.getTime()) || base < hire) return { granted:0, years:0, months:0, detail:'-' };
+  let years = base.getFullYear() - hire.getFullYear();
+  const mDiff = base.getMonth() - hire.getMonth();
+  const dDiff = base.getDate() - hire.getDate();
+  if (mDiff < 0 || (mDiff === 0 && dDiff < 0)) years--;
+  const totalMonths = (base.getFullYear()-hire.getFullYear())*12 + (base.getMonth()-hire.getMonth()) - (base.getDate() < hire.getDate() ? 1 : 0);
+  let granted = 0, detail = '';
+  if (years < 1) {
+    granted = Math.min(Math.max(totalMonths,0), 11);
+    detail = `입사 ${Math.max(totalMonths,0)}개월 (월 1일, 최대 11일)`;
+  } else {
+    granted = 15;
+    if (years >= 3) granted = Math.min(15 + Math.floor((years-1)/2), 25);
+    detail = `근속 ${years}년차 (15일${granted>15?` +${granted-15}`:''})`;
+  }
+  return { granted, years, months: Math.max(totalMonths,0), detail };
+}
+
+// 연차 사용일수 집계 (게시/승인된 연차신청서)
+function sumLeaveUsed(leaveDocs, workerName) {
+  let used = 0;
+  for (const lv of leaveDocs) {
+    const nm = lv.authorName || lv.name || '';
+    if (nm !== workerName) continue;
+    if (lv.status !== 'posted' && lv.status !== 'approved') continue;
+    const days = parseFloat(lv.days || lv.leaveDays || 0);
+    if (!isNaN(days)) used += days;
+  }
+  return used;
+}
+window.calcAnnualLeaveGrant = calcAnnualLeaveGrant;
+window.sumLeaveUsed = sumLeaveUsed;
+
 async function renderEdocHome() {
   const el = document.getElementById('tab-home'); if(!el) return;
   const TYPE_LABEL = { daily:'업무일지', leave:'연차신청서', resign:'퇴직원서', cert:'재직증명서', purchase:'구매품의서', expense:'지출결의서' };
@@ -592,6 +630,9 @@ async function renderEdocHome() {
   el.innerHTML = `<div class="wrap2">
     <div class="sec-title">전자결재 홈</div>
     <div class="sec-sub">내 결재함 · 수신함 · 게시 문건</div>
+    <div id="edoc-leave-box" class="leave-box">
+      <div class="leave-box-inner" style="opacity:.5;">연차 현황 불러오는 중…</div>
+    </div>
     <div id="edoc-home-kpi" class="home-kpi-grid">
       ${[0,0,0,0].map(()=>'<div class="kpi-card loading">·</div>').join('')}
     </div>
@@ -628,12 +669,14 @@ async function renderEdocHome() {
     let myInbox = [];    // 내가 회람 수신자인 문서
     let myDocs = [];     // 내가 작성한 문서
     let postedAll = [];  // 게시된 전체 문서
+    let allLeave = [];   // 전체 연차신청서 (연차 집계용)
 
     for (const dtype of DOC_TYPES) {
       const snap = await getDocs(collection(db, `edoc_${dtype}`));
       snap.forEach(d => {
         const data = {id:d.id, dtype, ...d.data()};
         const line = data.approvalLine || [];
+        if (dtype === 'leave') allLeave.push(data);
 
         // 게시된 문서
         if (data.status === 'posted') postedAll.push(data);
@@ -675,6 +718,39 @@ async function renderEdocHome() {
 
     // 전역 저장 (KPI 카드 '전체 보기'에서 사용)
     window._edocLists = { approve: myApprove, inbox: myInbox, mydocs: myDocs, posted: postedAll };
+
+    // ── 연차 현황 계산 (로그인 계정) ──
+    (async () => {
+      const lbox = document.getElementById('edoc-leave-box');
+      if (!lbox) return;
+      const myName = _myInfo?.name || '';
+      // workers에서 내 입사일 조회
+      let hireDate = '';
+      try {
+        const wsnap = await getDocs(collection(db, 'workers'));
+        wsnap.forEach(w => {
+          const wd = w.data();
+          if (wd.name === myName && wd.hireDate) hireDate = wd.hireDate;
+        });
+      } catch(e) {}
+
+      const grant = calcAnnualLeaveGrant(hireDate);
+      const used = sumLeaveUsed(allLeave, myName);
+      const remain = Math.max(grant.granted - used, 0);
+
+      if (!hireDate) {
+        lbox.innerHTML = `<div class="leave-box-inner" style="opacity:.7;">
+          🌴 연차 현황 — 인사 명부에 입사일이 등록되어 있지 않습니다.</div>`;
+        return;
+      }
+      lbox.innerHTML = `
+        <div class="leave-title">🌴 내 연차 현황 <span style="font-size:11px;font-weight:500;color:#9AAABF;">${grant.detail}</span></div>
+        <div class="leave-stats">
+          <div class="leave-stat"><div class="ls-lab">부여</div><div class="ls-val" style="color:#1D5BA6;">${grant.granted}<span>일</span></div></div>
+          <div class="leave-stat"><div class="ls-lab">사용</div><div class="ls-val" style="color:#F59E0B;">${used}<span>일</span></div></div>
+          <div class="leave-stat"><div class="ls-lab">잔여</div><div class="ls-val" style="color:#16A34A;">${remain}<span>일</span></div></div>
+        </div>`;
+    })();
 
     // KPI
     const kpi = document.getElementById('edoc-home-kpi');
@@ -1521,6 +1597,14 @@ body{font-family:-apple-system,'Apple SD Gothic Neo','Pretendard',sans-serif;bac
 .panel-head{font-size:12px;font-weight:700;color:#1D5BA6;padding:11px 14px;background:#E8F0FB;border-bottom:1px solid #DDE4EF;}
 .panel-list{padding:6px 0;}
 .panel-row{display:flex;align-items:center;gap:8px;padding:9px 14px;cursor:pointer;border-bottom:1px solid #F4F7FB;font-size:12px;}
+.leave-box{background:linear-gradient(135deg,#EAF2FC,#F4F7FB);border:1px solid #DDE4EF;border-radius:14px;padding:16px 20px;margin-bottom:16px;}
+.leave-box-inner{font-size:13px;color:#5C6F8A;}
+.leave-title{font-size:14px;font-weight:800;color:#13335C;margin-bottom:12px;}
+.leave-stats{display:flex;gap:12px;}
+.leave-stat{flex:1;background:#fff;border-radius:10px;padding:12px 14px;text-align:center;box-shadow:0 1px 4px rgba(29,91,166,0.06);}
+.ls-lab{font-size:11px;color:#5C6F8A;font-weight:600;margin-bottom:4px;}
+.ls-val{font-size:24px;font-weight:800;}
+.ls-val span{font-size:13px;font-weight:600;margin-left:2px;}
 .elist-row{display:flex;align-items:center;gap:10px;padding:13px 14px;cursor:pointer;border-bottom:1px solid #F4F7FB;font-size:13px;border-radius:8px;}
 .elist-row:hover{background:#F4F7FB;}
 .panel-row:hover{background:#F8FAFD;}
