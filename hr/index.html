@@ -783,6 +783,7 @@ body { font-family:-apple-system,'Apple SD Gothic Neo','Pretendard',sans-serif; 
     <button class="sb-item" data-navkey="payslip" onclick="goTab('payslip')"><span class="sb-num">4</span> 급여명세서</button>
     <div class="sb-grp">5 · 퇴직</div>
     <button class="sb-item" data-navkey="retire" onclick="goTab('retire')"><span class="sb-num">5</span> 퇴직금 정산</button>
+    <button class="sb-item" data-navkey="leave" onclick="goTab('leave')"><span class="sb-num">6</span> 연차 현황</button>
     <div class="sb-foot"><div class="av" id="sb-user">?</div><button onclick="doLogout()">로그아웃</button></div>
   </aside>
 
@@ -809,6 +810,7 @@ body { font-family:-apple-system,'Apple SD Gothic Neo','Pretendard',sans-serif; 
     <button class="tab-btn" data-navkey="overtime" onclick="goTab('overtime')">⏱ 초과근로</button>
     <button class="tab-btn" data-navkey="payslip" onclick="goTab('payslip')">💰 급여명세서</button>
     <button class="tab-btn" data-navkey="retire" onclick="goTab('retire')">🧾 퇴직금</button>
+    <button class="tab-btn" data-navkey="leave" onclick="goTab('leave')">🌴 연차</button>
   </div>
 
   <!-- 인사 홈 -->
@@ -825,6 +827,7 @@ body { font-family:-apple-system,'Apple SD Gothic Neo','Pretendard',sans-serif; 
   <div class="tab-content" id="tab-payslip"></div>
   <!-- 퇴직금 정산 -->
   <div class="tab-content" id="tab-retire"></div>
+  <div class="tab-content" id="tab-leave"></div>
   </div>
 </div>
 
@@ -857,6 +860,7 @@ const HR_TABS = {
   overtime: { id:'tab-overtime', title:'초과근로',    fn:()=>renderOvertimeMain() },
   payslip:  { id:'tab-payslip',  title:'급여명세서',  fn:()=>renderPayslipMain2() },
   retire:   { id:'tab-retire',   title:'퇴직금 정산', fn:()=>renderRetireMain() },
+  leave:    { id:'tab-leave',    title:'연차 현황',   fn:()=>renderLeaveStatusMain() },
 };
 
 function goTab(key) {
@@ -3868,6 +3872,113 @@ window.otDeletePerson = async (docId, workerId, name, rank) => {
 // ════════════════════════════════
 const rtWon = n => Math.round(Number(n)||0).toLocaleString('ko-KR');
 let _rtWorkers = [];
+
+// ── 근로기준법 연차 자동 계산 (HR) ──
+function hrCalcAnnualLeave(hireDateStr, baseDateStr) {
+  if (!hireDateStr) return { granted:0, years:0, months:0, detail:'입사일 미등록' };
+  const hire = new Date(hireDateStr);
+  const base = baseDateStr ? new Date(baseDateStr) : new Date();
+  if (isNaN(hire.getTime()) || base < hire) return { granted:0, years:0, months:0, detail:'-' };
+  let years = base.getFullYear() - hire.getFullYear();
+  const mDiff = base.getMonth() - hire.getMonth();
+  const dDiff = base.getDate() - hire.getDate();
+  if (mDiff < 0 || (mDiff === 0 && dDiff < 0)) years--;
+  const totalMonths = (base.getFullYear()-hire.getFullYear())*12 + (base.getMonth()-hire.getMonth()) - (base.getDate() < hire.getDate() ? 1 : 0);
+  let granted = 0, detail = '';
+  if (years < 1) {
+    granted = Math.min(Math.max(totalMonths,0), 11);
+    detail = `입사 ${Math.max(totalMonths,0)}개월`;
+  } else {
+    granted = 15;
+    if (years >= 3) granted = Math.min(15 + Math.floor((years-1)/2), 25);
+    detail = `근속 ${years}년차`;
+  }
+  return { granted, years, months: Math.max(totalMonths,0), detail };
+}
+
+window.renderLeaveStatusMain = async () => {
+  const el = document.getElementById('tab-leave'); if(!el) return;
+  el.innerHTML = `<div style="padding:20px 24px;max-width:1000px;margin:0 auto;">
+    <div style="font-size:20px;font-weight:800;color:#13335C;margin-bottom:4px;">🌴 전체 직원 연차 현황</div>
+    <div style="font-size:13px;color:#5C6F8A;margin-bottom:18px;">최초 입사일 기준 · 근로기준법 자동 산정 · 게시 완료된 연차신청서 차감</div>
+    <div id="leave-status-body" style="opacity:.6;">불러오는 중…</div>
+  </div>`;
+
+  if (!window._db) { document.getElementById('leave-status-body').innerHTML='DB 연결 안 됨'; return; }
+  try {
+    const { getDocs, collection } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+    // 1) 근로자 명부
+    const wSnap = await getDocs(collection(window._db,'workers'));
+    const workers = [];
+    wSnap.forEach(w => workers.push({ id:w.id, ...w.data() }));
+    // 2) 연차신청서 (게시/승인된 것만 사용일수 집계)
+    const lvSnap = await getDocs(collection(window._db,'edoc_leave'));
+    const leaves = [];
+    lvSnap.forEach(l => leaves.push(l.data()));
+
+    const sumUsed = (name) => {
+      let u = 0;
+      for (const lv of leaves) {
+        const nm = lv.authorName || lv.name || '';
+        if (nm !== name) continue;
+        if (lv.status !== 'posted' && lv.status !== 'approved') continue;
+        const d = parseFloat(lv.days || lv.leaveDays || 0);
+        if (!isNaN(d)) u += d;
+      }
+      return u;
+    };
+
+    if (!workers.length) {
+      document.getElementById('leave-status-body').innerHTML = '<div style="padding:40px;text-align:center;color:#9AAABF;">등록된 근로자가 없습니다.</div>';
+      return;
+    }
+
+    // 정렬: 입사일 빠른 순
+    workers.sort((a,b)=>(a.hireDate||'').localeCompare(b.hireDate||''));
+
+    const rows = workers.map(w => {
+      const g = hrCalcAnnualLeave(w.hireDate);
+      const used = sumUsed(w.name);
+      const remain = Math.max(g.granted - used, 0);
+      const noHire = !w.hireDate;
+      return `<tr>
+        <td style="padding:11px 12px;border-bottom:1px solid #EEF2F7;font-weight:600;color:#1A2540;">${w.name||'-'}</td>
+        <td style="padding:11px 12px;border-bottom:1px solid #EEF2F7;color:#5C6F8A;">${w.dept||'-'}</td>
+        <td style="padding:11px 12px;border-bottom:1px solid #EEF2F7;color:#5C6F8A;">${w.rank||'-'}</td>
+        <td style="padding:11px 12px;border-bottom:1px solid #EEF2F7;color:#5C6F8A;font-size:12px;">${w.hireDate||'<span style=\\'color:#DC2626;\\'>미등록</span>'}</td>
+        <td style="padding:11px 12px;border-bottom:1px solid #EEF2F7;color:#5C6F8A;font-size:12px;">${noHire?'-':g.detail}</td>
+        <td style="padding:11px 12px;border-bottom:1px solid #EEF2F7;text-align:center;font-weight:700;color:#1D5BA6;">${noHire?'-':g.granted}</td>
+        <td style="padding:11px 12px;border-bottom:1px solid #EEF2F7;text-align:center;font-weight:700;color:#F59E0B;">${used}</td>
+        <td style="padding:11px 12px;border-bottom:1px solid #EEF2F7;text-align:center;font-weight:800;color:#16A34A;">${noHire?'-':remain}</td>
+      </tr>`;
+    }).join('');
+
+    document.getElementById('leave-status-body').innerHTML = `
+      <div style="background:#fff;border:1px solid #DDE4EF;border-radius:12px;overflow:hidden;">
+        <table style="width:100%;border-collapse:collapse;font-size:13px;">
+          <thead>
+            <tr style="background:#F4F7FB;">
+              <th style="padding:12px;text-align:left;font-size:12px;color:#5C6F8A;font-weight:700;">이름</th>
+              <th style="padding:12px;text-align:left;font-size:12px;color:#5C6F8A;font-weight:700;">부서</th>
+              <th style="padding:12px;text-align:left;font-size:12px;color:#5C6F8A;font-weight:700;">직급</th>
+              <th style="padding:12px;text-align:left;font-size:12px;color:#5C6F8A;font-weight:700;">최초 입사일</th>
+              <th style="padding:12px;text-align:left;font-size:12px;color:#5C6F8A;font-weight:700;">산정 기준</th>
+              <th style="padding:12px;text-align:center;font-size:12px;color:#5C6F8A;font-weight:700;">부여</th>
+              <th style="padding:12px;text-align:center;font-size:12px;color:#5C6F8A;font-weight:700;">사용</th>
+              <th style="padding:12px;text-align:center;font-size:12px;color:#5C6F8A;font-weight:700;">잔여</th>
+            </tr>
+          </thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>
+      <div style="margin-top:12px;font-size:12px;color:#9AAABF;line-height:1.7;">
+        ※ 1년 미만: 1개월 개근당 1일(최대 11일) · 1년 이상: 15일 · 3년 이상: 2년마다 +1일(최대 25일)<br>
+        ※ 입사일이 미등록된 직원은 근로자 명부에서 최초 입사일을 입력해 주세요.
+      </div>`;
+  } catch(e) {
+    document.getElementById('leave-status-body').innerHTML = '<div style="padding:30px;color:#DC2626;">오류: '+e.message+'</div>';
+  }
+};
 
 window.renderRetireMain = () => {
   const el = document.getElementById('tab-retire'); if(!el) return;
