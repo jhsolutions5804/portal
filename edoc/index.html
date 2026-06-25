@@ -1210,12 +1210,12 @@ window.docDetail = function(d, dtype) {
   const lastApprover = approverSteps[approverSteps.length-1] || null;
   const isLastApprover = lastApprover && lastApprover.uid === myUid;
 
-  // 결재 버튼: 내 차례 (작성자 본인은 제외) + pending OR reviewing
-  const canApprove = isMyTurn && !isOwner || (!isOwner && _isAdmin && (d.status==='pending'||d.status==='reviewing'));
-  // 게시 버튼: 최종 결재자 + approved 상태 (작성자 본인이어도 최종 결재자면 가능, 단 approved 상태만)
-  const canPost = d.status==='approved' && (isLastApprover || (_isAdmin && !isOwner));
-  // 회수: 작성자 + pending OR reviewing (결재 진행 중)
-  const canRecall = isOwner && (d.status==='pending' || d.status==='reviewing');
+  // 결재 버튼: 내 차례이면 표시 (작성자 본인이어도 결재라인에 있으면 결재 가능)
+  const canApprove = isMyTurn || (_isAdmin && (d.status==='pending'||d.status==='reviewing'));
+  // 게시 버튼: 최종 결재자 + approved 상태
+  const canPost = d.status==='approved' && (isLastApprover || _isAdmin);
+  // 회수: 작성자 + pending/reviewing이지만 내 결재 차례가 아닐 때만
+  const canRecall = isOwner && !isMyTurn && (d.status==='pending' || d.status==='reviewing');
   // 수정: 작성자 + draft(임시저장) 또는 rejected(반려)
   const canEdit = isOwner && (d.status==='draft' || d.status==='rejected');
   // 삭제: 작성자 + (draft/rejected) 또는 관리자
