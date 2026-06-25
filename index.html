@@ -186,7 +186,7 @@
     .sb-logout{margin-left:auto; font-size:11px; color:#9fbbe0; background:none; border:1px solid rgba(255,255,255,.2); border-radius:8px; padding:5px 9px; cursor:pointer}
     .sb-logout:hover{background:rgba(255,255,255,.08)}
 
-    .main{height:100vh; overflow:hidden}
+    .main{height:100vh; overflow:hidden; position:relative;}
     #view-home{overflow-y:auto; padding:0; flex:1; min-height:0;}
     .home-inner{max-width:960px; margin:0 auto; padding:34px 40px 60px}
     .hello{padding:0 0 6px}
@@ -204,10 +204,11 @@
     #p-reqs .empty, #p-perms .empty{grid-column:1/-1}
 
     /* 임베드: 사이드바 옆 전체 영역 채움 */
-    #view-embed{height:100vh; display:flex; flex-direction:column;}
-    .embed-top{display:none}            /* PC에선 사이드바가 내비 역할 → 상단바 숨김 */
-    .embed-frame-wrap{flex:1; height:100%; background:var(--bg); position:relative; overflow:hidden;}
-    .embed-pad{position:absolute; top:0; left:0; right:0; bottom:0; display:flex; flex-direction:column}
+    #view-embed{position:absolute; top:0; left:248px; right:0; bottom:0; display:none; flex-direction:column;}
+    #view-embed.on{display:flex;}
+    .embed-top{display:none}
+    .embed-frame-wrap{flex:1; position:relative; overflow:hidden; background:var(--bg);}
+    .embed-pad{position:absolute; top:0; left:0; right:0; bottom:0; display:flex; flex-direction:column;}
     .embed-bar{display:flex; align-items:center; gap:12px; padding:12px 20px; background:var(--card); border-bottom:1px solid var(--line)}
     .embed-bar .et{font-size:15px; font-weight:700}
     .embed-bar .eo{margin-left:auto; font-size:12px; color:var(--sub); text-decoration:none; background:#f1f3f7; padding:6px 12px; border-radius:8px; font-weight:600}
