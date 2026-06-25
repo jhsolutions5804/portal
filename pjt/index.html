@@ -1085,7 +1085,7 @@ window.submitReport = async function() {
       const now = new Date();
       const timeStr = now.getHours() + ':' + String(now.getMinutes()).padStart(2,'0');
       const local = getLocalReports(dateKey);
-      local.unshift({ text, name, time: timeStr, ts: Date.now(), id: 'local_'+Date.now(), colName: 'daily_reports_'+dateKey });
+      local.unshift({ text, name, time: timeStr, ts: Date.now(), id: 'fablocal_'+Date.now(), colName: 'daily_reports_'+dateKey });
       if (local.length > 30) local.splice(30);
       saveLocalReports(dateKey, local);
       renderReportList(local);
@@ -1157,10 +1157,10 @@ function renderReportList(reports) {
 
 // localStorage fallback (날짜별)
 function getLocalReports(dateKey) {
-  try { return JSON.parse(localStorage.getItem('reports_'+(dateKey||'')) || '[]'); } catch(e) { return []; }
+  try { return JSON.parse(localStorage.getItem('fabls_reports_'+(dateKey||'')) || '[]'); } catch(e) { return []; }
 }
 function saveLocalReports(dateKey, arr) {
-  try { localStorage.setItem('reports_'+(dateKey||''), JSON.stringify(arr)); } catch(e) {}
+  try { localStorage.setItem('fabls_reports_'+(dateKey||''), JSON.stringify(arr)); } catch(e) {}
 }
 
 // ===== 체크리스트 상태 Firebase 연동 =====
@@ -1206,10 +1206,10 @@ window._fbSetCheck = async function(dateKey, idx, isDone) {
   } catch(e) {
     console.error('체크 저장 오류:', e);
     // 오프라인 fallback: localStorage
-    const arr = JSON.parse(localStorage.getItem('checks_'+dateKey)||'[]');
+    const arr = JSON.parse(localStorage.getItem('fabls_checks_'+dateKey)||'[]');
     if (isDone) { if(!arr.includes(idx)) arr.push(idx); }
     else { const p=arr.indexOf(idx); if(p>-1) arr.splice(p,1); }
-    localStorage.setItem('checks_'+dateKey, JSON.stringify(arr));
+    localStorage.setItem('fabls_checks_'+dateKey, JSON.stringify(arr));
   }
 };
 
@@ -1218,7 +1218,7 @@ window._fbGetChecks = function(dateKey) {
   if (window._checkCache && window._checkCache[dateKey] !== undefined) {
     return window._checkCache[dateKey];
   }
-  try { return JSON.parse(localStorage.getItem('checks_'+dateKey)||'[]'); } catch(e) { return []; }
+  try { return JSON.parse(localStorage.getItem('fabls_checks_'+dateKey)||'[]'); } catch(e) { return []; }
 };
 
 function applyChecksToUI(dateKey, checks) {
@@ -1344,7 +1344,7 @@ window._fbSetProgCheck = async function(dateKey, zoneId, key, isDone) {
     window._progCache[dateKey][zoneId] = checks;
   } catch(e) {
     console.error('공정 체크 저장 오류:', e);
-    const lk = 'eq_ck_'+dateKey+'_'+zoneId;
+    const lk = 'fabls_eq_ck_'+dateKey+'_'+zoneId;
     const d = JSON.parse(localStorage.getItem(lk)||'{}');
     if (isDone) d[key]=true; else delete d[key];
     localStorage.setItem(lk, JSON.stringify(d));
@@ -1371,7 +1371,7 @@ window._fbGetProgChecks = function(dateKey, zoneId) {
   if (window._progCache && window._progCache[dateKey] && window._progCache[dateKey][zoneId] !== undefined) {
     todayOnly = window._progCache[dateKey][zoneId];
   } else {
-    try { todayOnly = JSON.parse(localStorage.getItem('eq_ck_'+dateKey+'_'+zoneId)||'{}'); } catch(e) {}
+    try { todayOnly = JSON.parse(localStorage.getItem('fabls_eq_ck_'+dateKey+'_'+zoneId)||'{}'); } catch(e) {}
   }
 
   // 최종 병합: 고정 과거 + Firebase 과거 + 오늘
@@ -1667,12 +1667,12 @@ window.selectName=function(el){
   el.classList.add('selected');
   window._selectedName=el.dataset.name;
   // 마지막 선택 이름 기억
-  try{localStorage.setItem('lastReportName',window._selectedName);}catch(e){}
+  try{localStorage.setItem('fabls_lastReportName',window._selectedName);}catch(e){}
 };
 // 페이지 로드 시 마지막 선택 이름 복원
 (function(){
   try{
-    const last=localStorage.getItem('lastReportName');
+    const last=localStorage.getItem('fabls_lastReportName');
     if(last){
       window._selectedName=last;
       // DOM 준비 후 적용
@@ -1765,10 +1765,10 @@ function toggleTask(el,key,idx){
     window._fbSetCheck(key,idx,willDone);
   } else {
     try{
-      const arr=JSON.parse(localStorage.getItem('checks_'+key)||'[]');
+      const arr=JSON.parse(localStorage.getItem('fabls_checks_'+key)||'[]');
       if(willDone){if(!arr.includes(idx))arr.push(idx);}
       else{const p=arr.indexOf(idx);if(p>-1)arr.splice(p,1);}
-      localStorage.setItem('checks_'+key,JSON.stringify(arr));
+      localStorage.setItem('fabls_checks_'+key,JSON.stringify(arr));
     }catch(e){}
   }
   updateProgress();
@@ -2081,7 +2081,7 @@ function getCksProg(zoneId){
     return r; // {merged, todayOnly, pastOnly}
   }
   try{
-    const merged=JSON.parse(localStorage.getItem('eq_ck_'+dateKey+'_'+zoneId)||'{}');
+    const merged=JSON.parse(localStorage.getItem('fabls_eq_ck_'+dateKey+'_'+zoneId)||'{}');
     return{merged,todayOnly:merged,pastOnly:{}};
   }catch(e){return{merged:{},todayOnly:{},pastOnly:{}};}
 }
@@ -2202,7 +2202,7 @@ window.toggleCkProg=function(zoneId,eq,col,el){
   // UI 즉시 반영
   el.className='cbox'+(isDone?' done':'');
   if(window._fbSetProgCheck)window._fbSetProgCheck(dateKey,zoneId,key,isDone);
-  else{try{localStorage.setItem('eq_ck_'+dateKey+'_'+zoneId,JSON.stringify(todayOnly));}catch(e){}}
+  else{try{localStorage.setItem('fabls_eq_ck_'+dateKey+'_'+zoneId,JSON.stringify(todayOnly));}catch(e){}}
   const newCksObj={merged,todayOnly,pastOnly:cksObj.pastOnly||{}};
   const pct=Math.round(CHECK_COLS.filter(c=>merged[eq+'_'+c]).length/CHECK_COLS.length*100);
   const row=el.closest('tr');
@@ -2451,7 +2451,7 @@ window._fbSubscribeWorker = async function(dateKey) {
     if(typeof _updateHomeKPI==='function') _updateHomeKPI();
   }, err => {
     console.error('출역 구독 오류:', err);
-    window._workerCache[dateKey] = JSON.parse(localStorage.getItem('worker_ck_'+dateKey)||'[]');
+    window._workerCache[dateKey] = JSON.parse(localStorage.getItem('fabls_worker_ck_'+dateKey)||'[]');
     if(window._renderWorkerUI) window._renderWorkerUI();
   });
 };
@@ -2469,17 +2469,17 @@ window._fbToggleWorker = async function(workerId, dateKey) {
   } catch(e) {
     console.error('출역 저장 오류:', e);
     // fallback localStorage
-    const arr = JSON.parse(localStorage.getItem('worker_ck_'+dateKey)||'[]');
+    const arr = JSON.parse(localStorage.getItem('fabls_worker_ck_'+dateKey)||'[]');
     const idx = arr.indexOf(workerId);
     if(idx===-1) arr.push(workerId); else arr.splice(idx,1);
-    localStorage.setItem('worker_ck_'+dateKey, JSON.stringify(arr));
+    localStorage.setItem('fabls_worker_ck_'+dateKey, JSON.stringify(arr));
     window._workerCache[dateKey] = arr;
   }
 };
 
 window._fbGetWorkerChecks = function(dateKey) {
   if(window._workerCache[dateKey] !== undefined) return window._workerCache[dateKey];
-  try { return JSON.parse(localStorage.getItem('worker_ck_'+dateKey)||'[]'); } catch(e) { return []; }
+  try { return JSON.parse(localStorage.getItem('fabls_worker_ck_'+dateKey)||'[]'); } catch(e) { return []; }
 };
 
 // ===== 공수(man-day) Firebase 연동 =====
@@ -2659,14 +2659,14 @@ function renderAttend(){
 // ===== TAB =====
 
 // ===== 고정 일정 숨기기 (localStorage) =====
-function _getHiddenMap(){try{return JSON.parse(localStorage.getItem('ws_hidden')||'{}');}catch(e){return {};}}
+function _getHiddenMap(){try{return JSON.parse(localStorage.getItem('fabls_ws_hidden')||'{}');}catch(e){return {};}}
 function isHiddenFixed(dateKey,text){return (_getHiddenMap()[dateKey]||[]).includes(text);}
 function hideFixedItem(dateKey,text){
   if(!confirm('이 일정을 삭제할까요?\n(이 기기에서만 삭제됩니다)')) return;
   var m=_getHiddenMap();
   if(!m[dateKey])m[dateKey]=[];
   if(!m[dateKey].includes(text))m[dateKey].push(text);
-  try{localStorage.setItem('ws_hidden',JSON.stringify(m));}catch(e){}
+  try{localStorage.setItem('fabls_ws_hidden',JSON.stringify(m));}catch(e){}
   closeUsDetail();renderToday();
 }
 
@@ -2881,7 +2881,7 @@ function _updateHomeKPI(){
 
 async function renderHome(){
   // D+ 계산 (동기)
-  var savedStart=localStorage.getItem('pjt_start_date')||'';
+  var savedStart=localStorage.getItem('fab_pjt_start_date')||'';
   var startInp=document.getElementById('home-start-date');
   var ddayEl=document.getElementById('home-dday');
   var startLbl=document.getElementById('home-start-lbl');
@@ -2927,7 +2927,7 @@ async function renderHome(){
 
 // 시작일 저장
 function saveStartDate(v){
-  localStorage.setItem('pjt_start_date',v);
+  localStorage.setItem('fab_pjt_start_date',v);
   renderHome();
 }
 
@@ -3005,7 +3005,7 @@ document.getElementById('report-input').addEventListener('keydown',e=>{
 // 마지막 선택 이름 칩 복원
 (function(){
   try{
-    const last=localStorage.getItem('lastReportName');
+    const last=localStorage.getItem('fabls_lastReportName');
     if(last){
       window._selectedName=last;
       const chip=document.querySelector(`.name-chip[data-name="${last}"]`);
