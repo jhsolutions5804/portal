@@ -909,6 +909,50 @@ async function renderHome() {
 }
 window.renderHome = renderHome;
 
+window.hrShowList = function(kind){
+  const L = window._hrLists || {};
+  const ym = window._hrYm || '';
+  const won = v=>'\u20a9'+Math.round(v||0).toLocaleString();
+  const TITLES={ roster:'\ud83d\udc65 \uc7ac\uc9c1 \uc778\uc6d0', renew:'\ud83d\udcdd \uacc4\uc57d \uac31\uc2e0 \ud544\uc694 (D-30)', paymissing:'\ud83d\udcb0 \uae09\uc5ec\uba85\uc138\uc11c \ubbf8\uc791\uc131', overtime:'\u23f1\ufe0f \uc774\ubc88 \ub2ec \ucd08\uacfc\uadfc\ub85c' };
+  const EMPTY={ roster:'\uc7ac\uc9c1\uc790\uac00 \uc5c6\uc2b5\ub2c8\ub2e4', renew:'\uac31\uc2e0 \ub300\uc0c1\uc774 \uc5c6\uc2b5\ub2c8\ub2e4', paymissing:'\ubaa8\ub450 \uc791\uc131\ub418\uc5c8\uc2b5\ub2c8\ub2e4', overtime:'\ucd08\uacfc\uadfc\ub85c \uae30\ub85d\uc774 \uc5c6\uc2b5\ub2c8\ub2e4' };
+  const GOTAB={ roster:'roster', renew:'annual', paymissing:'payslip', overtime:'overtime' };
+
+  let rows=[];
+  if(kind==='roster'){
+    rows=(L.roster||[]).map(w=>({bg:'#E6F1FB',fg:'#0C447C',badge:w.rank||'\uc9c1\uc6d0',title:w.name||'(\uc774\ub984\uc5c6\uc74c)',meta:(w.dept||'')+(w.job?' \u00b7 '+w.job:''),right:w.empNo?('\uc0ac\ubc88 '+w.empNo):''}));
+  } else if(kind==='renew'){
+    rows=(L.renew||[]).map(w=>({bg:'#FAEEDA',fg:'#633806',badge:'\uac31\uc2e0',title:w.name||'',meta:(w.dept||'')+(w.rank?' \u00b7 '+w.rank:''),right:'~'+(w._aLatest||'')}));
+  } else if(kind==='paymissing'){
+    rows=(L.paymissing||[]).map(w=>({bg:'#FCEBEB',fg:'#791F1F',badge:'\ubbf8\uc791\uc131',title:w.name||'',meta:(w.dept||'')+(w.rank?' \u00b7 '+w.rank:''),right:ym}));
+  } else if(kind==='overtime'){
+    rows=(L.overtime||[]).map(o=>({bg:'#EEEDFE',fg:'#3C3489',badge:(o.hours||0)+'h',title:o.name||'',meta:(o.date||'')+(o.yearMonth?' \u00b7 '+o.yearMonth:''),right:won(o.amount)}));
+  }
+
+  const body = rows.length ? rows.map(r=>`
+    <div onclick="hrCloseList();goTab('${GOTAB[kind]}')" style="display:flex;align-items:center;gap:12px;padding:13px 18px;border-bottom:1px solid #EEF2F7;cursor:pointer;" onmouseover="this.style.background='#F7F9FC'" onmouseout="this.style.background='transparent'">
+      <span style="flex-shrink:0;font-size:11px;font-weight:600;padding:4px 10px;border-radius:7px;background:${r.bg};color:${r.fg};white-space:nowrap;">${r.badge}</span>
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:13px;font-weight:600;color:#1A2540;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${r.title}</div>
+        <div style="font-size:11px;color:#5C6F8A;margin-top:3px;">${r.meta}</div>
+      </div>
+      <span style="flex-shrink:0;font-size:11px;color:#9AAABF;">${r.right}</span>
+      <span style="flex-shrink:0;font-size:15px;color:#C5CEDB;">\u203a</span>
+    </div>`).join('') : `<div style="padding:48px;text-align:center;color:#9AAABF;font-size:13px;">${EMPTY[kind]}</div>`;
+
+  let modal=document.getElementById('hr-list-modal');
+  if(!modal){ modal=document.createElement('div'); modal.id='hr-list-modal';
+    modal.style.cssText='position:fixed;inset:0;background:rgba(19,51,92,0.45);z-index:9999;display:flex;align-items:flex-start;justify-content:center;padding:40px 20px;';
+    modal.onclick=(e)=>{ if(e.target===modal) hrCloseList(); }; document.body.appendChild(modal); }
+  modal.innerHTML=`<div style="background:#fff;border-radius:16px;max-width:600px;width:100%;max-height:80vh;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,0.3);">
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:18px 22px;border-bottom:1px solid #DDE4EF;">
+      <div style="font-size:17px;font-weight:800;color:#13335C;">${TITLES[kind]||'\ubaa9\ub85d'} <span style="color:#5BA4CF;">(${rows.length})</span></div>
+      <button onclick="hrCloseList()" style="border:none;background:#F4F7FB;width:32px;height:32px;border-radius:8px;cursor:pointer;font-size:18px;color:#5C6F8A;">\u2715</button>
+    </div>
+    <div style="overflow-y:auto;">${body}</div></div>`;
+  modal.style.display='flex';
+};
+window.hrCloseList=function(){ const m=document.getElementById('hr-list-modal'); if(m) m.style.display='none'; };
+
 async function loadHomeKpis() {
   if (!window._db) { setTimeout(loadHomeKpis, 600); return; }
   try {
@@ -923,16 +967,23 @@ async function loadHomeKpis() {
     const headcount = workers.length;
 
     let noAnnual = 0, renew = 0, payDone = 0;
+    const L_roster=[], L_renew=[], L_paymissing=[], L_overtime=[];
     for (const w of workers) {
+      L_roster.push(w);
       let aLatest='', aCnt=0;
       try { const aS=await getDocs(collection(window._db,`annual_contracts/${w.id}/contracts`)); aCnt=aS.size; aS.forEach(c=>{const ed=c.data().endDate||''; if(ed>aLatest)aLatest=ed;}); } catch(e){}
       if (aCnt===0) noAnnual++;
-      if (aLatest && aLatest <= d30s) renew++;
-      try { const pS=await getDoc(doc(window._db,`payslips/${w.id}/months`,ym)); if(pS.exists()) payDone++; } catch(e){}
+      if (aLatest && aLatest <= d30s){ renew++; w._aLatest=aLatest; L_renew.push(w); }
+      let _payOk=false;
+      try { const pS=await getDoc(doc(window._db,`payslips/${w.id}/months`,ym)); if(pS.exists()) {payDone++; _payOk=true;} } catch(e){}
+      if(!_payOk) L_paymissing.push(w);
     }
 
     let otHours=0, otAmt=0;
-    try { const otS=await getDocs(collection(window._db,'overtime')); otS.forEach(o=>{const d=o.data(); if((d.yearMonth||'')===ym){ otHours+=Number(d.hours)||0; otAmt+=Number(d.amount)||0; }}); } catch(e){}
+    try { const otS=await getDocs(collection(window._db,'overtime')); otS.forEach(o=>{const d=o.data(); if((d.yearMonth||'')===ym){ otHours+=Number(d.hours)||0; otAmt+=Number(d.amount)||0; L_overtime.push({id:o.id,...d}); }}); } catch(e){}
+
+    window._hrLists = { roster:L_roster, renew:L_renew, paymissing:L_paymissing, overtime:L_overtime };
+    window._hrYm = ym;
 
     const slot=document.getElementById('hm-alert-slot');
     if (slot) slot.innerHTML = noAnnual>0
@@ -942,10 +993,10 @@ async function loadHomeKpis() {
     const manWon = Math.round(otAmt/10000);
     const kpi=document.getElementById('hm-kpi');
     if (kpi) kpi.innerHTML = `
-      <div class="hm-kpi" onclick="goTab('roster')"><div class="lab">재직 인원</div><div class="val">${headcount}<small> 명</small></div><div class="act">명부 보기 ›</div></div>
-      <div class="hm-kpi ${renew>0?'warn':''}" onclick="goTab('annual')"><div class="lab">계약 갱신 필요</div><div class="val">${renew}<small> 명 · D-30 이내</small></div><div class="act">갱신하러 가기 ›</div></div>
-      <div class="hm-kpi ${payDone<headcount?'warn':''}" onclick="goTab('payslip')"><div class="lab">이번 달 급여명세서</div><div class="val">${payDone}<small> / ${headcount} 작성</small></div><div class="act">작성하러 가기 ›</div></div>
-      <div class="hm-kpi" onclick="goTab('overtime')"><div class="lab">이번 달 초과근로</div><div class="val">${otHours}<small> h · ${manWon}만원</small></div><div class="act">현황 보기 ›</div></div>`;
+      <div class="hm-kpi" onclick="hrShowList('roster')"><div class="lab">재직 인원</div><div class="val">${headcount}<small> 명</small></div><div class="act">명부 보기 ›</div></div>
+      <div class="hm-kpi ${renew>0?'warn':''}" onclick="hrShowList('renew')"><div class="lab">계약 갱신 필요</div><div class="val">${renew}<small> 명 · D-30 이내</small></div><div class="act">갱신하러 가기 ›</div></div>
+      <div class="hm-kpi ${payDone<headcount?'warn':''}" onclick="hrShowList('paymissing')"><div class="lab">이번 달 급여명세서</div><div class="val">${payDone}<small> / ${headcount} 작성</small></div><div class="act">작성하러 가기 ›</div></div>
+      <div class="hm-kpi" onclick="hrShowList('overtime')"><div class="lab">이번 달 초과근로</div><div class="val">${otHours}<small> h · ${manWon}만원</small></div><div class="act">현황 보기 ›</div></div>`;
   } catch(e) {
     const kpi=document.getElementById('hm-kpi');
     if (kpi) kpi.innerHTML = '<div style="grid-column:1/-1;color:#9AAABF;font-size:12px;padding:12px;">현황을 불러오지 못했습니다.</div>';
