@@ -1526,7 +1526,9 @@ let viewDayOffset=0;
 function getViewDate(){const b=getAppToday();b.setDate(b.getDate()+viewDayOffset);return b;}
 window.openTodayDatePicker=function(){
   var inp=document.getElementById('today-date-picker');
-  if(inp){ inp.value=toKey(viewDate||getAppToday()); try{inp.showPicker()}catch(e){inp.click();} }
+  if(!inp) return;
+  try{ inp.value=toKey(getViewDate()); }catch(e){ inp.value=toKey(getAppToday()); }
+  try{ inp.showPicker(); }catch(e){ inp.click(); }
 };
 window.pickTodayDate=function(val){
   if(!val) return;
