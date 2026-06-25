@@ -1186,7 +1186,17 @@ window.leaveSave = async function(status) {
 window.renderDocWrite = function(dtype) {
   const el = document.getElementById(`tab-${dtype}`); if(!el) return;
   const cfg = DOC_CONFIG[dtype]; if(!cfg) return;
+  // _myInfo.name이 아직 없으면 로드 후 다시 렌더
+  if (!_myInfo?.name && typeof loadMyInfo === 'function') {
+    loadMyInfo().then(() => renderDocWrite(dtype));
+    // 일단 계속 진행 (이름 없이라도 폼은 표시)
+  }
   const today = new Date().toISOString().slice(0,10);
+
+  // 자동 제목 생성: yyyymmdd 이름 문서명
+  const ymd = today.replace(/-/g,'');
+  const myName = _myInfo?.name || _user?.displayName || '';
+  const autoTitle = myName ? `${ymd} ${myName} ${cfg.label}` : '';
 
   const fieldsHtml = cfg.fields.map(f => {
     const req = f.required !== false;
@@ -1218,7 +1228,7 @@ window.renderDocWrite = function(dtype) {
     <div class="form-card">
       <div style="margin-bottom:11px;">
         <div style="font-size:11px;font-weight:700;color:#5C6F8A;margin-bottom:5px;">제목<span style="color:#DC2626;margin-left:2px;">*</span></div>
-        <input id="f-title" type="text" placeholder="문서 제목을 입력하세요"
+        <input id="f-title" type="text" placeholder="문서 제목을 입력하세요" value="${autoTitle}"
           style="width:100%;border:1px solid #DDE4EF;border-radius:8px;padding:9px 12px;font-size:13px;color:#1A2540;background:#FAFCFF;box-sizing:border-box;">
       </div>
       ${fieldsHtml}
