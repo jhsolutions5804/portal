@@ -659,6 +659,7 @@ async function createEmployee(){
       email, name, rank, dept,
       status:'approved', admin:false,
       perms:{plan:false,hr:false,pjt:false,edoc:false},
+      _pw: btoa(unescape(encodeURIComponent(pw))),  // 관리자 비밀번호 초기화용
       createdAt:serverTimestamp()
     });
     showMsg(msg,'ok',`✅ ${name} (${email}) 계정이 생성되었습니다.`);
@@ -775,11 +776,9 @@ function openEmpDetail(uid){
       <div class="detail-row">
         <div class="detail-label">비밀번호 변경</div>
         <div class="detail-value" style="display:flex; flex-direction:column; gap:6px; width:100%;">
-          <input class="detail-input" id="ed-cur-pw" type="password" placeholder="현재 비밀번호">
           <input class="detail-input" id="ed-new-pw" type="password" placeholder="새 비밀번호 (6자 이상)">
           <div style="display:flex; gap:8px; margin-top:2px;">
-            <button onclick="changeEmpPw()" style="flex:1; padding:9px 6px; border-radius:8px; font-size:12px; font-weight:700; cursor:pointer; border:none; background:#1D5BA6; color:#fff; font-family:inherit;">🔒 직접 변경</button>
-            <button onclick="sendPwReset()" style="flex:1; padding:9px 6px; border-radius:8px; font-size:12px; font-weight:700; cursor:pointer; border:none; background:#F1F5F9; color:#5C6F8A; font-family:inherit;">📧 재설정 메일 발송</button>
+            <button onclick="changeEmpPw()" style="flex:1; padding:9px 6px; border-radius:8px; font-size:12px; font-weight:700; cursor:pointer; border:none; background:#1D5BA6; color:#fff; font-family:inherit;">🔒 비밀번호 변경</button>
           </div>
         </div>
       </div>
@@ -817,26 +816,32 @@ async function saveEmpDetail(){
   }catch(e){ showMsg(msg,'err',e.message); }
 }
 
-// 비밀번호 직접 변경 (현재 비밀번호 + Secondary App 방식)
+// 비밀번호 직접 변경 (Firestore _pw 사용 → Secondary App 방식)
 window.changeEmpPw = async function(){
   const u=_allUsers.find(x=>x.uid===_editUid); if(!u) return;
   const msg=$('ed-msg'); clearMsg(msg);
-  const curPw=($('ed-cur-pw').value||'').trim();
   const newPw=($('ed-new-pw').value||'').trim();
-  if(!curPw) return showMsg(msg,'err','현재 비밀번호를 입력하세요.');
   if(newPw.length<6) return showMsg(msg,'err','새 비밀번호는 6자 이상이어야 합니다.');
   showMsg(msg,'info','비밀번호 변경 중...');
   try{
+    // Firestore에서 저장된 현재 비밀번호 읽기
+    const snap=await getDoc(doc(db,'portal_users',u.uid));
+    const stored=snap.data()?._pw;
+    if(!stored) return showMsg(msg,'err','저장된 비밀번호 정보가 없습니다.\n계정을 삭제 후 재생성하거나 Firebase Console에서 변경하세요.');
+    const curPw=decodeURIComponent(escape(atob(stored)));
+    // Secondary App으로 직원 계정 로그인 → 비밀번호 변경
     const app2=initApp2(firebaseConfig,'pw-chg-'+Date.now());
     const auth2tmp=getAuth(app2);
     const cred=await signInWithEmailAndPassword(auth2tmp,u.email,curPw);
     await updatePassword(cred.user,newPw);
     await signOut(auth2tmp);
-    $('ed-cur-pw').value=''; $('ed-new-pw').value='';
+    // Firestore _pw 업데이트
+    await updateDoc(doc(db,'portal_users',u.uid),{_pw: btoa(unescape(encodeURIComponent(newPw)))});
+    $('ed-new-pw').value='';
     showMsg(msg,'ok','✅ 비밀번호가 변경되었습니다.');
   }catch(e){
     if(e.code==='auth/wrong-password'||e.code==='auth/invalid-credential')
-      showMsg(msg,'err','❌ 현재 비밀번호가 올바르지 않습니다.');
+      showMsg(msg,'err','❌ 비밀번호 동기화 오류 — Firebase Console에서 수동 변경 필요');
     else showMsg(msg,'err','오류: '+e.message);
   }
 };
@@ -926,6 +931,8 @@ async function saveMyProfile(){
       if(pw.length<6) return showMsg(msg,'err','비밀번호는 6자 이상이어야 합니다.');
       const {updatePassword}=await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js');
       await updatePassword(auth.currentUser,pw);
+      // 관리자가 추후 초기화할 수 있도록 _pw 동기화
+      await updateDoc(doc(db,'portal_users',me.uid),{_pw: btoa(unescape(encodeURIComponent(pw)))});
     }
     toast('✅ 정보가 저장되었습니다.');
     closeMyProfile();
