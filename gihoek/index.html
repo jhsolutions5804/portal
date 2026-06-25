@@ -296,11 +296,11 @@ function renderPlanHome(){
       </div>
     </div>
     <div style="font-size:12px;font-weight:700;color:${C.sub};margin-bottom:8px;">바로가기</div>
-    ${fc('📁','프로젝트','tab("pjt")','프로젝트 등록 및 견적·정산 현황')}
-    ${fc('🏢','거래처','tab("comp")','공급자·공급받는자 업체 관리')}
-    ${fc('📄','견적','tab("est")','견적서 작성 및 조회')}
-    ${fc('💳','정산','tab("settle")','정산서·지급예정서 발행')}
-    ${fc('📊','회계','tab("acct")','수입·지출·손익 집계')}
+    ${fc('📁','프로젝트','tab(&#39;pjt&#39;)','프로젝트 등록 및 견적·정산 현황')}
+    ${fc('🏢','거래처','tab(&#39;comp&#39;)','공급자·공급받는자 업체 관리')}
+    ${fc('📄','견적','tab(&#39;est&#39;)','견적서 작성 및 조회')}
+    ${fc('💳','정산','tab(&#39;settle&#39;)','정산서·지급예정서 발행')}
+    ${fc('📊','회계','tab(&#39;acct&#39;)','수입·지출·손익 집계')}
   </div>`;
 }
 
@@ -352,15 +352,16 @@ function openPjtForm(p){ pjtForm=true; detailId=p?p.id:null;
       <option value="fcu" ${p?.type==='fcu'?'selected':''}>자동정산 (정산서·공수 연동)</option></select></div>
       <div class="field"><label>상태</label><select class="sel" id="pf-status">
       <option value="run" ${p?.status!=='done'?'selected':''}>진행중</option><option value="done" ${p?.status==='done'?'selected':''}>종료</option></select></div></div>
-    <div class="field"><label>공수 워크스페이스 (컬렉션)</label><select class="sel" id="pf-manday-col">
-      <option value="worker_manday" ${(p?.mandayCol||'worker_manday')==='worker_manday'?'selected':''}>P4 Ph2 (FAB) — worker_manday</option>
-      <option value="" ${!p?.mandayCol||p?.mandayCol===''?'':''}>(없음 / 직접 입력)</option></select>
-      <div class="small muted" style="margin-top:4px">공수 연동 정산 시 이 워크스페이스의 데이터를 읽습니다.</div></div>
+    <div class="field"><label>연동 PJT (공정·공수 통합)</label><select class="sel" id="pf-link-pjt">
+      <option value="p4ph2" ${getLinkPjt(p)==='p4ph2'?'selected':''}>P4 Ph2 (FAB) — 6섹터 183대 · 공수</option>
+      <option value="p4ph4" ${getLinkPjt(p)==='p4ph4'?'selected':''}>P4 Ph4 (SUP) — 4섹터 11대 EHU · 공수</option>
+      <option value="none" ${getLinkPjt(p)==='none'?'selected':''}>(연동 없음 / 직접 입력)</option></select>
+      <div class="small muted" style="margin-top:4px">선택한 PJT의 공정(섹터·진척)과 공수 데이터를 자동정산에 함께 연동합니다.</div></div>
     <div style="display:flex; gap:8px"><button class="btn line full" onclick="${p?`pjtDetail('${p.id}')`:'renderPjtList()'}">취소</button><button class="btn pri full" onclick="savePjt('${p?p.id:''}')">저장</button></div></div>`;
   window.scrollTo(0,0);
 }
 window.savePjt=async function(id){ const code=$('pf-code').value.trim(); if(!code){ toast('PJT 코드를 입력하세요.'); return; }
-  const data={ code, name:$('pf-name').value.trim(), client:$('pf-client').value.trim(), type:$('pf-type').value, status:$('pf-status').value, mandayCol:$('pf-manday-col').value||'worker_manday' };
+  const data={ code, name:$('pf-name').value.trim(), client:$('pf-client').value.trim(), type:$('pf-type').value, status:$('pf-status').value, linkPjt:$('pf-link-pjt')?.value||'p4ph2', progProfile:($('pf-link-pjt')?.value==='none'?'':($('pf-link-pjt')?.value||'p4ph2')), mandayCol:($('pf-link-pjt')?.value==='p4ph4'?'ph4_manday':($('pf-link-pjt')?.value==='none'?'':'worker_manday')) };
   try{ if(id){ await setDoc(doc(db,'gihoek_projects',id),data,{merge:true}); toast('수정했습니다.'); pjtDetail(id); }
     else{ const nid='pjt_'+Date.now(); await setDoc(doc(db,'gihoek_projects',nid),{...data, createdAt:serverTimestamp()}); toast('프로젝트를 등록했습니다.'); renderPjt(); } }
   catch(e){ toast('저장 실패: '+(e.code||e.message)); } };
@@ -609,14 +610,68 @@ window.delComp=async function(id){ if(!confirm('이 업체를 삭제할까요? (
 
 /* ---------------- 정산 / 회계 (다음 단계) ---------------- */
 /* ---------------- 정산 ---------------- */
-const ZONES=[
-  {id:'fiz', name:'3F FIZ', total:39, eqs:Array.from({length:39},(_,i)=>String(801+i)), kw:['3F FIZ','FIZ']},
-  {id:'xob', name:'X-OB', total:19, eqs:['861','862','863','864','865','866','867','868','869','870','871','872','873','874','875','876','877','878','879'], kw:['X-OB','XOB']},
-  {id:'c3', name:'복합3동', total:14, eqs:['351','352','353','354','355','356','357','358','359','360','361','362','363','364'], kw:['복합3동','복합 3동']},
-  {id:'c4', name:'복합4동', total:14, eqs:['302A','302B','302C','302D','302E','302F','302G','302H','302I','302J','302K','302L','302M','302N'], kw:['복합4동','복합 4동']},
-  {id:'wob', name:'W-OB', total:81, eqs:Array.from({length:81},(_,i)=>'W-'+(101+i)), kw:['W-OB','WOB']},
-  {id:'mfr', name:'2F 제조부속실', total:16, eqs:['801','802','811','812','813','814','815','816','817','818','819','820','821','822','823','824'], kw:['제조부속실','2F 제조']},
-];
+// 프로젝트별 공정 프로파일 (섹터 ZONES + 공정/공수 컬렉션)
+const PROGRESS_PROFILES = {
+  'p4ph2': {
+    label: 'P4 Ph2 (FAB)',
+    progCol: 'progress_checks_',
+    mandayCol: 'worker_manday',
+    checkCols: ['반입','입고검사','내진스토퍼','다이크','실링','동판','결선','시공검측'],
+    installCols: ['내진스토퍼','다이크','실링','동판','결선'],
+    zones: [
+      {id:'fiz', name:'3F FIZ', total:39, eqs:Array.from({length:39},(_,i)=>String(801+i)), kw:['3F FIZ','FIZ']},
+      {id:'xob', name:'X-OB', total:19, eqs:['861','862','863','864','865','866','867','868','869','870','871','872','873','874','875','876','877','878','879'], kw:['X-OB','XOB']},
+      {id:'c3', name:'복합3동', total:14, eqs:['351','352','353','354','355','356','357','358','359','360','361','362','363','364'], kw:['복합3동','복합 3동']},
+      {id:'c4', name:'복합4동', total:14, eqs:['302A','302B','302C','302D','302E','302F','302G','302H','302I','302J','302K','302L','302M','302N'], kw:['복합4동','복합 4동']},
+      {id:'wob', name:'W-OB', total:81, eqs:Array.from({length:81},(_,i)=>'W-'+(101+i)), kw:['W-OB','WOB']},
+      {id:'mfr', name:'2F 제조부속실', total:16, eqs:['801','802','811','812','813','814','815','816','817','818','819','820','821','822','823','824'], kw:['제조부속실','2F 제조']},
+    ]
+  },
+  'p4ph4': {
+    label: 'P4 Ph4 (SUP)',
+    progCol: 'ph4_progress_',
+    mandayCol: 'ph4_manday',
+    checkCols: ['반입','입고검사','내진스토퍼','시공검측'],
+    installCols: ['내진스토퍼'],
+    zones: [
+      {id:'core20', name:'(중공업) #20Core', total:3, eqs:['EHU_4F10701','EHU_4F10702','EHU_4F10703'], kw:['20Core','#20','중공업']},
+      {id:'core13', name:'(물산) #13Core', total:3, eqs:['EHU_4F10511','EHU_4F10512','EHU_4F10513'], kw:['13Core','#13']},
+      {id:'core14', name:'(물산) #14Core', total:3, eqs:['EHU_4F10803','EHU_4F10804','EHU_4F10805'], kw:['14Core','#14']},
+      {id:'core17', name:'(물산) #17Core', total:2, eqs:['EHU_4F10801','EHU_4F10802'], kw:['17Core','#17']},
+    ]
+  }
+};
+
+// 프로젝트의 연동 PJT 키 반환 (linkPjt 우선, 구버전 호환: progProfile/mandayCol에서 추정)
+function getLinkPjt(p){
+  if(!p) return 'p4ph2';
+  if(p.linkPjt) return p.linkPjt;
+  // 구버전 호환
+  if(p.progProfile==='p4ph4' || p.mandayCol==='ph4_manday') return 'p4ph4';
+  if(p.mandayCol==='' && !p.progProfile) return 'none';
+  return 'p4ph2';
+}
+
+// 현재 정산 대상 프로젝트의 공정 프로파일 반환
+function getProgProfile(){
+  var pjtId = (typeof settleDraft!=='undefined' && settleDraft) ? settleDraft.pjtId : null;
+  var prof = projects.find(p=>p.id===pjtId);
+  var key = getLinkPjt(prof);
+  if(key==='none') key='p4ph2'; // 연동없음도 섹터 표시는 기본 FAB
+  return PROGRESS_PROFILES[key] || PROGRESS_PROFILES['p4ph2'];
+}
+
+// 현재 정산 대상 프로젝트의 공수 컬렉션 (linkPjt 기반)
+function getLinkMandayCol(){
+  var pjtId = (typeof settleDraft!=='undefined' && settleDraft) ? settleDraft.pjtId : null;
+  var prof = projects.find(p=>p.id===pjtId);
+  var key = getLinkPjt(prof);
+  if(key==='none') return '';
+  return PROGRESS_PROFILES[key] ? PROGRESS_PROFILES[key].mandayCol : 'worker_manday';
+}
+
+// ZONES는 현재 프로파일의 섹터 (동적)
+function getZONES(){ return getProgProfile().zones; }
 const INSTALL_ITEMS=['내진스토퍼','다이크','실링','동판','결선'];
 // 워크스페이스 코드 상수로만 존재(Firestore 미저장)하는 과거 공정 데이터 — 자동계산 시 합산
 const PAST_PROGRESS_DAILY={
@@ -626,7 +681,7 @@ const PAST_PROGRESS_DAILY={
   '2026-06-20':{ fiz:{'824_입고검사':true,'825_입고검사':true,'826_입고검사':true,'827_입고검사':true,'828_입고검사':true,'829_입고검사':true,'830_입고검사':true} },
 };
 const TEAM_RATE=190000;
-const zoneGuess=title=>{ const t=title||''; const z=ZONES.find(z=>z.kw.some(k=>t.includes(k))); return z?z.id:''; };
+const zoneGuess=title=>{ const t=title||''; const z=getZONES().find(z=>z.kw.some(k=>t.includes(k))); return z?z.id:''; };
 const setProjects=()=>projects; // alias
 
 let settleDraft=null, viewSetId=null;
@@ -711,12 +766,12 @@ function setProgressCard(pjtEsts){ const d=settleDraft;
   </div>`;
 }
 function setEstBlock(id){ const d=settleDraft; const e=estimates.find(x=>x.id===id); if(!e) return ''; const r=calcSetRow(id);
-  const z=ZONES.find(z=>z.id===d.estZone[id]);
+  const z=getZONES().find(z=>z.id===d.estZone[id]);
   const eqd=d.eqs[id]||{banipEqs:[],installEqs:[]};
   return `<div style="border:1px solid var(--line);border-radius:10px;padding:11px 12px;margin-top:10px;background:#fafbfd">
     <div style="display:flex;justify-content:space-between;align-items:center;gap:8px">
       <div style="font-weight:700;font-size:13px">${(e.title||'').slice(0,22)}</div>
-      <select class="zsel" onchange="setZone('${id}',this.value)" title="섹터(자동인식, 필요시 변경)">${ZONES.map(zz=>`<option value="${zz.id}" ${zz.id===d.estZone[id]?'selected':''}>${zz.name} (${zz.total})</option>`).join('')}</select>
+      <select class="zsel" onchange="setZone('${id}',this.value)" title="섹터(자동인식, 필요시 변경)">${getZONES().map(zz=>`<option value="${zz.id}" ${zz.id===d.estZone[id]?'selected':''}>${zz.name} (${zz.total})</option>`).join('')}</select>
     </div>
     <div class="small muted" style="margin-top:5px;line-height:1.7">
       반입 <b>${r.banip}/${r.qty}</b> <span style="color:#0a3d7a">${compactRanges(eqd.banipEqs)}</span><br>
@@ -728,7 +783,7 @@ function setEstBlock(id){ const d=settleDraft; const e=estimates.find(x=>x.id===
     </div></div>`;
 }
 function calcSetRow(id){ const d=settleDraft; const e=estimates.find(x=>x.id===id); const sup=estSupply(e);
-  const z=ZONES.find(z=>z.id===d.estZone[id]); const qty=z?z.total:1;
+  const z=getZONES().find(z=>z.id===d.estZone[id]); const qty=z?z.total:1;
   const pg=d.prog[id]||{banip:0,install:0};
   const banipAmt=Math.round(sup*0.8*(pg.banip/qty));
   const installAmt=Math.round(sup*0.2*(pg.install/qty));
@@ -741,7 +796,7 @@ function calcSetRow(id){ const d=settleDraft; const e=estimates.find(x=>x.id===i
 }
 function priorByEst(estId){ return settlements.filter(s=>setActive(s)&&s.docType==='invoice'&&s.perEst&&s.perEst[estId]).reduce((a,s)=>a+s.perEst[estId],0); }
 window.toggleSetEst=function(id,guessZone){ const d=settleDraft; const i=d.estIds.indexOf(id);
-  if(i<0){ d.estIds.push(id); if(!d.estZone[id]) d.estZone[id]=guessZone||ZONES[0].id; if(!d.prog[id]) d.prog[id]={banip:0,install:0}; if(!d.eqs[id]) d.eqs[id]={banipEqs:[],installEqs:[]}; }
+  if(i<0){ d.estIds.push(id); if(!d.estZone[id]) d.estZone[id]=guessZone||getZONES()[0].id; if(!d.prog[id]) d.prog[id]={banip:0,install:0}; if(!d.eqs[id]) d.eqs[id]={banipEqs:[],installEqs:[]}; }
   else { d.estIds.splice(i,1); } drawSettleForm(); };
 window.setZone=function(id,z){ settleDraft.estZone[id]=z; settleDraft.billOverride[id]=null; renderSetTot(); refreshProgRows(); };
 window.toggleSetDep=function(id){ settleDraft.deposit[id]=!settleDraft.deposit[id]; settleDraft.billOverride[id]=null; renderSetTot(); refreshProgRows(); };
@@ -755,17 +810,18 @@ window.fetchProgress=async function(){ const d=settleDraft; if(!d.estIds.length)
     const zonesNeeded=[...new Set(d.estIds.map(id=>d.estZone[id]))];
     const cum={}; zonesNeeded.forEach(z=>cum[z]={});
     const tasks=[];
-    const readDay=dk=>tasks.push((async()=>{ try{ const snap=await getDocs(collection(db,'progress_checks_'+dk)); snap.forEach(zd=>{ const zid=zd.id; if(cum[zid]){ const ch=zd.data().checks||{}; Object.keys(ch).forEach(k=>{ if(ch[k]) cum[zid][k]=true; }); } }); }catch(e){} })());
+    const readDay=dk=>tasks.push((async()=>{ try{ const snap=await getDocs(collection(db,getProgProfile().progCol+dk)); snap.forEach(zd=>{ const zid=zd.id; if(cum[zid]){ const ch=zd.data().checks||{}; Object.keys(ch).forEach(k=>{ if(ch[k]) cum[zid][k]=true; }); } }); }catch(e){} })());
     for(let day=1; day<=lastDay; day++) readDay(y+'-'+String(m).padStart(2,'0')+'-'+String(day).padStart(2,'0'));
     const start=new Date(2026,4,1); const endPrev=new Date(y,m-1,1);
     for(let dt=new Date(start); dt<endPrev; dt.setDate(dt.getDate()+1)) readDay(dt.getFullYear()+'-'+String(dt.getMonth()+1).padStart(2,'0')+'-'+String(dt.getDate()).padStart(2,'0'));
     await Promise.all(tasks);
     // 워크스페이스 코드 상수(Firestore 미저장) 과거 데이터 병합 — 기준월 말일까지
     const endKey=y+'-'+String(m).padStart(2,'0')+'-'+String(lastDay).padStart(2,'0');
-    Object.keys(PAST_PROGRESS_DAILY).forEach(dk=>{ if(dk<=endKey){ Object.keys(PAST_PROGRESS_DAILY[dk]).forEach(zid=>{ if(cum[zid]){ const ch=PAST_PROGRESS_DAILY[dk][zid]; Object.keys(ch).forEach(k=>{ if(ch[k]) cum[zid][k]=true; }); } }); } });
-    d.estIds.forEach(id=>{ const zid=d.estZone[id]; const z=ZONES.find(z=>z.id===zid); const ch=cum[zid]||{};
+    // PAST 고정데이터는 FAB(p4ph2) 프로파일에서만 합산
+    if(getProgProfile().progCol==='progress_checks_'){ Object.keys(PAST_PROGRESS_DAILY).forEach(dk=>{ if(dk<=endKey){ Object.keys(PAST_PROGRESS_DAILY[dk]).forEach(zid=>{ if(cum[zid]){ const ch=PAST_PROGRESS_DAILY[dk][zid]; Object.keys(ch).forEach(k=>{ if(ch[k]) cum[zid][k]=true; }); } }); } }); }
+    d.estIds.forEach(id=>{ const zid=d.estZone[id]; const z=getZONES().find(z=>z.id===zid); const ch=cum[zid]||{};
       let banip=0, install=0; const banipEqs=[], installEqs=[];
-      if(z){ z.eqs.forEach(eq=>{ if(ch[eq+'_반입']){ banip++; banipEqs.push(eq); } if(INSTALL_ITEMS.every(it=>ch[eq+'_'+it])){ install++; installEqs.push(eq); } }); }
+      if(z){ z.eqs.forEach(eq=>{ if(ch[eq+'_반입']){ banip++; banipEqs.push(eq); } if(getProgProfile().installCols.every(it=>ch[eq+'_'+it])){ install++; installEqs.push(eq); } }); }
       d.prog[id]={banip, install}; d.eqs[id]={banipEqs, installEqs}; d.billOverride[id]=null; });
     renderSetTot(); refreshProgRows(); toast('반입·설치 장비번호를 반영했습니다.');
   }catch(e){ toast('불러오기 실패: '+(e.code||e.message)); }
@@ -800,7 +856,7 @@ window.setQtyAmt=function(id,idx,v){ const d=settleDraft; d.qtyAmt[id]=d.qtyAmt[
 function refreshQtyRows(){ const el=$('qty-rows'); if(el) el.innerHTML=settleDraft.estIds.map(id=>qtyEstBlock(id)).join(''); }
 
 /* 공수 */
-function getMandayCol(){ const d=settleDraft; const p=projects.find(x=>x.id===d.pjtId); return (p&&p.mandayCol)||'worker_manday'; }
+function getMandayCol(){ return getLinkMandayCol(); }
 function setMandayCard(){ const d=settleDraft;
   const md=d.mandayInput!=null?d.mandayInput:(d.mandayAuto!=null?d.mandayAuto:0);
   const rate=d.mandayRate!=null?d.mandayRate:TEAM_RATE;
@@ -870,7 +926,7 @@ function settleLines(){ const d=settleDraft;
   if(d.method==='manual') return d.manualItems.filter(i=>(i.name||'').trim()).map(i=>({name:i.name.trim(),spec:i.spec||'',qty:i.qty||0,price:i.price||0,amount:Math.round(itemAmt(i))}));
   if(d.method==='manday'){ const md=d.mandayInput!=null?d.mandayInput:(d.mandayAuto||0); const rate=d.mandayRate!=null?d.mandayRate:TEAM_RATE; return [{name:d.baseMonth+' 기술인력 투입',spec:'공수 '+md,qty:md,price:rate,amount:Math.round(md*rate)}]; }
   if(d.method==='qty'){ const lines=[]; d.estIds.forEach(id=>{ const e=estimates.find(x=>x.id===id); if(!e) return; (e.items||[]).forEach((it,idx)=>{ const q=qVal(id,idx); const amt=qAmt(id,idx,it); if(q>0||amt>0) lines.push({name:it.name,spec:(it.spec||'')+' · 수량 '+q,qty:q,price:it.price||0,amount:amt}); }); }); return lines; }
-  return d.estIds.map(id=>{ const e=estimates.find(x=>x.id===id); const r=calcSetRow(id); const z=ZONES.find(z=>z.id===d.estZone[id]); const eqd=d.eqs[id]||{banipEqs:[],installEqs:[]};
+  return d.estIds.map(id=>{ const e=estimates.find(x=>x.id===id); const r=calcSetRow(id); const z=getZONES().find(z=>z.id===d.estZone[id]); const eqd=d.eqs[id]||{banipEqs:[],installEqs:[]};
     const bN=eqd.banipEqs&&eqd.banipEqs.length?' ('+compactRanges(eqd.banipEqs)+')':''; const iN=eqd.installEqs&&eqd.installEqs.length?' ('+compactRanges(eqd.installEqs)+')':'';
     return {name:e.title,spec:(z?z.name:'')+' 반입 '+r.banip+'/'+r.qty+bN+' · 설치 '+r.install+'/'+r.qty+iN,qty:1,price:r.thisBill,amount:r.thisBill}; });
 }
