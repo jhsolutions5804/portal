@@ -546,8 +546,10 @@ body{font-family:-apple-system,'Apple SD Gothic Neo','Pretendard',sans-serif;bac
       <div class="today-nav">
         <button class="nav-arrow" onclick="changeViewDay(-1)">‹</button>
         <div style="flex:1;text-align:center">
-          <div class="today-title" id="today-title" onclick="openTodayDatePicker()" style="cursor:pointer" title="날짜 클릭으로 이동">오늘 일정</div>
-          <input type="date" id="today-date-picker" onchange="pickTodayDate(this.value)" style="position:absolute;left:50%;transform:translateX(-50%);top:100%;opacity:0;width:1px;height:1px;pointer-events:none">
+          <div onclick="openTodayDatePicker()" style="cursor:pointer;position:relative;" title="날짜 클릭으로 이동">
+            <div class="today-title" id="today-title">오늘 일정</div>
+            <input type="date" id="today-date-picker" onchange="pickTodayDate(this.value)" style="position:absolute;left:50%;transform:translateX(-50%);top:100%;opacity:0;width:1px;height:1px;pointer-events:none">
+          </div>
           <div class="prog-bar-wrap"><div class="prog-bar" id="prog-bar" style="width:0%"></div></div>
         </div>
         <button class="nav-arrow" onclick="changeViewDay(1)">›</button>
