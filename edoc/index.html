@@ -1,4 +1,4 @@
-<!DOCTYPE html><!-- v20260624235122 -->
+<!DOCTYPE html>
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
@@ -671,7 +671,7 @@ async function renderApproveBox() {
 
     let myApprove = [];
     for (const dtype of DOC_TYPES) {
-      const snap = await getDocs(collection(db, \`edoc_\${dtype}\`));
+      const snap = await getDocs(collection(db, `edoc_${dtype}`));
       snap.forEach(doc => {
         const data = {id:doc.id, dtype, ...doc.data()};
         const line = data.approvalLine || [];
