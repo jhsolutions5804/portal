@@ -613,7 +613,7 @@ function renderPjtHomeCards(){
       +'<div id="pjt-kpi-'+st.key+'" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">'
       +'<div style="background:#f4f7fb;border-radius:10px;padding:12px 16px;display:flex;align-items:center;justify-content:space-between"><div><div style="font-size:22px;font-weight:800;color:#1D5BA6" id="kpi-pct-'+st.key+'">—</div><div style="font-size:10px;color:#86868b;margin-top:2px">전체 공정율</div></div></div>'
       +'<div style="background:#f4f7fb;border-radius:10px;padding:12px 16px;display:flex;align-items:center;justify-content:space-between"><div><div style="font-size:22px;font-weight:800;color:#1A2540" id="kpi-day-'+st.key+'">—</div><div style="font-size:10px;color:#86868b;margin-top:2px">프로젝트 D+</div></div></div>'
-      +'<div style="background:#f4f7fb;border-radius:10px;padding:12px 16px;display:flex;align-items:center;justify-content:space-between"><div><div style="font-size:22px;font-weight:800;color:#1D5BA6" id="kpi-md-'+st.key+'">—</div><div style="font-size:10px;color:#86868b;margin-top:2px">이달 누적공수</div></div></div>'
+      +'<div style="background:#f4f7fb;border-radius:10px;padding:12px 16px;display:flex;align-items:center;justify-content:space-between"><div><div style="font-size:22px;font-weight:800;color:#1D5BA6" id="kpi-md-'+st.key+'">—</div><div style="font-size:10px;color:#86868b;margin-top:2px">전체 누적공수</div></div></div>'
       +'</div>';
     card.querySelector('button').onclick=function(e){
       e.stopPropagation();
@@ -635,7 +635,101 @@ function renderPjtHomeCards(){
       const dayEl=document.getElementById('kpi-day-'+st.key);
       if(dayEl) dayEl.textContent=diff+'일';
     }
+    // 공정율 + 전체 누적공수 비동기 로딩
+    loadPjtStats(st.key);
   });
+}
+
+// PJT별 메타데이터 (공정율 계산용 ZONES + 컬렉션 prefix)
+const PJT_META = {
+  'p4ph2': {
+    progCol: 'progress_checks_',   // {날짜}/{zoneId}
+    mandayCol: 'worker_manday',    // {날짜} = {md:{...}}
+    checkCols: ['반입','입고검사','내진스토퍼','다이크','실링','동판','결선','시공검측'],
+    zones: [
+      {id:'fiz', total:39, eqs:Array.from({length:39},(_,i)=>String(801+i))},
+      {id:'xob', total:19, eqs:['861','862','863','864','865','866','867','868','869','870','871','872','873','874','875','876','877','878','879']},
+      {id:'c3',  total:14, eqs:['351','352','353','354','355','356','357','358','359','360','361','362','363','364']},
+      {id:'c4',  total:14, eqs:['302A','302B','302C','302D','302E','302F','302G','302H','302I','302J','302K','302L','302M','302N']},
+      {id:'wob', total:81, eqs:Array.from({length:81},(_,i)=>'W-'+(101+i))},
+      {id:'mfr', total:16, eqs:['801','802','811','812','813','814','815','816','817','818','819','820','821','822','823','824']},
+    ]
+  },
+  'p4ph4': {
+    progCol: 'ph4_progress_',
+    mandayCol: 'ph4_manday',
+    checkCols: ['반입','입고검사','내진스토퍼','시공검측'],
+    zones: [
+      {id:'core20', total:3, eqs:['EHU_4F10701','EHU_4F10702','EHU_4F10703']},
+      {id:'core13', total:3, eqs:['EHU_4F10511','EHU_4F10512','EHU_4F10513']},
+      {id:'core14', total:3, eqs:['EHU_4F10803','EHU_4F10804','EHU_4F10805']},
+      {id:'core17', total:2, eqs:['EHU_4F10801','EHU_4F10802']},
+    ]
+  }
+};
+
+async function loadPjtStats(pjtKey){
+  const meta = PJT_META[pjtKey];
+  if(!meta) return;
+  try{
+    // ── 1) 전체 공정율: progress_checks_{날짜}/{zoneId} 모든 날짜 병합 ──
+    // 컬렉션 그룹이 날짜별로 분리되어 있어, 날짜 컬렉션 목록을 알 수 없음
+    // → 각 zone별 누적 체크를 날짜 컬렉션을 순회하며 병합
+    // Firestore는 collection 목록 조회가 불가하므로, 최근 N일(공사 시작일~오늘) 순회
+    const startKeyMap={ 'p4ph2':'fab_pjt_start_date', 'p4ph4':'ph4_pjt_start_date' };
+    const sdStr=localStorage.getItem(startKeyMap[pjtKey]);
+    let startDate=sdStr?new Date(sdStr):new Date(new Date().getFullYear(),0,1);
+    const today=new Date();
+    // 과도한 조회 방지: 최대 180일 범위로 제한
+    const maxDays=180;
+    const earliest=new Date(today); earliest.setDate(earliest.getDate()-maxDays);
+    if(startDate<earliest) startDate=earliest;
+    // 날짜 키 목록 생성 (시작일~오늘)
+    const dateKeys=[];
+    for(let d=new Date(startDate); d<=today; d.setDate(d.getDate()+1)){
+      const y=d.getFullYear(), mm=String(d.getMonth()+1).padStart(2,'0'), dd=String(d.getDate()).padStart(2,'0');
+      dateKeys.push(y+'-'+mm+'-'+dd);
+    }
+    // zone별 누적 체크 병합
+    const mergedByZone={};
+    meta.zones.forEach(z=>mergedByZone[z.id]={});
+    await Promise.all(dateKeys.map(async dk=>{
+      await Promise.all(meta.zones.map(async z=>{
+        try{
+          const snap=await getDoc(doc(db, meta.progCol+dk, z.id));
+          if(snap.exists()){
+            const ch=snap.data().checks||{};
+            Object.assign(mergedByZone[z.id], ch);
+          }
+        }catch(e){}
+      }));
+    }));
+    // 공정율 계산
+    let grandChecked=0, grandMax=0;
+    meta.zones.forEach(z=>{
+      const cks=mergedByZone[z.id]||{};
+      z.eqs.forEach(eq=>{
+        meta.checkCols.forEach(col=>{ if(cks[eq+'_'+col]) grandChecked++; });
+      });
+      grandMax += z.total*meta.checkCols.length;
+    });
+    const pctEl=document.getElementById('kpi-pct-'+pjtKey);
+    if(pctEl) pctEl.textContent = grandMax>0?(grandChecked/grandMax*100).toFixed(1)+'%':'0.0%';
+
+    // ── 2) 전체 누적공수: mandayCol 모든 날짜 합산 ──
+    let totalMd=0;
+    await Promise.all(dateKeys.map(async dk=>{
+      try{
+        const snap=await getDoc(doc(db, meta.mandayCol, dk));
+        if(snap.exists()){
+          const md=snap.data().md||{};
+          Object.keys(md).forEach(k=>{ totalMd += (parseFloat(md[k])||0); });
+        }
+      }catch(e){}
+    }));
+    const mdEl=document.getElementById('kpi-md-'+pjtKey);
+    if(mdEl) mdEl.textContent = totalMd.toFixed(1);
+  }catch(e){ console.warn('PJT stats 로딩 오류:', pjtKey, e); }
 }
 
 let _activeMod=null;
