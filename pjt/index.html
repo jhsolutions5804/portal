@@ -631,8 +631,9 @@ body{font-family:-apple-system,'Apple SD Gothic Neo','Pretendard',sans-serif;bac
       <!-- 날짜 네비게이터 -->
       <div class="today-nav" style="margin-bottom:16px">
         <button class="nav-arrow" onclick="changeAttendDay(-1)">‹</button>
-        <div style="flex:1;text-align:center">
-          <div class="today-title" id="att-date-label">—</div>
+        <div style="flex:1;text-align:center;position:relative">
+          <div class="today-title" id="att-date-label" onclick="openAttDatePicker()" style="cursor:pointer">—</div>
+          <input type="date" id="att-date-picker" onchange="pickAttendDate(this.value)" style="position:absolute;left:50%;transform:translateX(-50%);top:100%;opacity:0;width:1px;height:1px;pointer-events:none">
         </div>
         <button class="nav-arrow" onclick="changeAttendDay(1)">›</button>
         <button onclick="goAttendToday()" style="font-size:11px;font-weight:600;color:#1D5BA6;background:#e8f0fb;border:none;border-radius:8px;padding:5px 10px;cursor:pointer;white-space:nowrap;margin-left:4px">오늘</button>
@@ -677,9 +678,10 @@ body{font-family:-apple-system,'Apple SD Gothic Neo','Pretendard',sans-serif;bac
       <div class="prog-left-col">
       <div class="today-nav" style="margin-bottom:10px">
         <button class="nav-arrow" onclick="changeProgDay(-1)">‹</button>
-        <div style="flex:1;text-align:center">
-          <div class="today-title" id="prog-date-label">—</div>
+        <div style="flex:1;text-align:center;position:relative">
+          <div class="today-title" id="prog-date-label" onclick="openProgDatePicker()" style="cursor:pointer">—</div>
           <div style="font-size:11px;color:#86868b;margin-top:2px" id="prog-week-label">—</div>
+          <input type="date" id="prog-date-picker" onchange="pickProgDate(this.value)" style="position:absolute;left:50%;transform:translateX(-50%);top:100%;opacity:0;width:1px;height:1px;pointer-events:none">
         </div>
         <button class="nav-arrow" onclick="changeProgDay(1)">›</button>
         <button onclick="goProgToday()" style="font-size:11px;font-weight:600;color:#1D5BA6;background:#e8f0fb;border:none;border-radius:8px;padding:5px 10px;cursor:pointer;white-space:nowrap;margin-left:4px">오늘</button>
@@ -1288,7 +1290,7 @@ window._fbSubscribeProgress = async function(dateKey) {
   window._progCache = window._progCache || {};
   window._progCache[dateKey] = window._progCache[dateKey] || {};
 
-  const ZONE_IDS = ['fiz','xob','c3','c4','wob','mfr'];
+  const ZONE_IDS = (typeof ZONES!=='undefined') ? ZONES.map(z=>z.id) : ['fiz','xob','c3','c4','wob','mfr'];
 
   // 과거 고정 데이터(PAST_DATES) 이후 날짜들 중 dateKey 이전 날짜들도 Firebase에서 로드
   const pad = n=>String(n).padStart(2,'0');
@@ -1382,7 +1384,7 @@ window._fbGetProgChecks = function(dateKey, zoneId) {
 (function subscribeEdocLeave(){
   const q = query(collection(db, 'edoc_leave'));
   onSnapshot(q, function(snap){
-    const typeMap = {'연차':'annual','오전반차':'half-am','오후반차':'half-pm','반차':'half-am','병가':'annual'};
+    const typeMap = {'연차':'annual','반차(오전)':'half-am','반차(오후)':'half-pm','오전반차':'half-am','오후반차':'half-pm','반차':'half-am','병가':'annual','기타':'annual'};
     window._edocLeaveCache = snap.docs.map(function(d){return Object.assign({id:d.id},d.data());})
       .filter(function(d){return d.status==='posted'||d.status==='approved';});
     if(typeof renderCal==='function' && document.getElementById('tab-calendar').style.display!=='none') renderCal();
@@ -1392,12 +1394,12 @@ window._fbGetProgChecks = function(dateKey, zoneId) {
 
 window._edocLeaveItemsForKey = function(key){
   if(!window._edocLeaveCache) return [];
-  var typeMap={'연차':'annual','오전반차':'half-am','오후반차':'half-pm','반차':'half-am','병가':'annual'};
+  var typeMap={'연차':'annual','반차(오전)':'half-am','반차(오후)':'half-pm','오전반차':'half-am','오후반차':'half-pm','반차':'half-am','병가':'annual','기타':'annual'};
   var result=[];
   window._edocLeaveCache.forEach(function(d){
-    var sd=d.sdate||''; var ed=d.edate||sd;
+    var sd=d.startDate||d.sdate||''; var ed=d.endDate||d.edate||sd;
     if(!sd||key<sd||key>ed) return;
-    result.push({name:d.authorName||'',type:typeMap[d.leaveType]||'annual',days:d.days||1});
+    result.push({name:d.authorName||d.name||'',type:typeMap[d.leaveType]||'annual',days:d.days||1});
   });
   return result;
 };
@@ -2062,6 +2064,21 @@ window.toggleProgEditMode=function(){
   initProgress();
 };
 window.changeProgDay=function(dir){progDayOffset+=dir;initProgress();};
+window.openProgDatePicker=function(){
+  var p=document.getElementById('prog-date-picker');
+  if(!p) return;
+  p.value=toKey(getProgDate());
+  if(p.showPicker){ try{ p.showPicker(); return; }catch(e){} }
+  p.style.pointerEvents='auto'; p.style.opacity='0.01'; p.focus(); p.click();
+};
+window.pickProgDate=function(v){
+  if(!v) return;
+  var sel=new Date(v+'T12:00:00');
+  var today=getAppToday();
+  var t0=new Date(today.getFullYear(),today.getMonth(),today.getDate());
+  progDayOffset=Math.round((sel-t0)/(1000*60*60*24));
+  initProgress();
+};
 window.goProgToday=function(){progDayOffset=0;initProgress();};
 
 function initProgress(){
@@ -2211,7 +2228,7 @@ function refreshZoneCard(id,cksObj){
 }
 
 window.toggleCkProg=function(zoneId,eq,col,el){
-  if(!isProgToday())return;
+  if(!isProgToday() && !window._progEditMode)return; // 수정 모드면 과거도 허용
   const dateKey=toKey(getProgDate());
   const cksObj=getCksProg(zoneId);
   const merged=Object.assign({},cksObj.merged||{});
@@ -2339,7 +2356,9 @@ window.setMandayInput=function(workerId,dateKey,raw){
 let _sheetY, _sheetM, _sheetActive='w1';
 window.openKongsuModal=async function(){
   const d=getAttendDate();
-  _sheetY=d.getFullYear(); _sheetM=d.getMonth(); _sheetActive='w1';
+  _sheetY=d.getFullYear(); _sheetM=d.getMonth();
+  var _wsList=(typeof getWorkers==='function')?getWorkers():WORKERS;
+  _sheetActive=(_wsList&&_wsList.length)?_wsList[0].id:'w1';
   document.getElementById('ks-modal').classList.add('on');
   document.getElementById('ks-mlabel').textContent=`${_sheetY}년 ${_sheetM+1}월`;
   renderKongsuTabs();
@@ -2359,16 +2378,21 @@ window.selectKongsuTab=function(id){ _sheetActive=id; renderKongsuTabs(); render
 
 function renderKongsuTabs(){
   const bar=document.getElementById('ks-tabbar');
-  const boss=WORKERS[0];
-  let html=`<div class="ks-tab boss${_sheetActive==='w1'?' active':''}" onclick="selectKongsuTab('w1')">${boss.name} 팀장</div>`;
-  html+=TECHS.map(w=>`<div class="ks-tab${_sheetActive===w.id?' active':''}" onclick="selectKongsuTab('${w.id}')">${w.name}</div>`).join('');
+  const _ws=(typeof getWorkers==='function')?getWorkers():WORKERS;
+  if(!_ws||!_ws.length){ bar.innerHTML='<div style="padding:10px;color:#86868b;font-size:13px">등록된 기술인이 없습니다</div>'; return; }
+  const boss=_ws[0];
+  const bossId=boss.id;
+  let html=`<div class="ks-tab boss${_sheetActive===bossId?' active':''}" onclick="selectKongsuTab('${bossId}')">${boss.name} ${boss.role||'팀장'}</div>`;
+  html+=_ws.slice(1).map(w=>`<div class="ks-tab${_sheetActive===w.id?' active':''}" onclick="selectKongsuTab('${w.id}')">${w.name}</div>`).join('');
   bar.innerHTML=html;
 }
 
 function renderKongsuSheet(){
   document.getElementById('ks-mlabel').textContent=`${_sheetY}년 ${_sheetM+1}월`;
-  const isBoss=_sheetActive==='w1';
-  const w=WORKERS.find(x=>x.id===_sheetActive);
+  const _ws=(typeof getWorkers==='function')?getWorkers():WORKERS;
+  const isBoss=(_ws&&_ws.length&&_sheetActive===_ws[0].id);
+  const w=_ws.find(x=>x.id===_sheetActive);
+  if(!w){ document.getElementById('ks-body').innerHTML='<div style="text-align:center;padding:48px 0;color:#86868b">기술인 정보를 찾을 수 없습니다</div>'; return; }
   const first=new Date(_sheetY,_sheetM,1), startDow=first.getDay();
   const days=new Date(_sheetY,_sheetM+1,0).getDate();
   const dows=['일','월','화','수','목','금','토'];
@@ -2387,11 +2411,11 @@ function renderKongsuSheet(){
     let inner=`<div class="dnum">${day}</div>`;
     if(isBoss){
       // 팀장: 본인 포함 전체 9명 출역(공수>0) 인원수 + 일 공수합계
-      const present=WORKERS.filter(t=>md[t.id]>0).length;
-      const daySum=WORKERS.reduce((s,t)=>s+(md[t.id]||0),0);
+      const present=_ws.filter(t=>md[t.id]>0).length;
+      const daySum=_ws.reduce((s,t)=>s+(md[t.id]||0),0);
       monthTotal+=daySum;
       if(daySum>0){
-        inner+=`<div class="ks-boss-cnt">${present}/${WORKERS.length}명</div>`;
+        inner+=`<div class="ks-boss-cnt">${present}/${_ws.length}명</div>`;
         inner+=`<div class="ks-boss-sum">${daySum.toFixed(1)}</div>`;
       }
     }else{
@@ -2445,6 +2469,21 @@ window.saveSheetPng=async function(elId,fname){
 let attendDayOffset=0;
 function getAttendDate(){const b=getAppToday();b.setDate(b.getDate()+attendDayOffset);return b;}
 window.changeAttendDay=function(dir){attendDayOffset+=dir;renderAttend();};
+window.openAttDatePicker=function(){
+  var p=document.getElementById('att-date-picker');
+  if(!p) return;
+  p.value=toKey(getAttendDate());
+  if(p.showPicker){ try{ p.showPicker(); return; }catch(e){} }
+  p.style.pointerEvents='auto'; p.style.opacity='0.01'; p.focus(); p.click();
+};
+window.pickAttendDate=function(v){
+  if(!v) return;
+  var sel=new Date(v+'T12:00:00');
+  var today=getAppToday();
+  var t0=new Date(today.getFullYear(),today.getMonth(),today.getDate());
+  attendDayOffset=Math.round((sel-t0)/(1000*60*60*24));
+  renderAttend();
+};
 window.goAttendToday=function(){attendDayOffset=0;renderAttend();};
 
 window.toggleWorker=function(workerId,dateKey){
