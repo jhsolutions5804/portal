@@ -1058,7 +1058,8 @@ function openEmpDetail(uid){
     <optgroup label="　">
       <option value="경영총무팀" ${u.dept==='경영총무팀'?'selected':''}>　경영총무팀</option>
       <option value="영업기획팀" ${u.dept==='영업기획팀'?'selected':''}>　영업기획팀</option>
-    </optgroup>`;
+    </optgroup>
+    <option value="guest" ${u.dept==='guest'?'selected':''}>guest</option>`;
   const permsHtml=MODULES.map(m=>`
     <span class="chip ${(u.perms&&u.perms[m.key])?'on':''}" data-u="${u.uid}" data-k="${m.key}">${m.name}</span>
   `).join('');
