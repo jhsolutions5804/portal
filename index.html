@@ -626,8 +626,10 @@ function renderPjtHomeCards(){
     };
     el.appendChild(card);
     // 시작일 D+ 계산
-    const startKey='pjt_start_'+st.key;
-    const sd=localStorage.getItem(startKey)||localStorage.getItem('pjt_start_date');
+    // 각 PJT 워크스페이스가 저장하는 시작일 키와 일치 (fab/ph4 분리)
+    var startKeyMap={ 'p4ph2':'fab_pjt_start_date', 'p4ph4':'ph4_pjt_start_date' };
+    const startKey=startKeyMap[st.key]||('pjt_start_'+st.key);
+    const sd=localStorage.getItem(startKey);
     if(sd){
       const diff=Math.floor((new Date()-new Date(sd))/(1000*60*60*24));
       const dayEl=document.getElementById('kpi-day-'+st.key);
