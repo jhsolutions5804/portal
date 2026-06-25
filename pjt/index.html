@@ -342,7 +342,7 @@ body{font-family:-apple-system,'Apple SD Gothic Neo','Pretendard',sans-serif;bac
   .home-sc .scd{font-size:11px;color:#86868b;margin-top:2px}
 
   /* ── 오늘 탭 2열 ── */
-  #tab-today{grid-template-columns:1fr 1fr;gap:16px;align-content:start}
+  #tab-today{grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px;align-content:start}
   .pc-today-l,.pc-today-r{min-width:0}
   .pc-today-r .report-section{margin-top:0 !important;border-top:none !important;padding-top:0 !important;
     background:#fff;border-radius:12px;border:1px solid #e5e5e5;padding:14px 16px !important}
@@ -690,7 +690,7 @@ body{font-family:-apple-system,'Apple SD Gothic Neo','Pretendard',sans-serif;bac
       </div>
       <div class="ref-date" id="prog-ref-date"></div>
       <div class="total-card">
-        <div class="stat-item"><span class="stat-label">전체 물량</span><span class="stat-val">183대</span></div>
+        <div class="stat-item"><span class="stat-label">전체 물량</span><span class="stat-val" id="total-qty">—</span></div>
         <div class="stat-item"><span class="stat-label">전체 공정율</span><span class="stat-val blue" id="total-pct">—</span></div>
         <div class="stat-item"><span class="stat-label">누적 반입</span><span class="stat-val" id="total-in">—</span></div>
         <div class="stat-item"><span class="stat-label">누적 설치</span><span class="stat-val" id="total-inst">—</span></div>
@@ -857,7 +857,6 @@ body{font-family:-apple-system,'Apple SD Gothic Neo','Pretendard',sans-serif;bac
 <!-- Firebase SDK -->
 <script type="module">
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
-import { getAuth, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
 import { getFirestore, collection, addDoc, onSnapshot, deleteDoc, doc, query, orderBy, serverTimestamp, setDoc, getDoc, getDocs }
   from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
 
@@ -868,9 +867,9 @@ const firebaseConfig = {
   apiKey: "AIzaSyCyQxBJ_ftfM0ImBXubmqD5gfzFR54iPmE",
   authDomain: "p4ph2-fab-506a7.firebaseapp.com",
   projectId: "p4ph2-fab-506a7",
-  storageBucket: "p4ph2-fab-506a7.appspot.com",
-  messagingSenderId: "369463179140",
-  appId: "1:369463179140:web:c6ad5f3a1b98130c99fe63"
+  storageBucket: "p4ph2-fab-506a7.firebasestorage.app",
+  messagingSenderId: "36946317914",
+  appId: "1:36946317914:web:c6ad5f3a1b98130c99fe63"
 };
 // =====================================================
 
@@ -879,12 +878,6 @@ const db = getFirestore(app);
 
 // Firebase 연결 상태를 전역에 노출
 window._fbDb = db;
-// Firebase Auth 초기화 (portal 세션 재사용)
-const auth = getAuth(app);
-onAuthStateChanged(auth, function(user){
-  window._fbUser = user;
-  // Auth 상태와 무관하게 _fbReady 유지 (Auth 없이도 데이터 접근 시도)
-});
 window._fbReady = true;
 
 // ===== 기술인 명단 Firebase 관리 =====
@@ -2116,6 +2109,8 @@ function updateProgressGlobal(){
   });
   var _pctStr=(grandChecked/grandMax*100).toFixed(1)+'%';
   document.getElementById('total-pct').textContent=_pctStr;
+  var _tqEl=document.getElementById('total-qty');
+  if(_tqEl){ var _tq=ZONES.reduce(function(s,z){return s+z.total;},0); _tqEl.textContent=_tq+'대'; }
   // 홈 탭 공정율 + 섹터 요약 업데이트
   var homePctEl=document.getElementById('home-pct');
   if(homePctEl) homePctEl.textContent=_pctStr;
@@ -2554,22 +2549,43 @@ function renderWorkerMgmtList(){
   });
 }
 
+function _waitForFb(fnName, maxWait){
+  return new Promise(function(resolve,reject){
+    if(window[fnName]){ resolve(); return; }
+    var waited=0;
+    var iv=setInterval(function(){
+      if(window[fnName]){ clearInterval(iv); resolve(); }
+      else if((waited+=100)>=(maxWait||5000)){ clearInterval(iv); reject(); }
+    },100);
+  });
+}
+
 window.addWorkerFromUI = async function(){
   var name=document.getElementById('worker-add-name').value.trim();
   var role=document.getElementById('worker-add-role').value;
   if(!name){ alert('이름을 입력하세요.'); return; }
-  if(!window._fbAddWorker){ alert('Firebase 준비 중입니다. 잠시 후 시도해주세요.'); return; }
-  await window._fbAddWorker(name, role);
-  document.getElementById('worker-add-name').value='';
-  if(window._refreshWorkerArrays) window._refreshWorkerArrays();
-  renderWorkerMgmtList();
+  var btn=event&&event.target?event.target:null;
+  if(btn){ btn.disabled=true; btn.textContent='추가 중...'; }
+  try{
+    await _waitForFb('_fbAddWorker', 6000);
+    await window._fbAddWorker(name, role);
+    document.getElementById('worker-add-name').value='';
+    if(window._refreshWorkerArrays) window._refreshWorkerArrays();
+    renderWorkerMgmtList();
+  }catch(e){
+    alert('Firebase 연결을 확인해 주세요. 네트워크 또는 권한 문제일 수 있습니다.');
+  }finally{
+    if(btn){ btn.disabled=false; btn.textContent='추가'; }
+  }
 };
 
 window.deleteWorkerFromUI = async function(wid){
-  if(!window._fbDeleteWorker){ alert('Firebase 준비 중입니다.'); return; }
-  await window._fbDeleteWorker(wid);
-  if(window._refreshWorkerArrays) window._refreshWorkerArrays();
-  renderWorkerMgmtList();
+  try{
+    await _waitForFb('_fbDeleteWorker', 6000);
+    await window._fbDeleteWorker(wid);
+    if(window._refreshWorkerArrays) window._refreshWorkerArrays();
+    renderWorkerMgmtList();
+  }catch(e){ alert('Firebase 연결을 확인해 주세요.'); }
 };
 
 function renderAttend(){
@@ -2969,12 +2985,14 @@ function waitForFirebaseAndInit() {
       });
     }
     initToday();
-    // 탭바가 있으면 홈 탭 자동 활성화 (portal iframe 포함)
+    // URL ?tab= 파라미터 확인 (없으면 home)
+    var _urlTab='home';
+    try{ var _sp=new URLSearchParams(location.search); var _t=_sp.get('tab'); if(_t) _urlTab=_t; }catch(e){}
     var _hasPcNav=document.querySelector('.pc-topnav');
     if(_hasPcNav){
-      switchTab('home',null);
+      switchTab(_urlTab,null);
       document.querySelectorAll('.pc-tnav-btn').forEach(function(b){
-        b.classList.toggle('active',b.dataset.tab==='home');
+        b.classList.toggle('active',b.dataset.tab===_urlTab);
       });
       // 이달 공수 백그라운드 preload (근태 탭 방문 불필요)
       var _now=getAppToday();
