@@ -27,6 +27,13 @@
    → 예: `2.2_hr_labor_annual.md` → `2.2a_hr_labor_annual.md` + `2.2b_hr_labor_annual.md`
    → 분할 시 `INDEX.md`도 함께 갱신하여 파일 목록에 반영한다.
    → 내용이 얇은 주제는 억지로 분할하지 말고 관련 파일로 병합하여 분절 방지.
+8. 기존 배포된 코드를 수정할 때는 **반드시 서버(GitHub)의 코드를 로컬로 불러와 검토한 후 수정**한다.
+   → 로컬 사본이나 기억에 의존하여 수정하는 것은 금지.
+   → GitHub Contents API GET으로 최신 파일을 내려받은 뒤 작업 시작.
+9. md 파일을 개정할 때는 **파일명 뒤에 rev 번호를 부여**한다.
+   → 형식: `{번호}_{파일명}_r{n}.md` (예: `7.4_log_edoc_r2.md`, `2.2_hr_labor_annual_r3.md`)
+   → 최신 rev 파일이 현행 기준 문서이며, 이전 rev는 이력으로 보존.
+   → GitHub `docs/`와 `outputs/` 모두 rev 번호가 붙은 파일명으로 저장.
 
 ---
 
