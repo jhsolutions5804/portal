@@ -1585,16 +1585,22 @@ function psCalcAll() {
 const psWon = v => v ? '₩'+Math.round(v).toLocaleString() : '-';
 const psWonR = v => '₩'+Math.round(v||0).toLocaleString();
 
+const PS_PC_BP = 900;
+
 window.renderPayslipMain2 = () => {
   const el = document.getElementById('tab-payslip');
   if (!el) return;
   ps.view = 'main';
-  el.innerHTML = wrap2(`
-    <div style="font-size:13px;color:${C2.sub};margin-bottom:16px;font-weight:600;">작업을 선택해 주세요</div>
-    <div style="display:flex;flex-direction:column;gap:10px;">
-      ${selectMain('✏️','작성','renderPayslipWrite()','급여명세서 작성 및 저장')}
-      ${selectMain('📂','조회','renderPayslipListNew()','저장된 급여명세서 조회')}
-    </div>`);
+  if (window.innerWidth >= PS_PC_BP) {
+    renderPayslipPC();
+  } else {
+    el.innerHTML = wrap2(`
+      <div style="font-size:13px;color:${C2.sub};margin-bottom:16px;font-weight:600;">작업을 선택해 주세요</div>
+      <div style="display:flex;flex-direction:column;gap:10px;">
+        ${selectMain('✏️','작성','renderPayslipWrite()','급여명세서 작성 및 저장')}
+        ${selectMain('📂','조회','renderPayslipListNew()','저장된 급여명세서 조회')}
+      </div>`);
+  }
 };
 
 window.renderPayslipWrite = async () => {
@@ -1795,7 +1801,351 @@ function renderPayslipWriteForm(el, workers, months, calcPayDate) {
 }
 
 
-window.calcPayDateGlobal = (month) => {
+// ════════════════════════════════
+// 💰 급여명세서 PC 레이아웃
+// ════════════════════════════════
+// PC 뷰 — 좌: 선택 패널 / 우: 작성+결과 패널
+window.renderPayslipPC = async () => {
+  const el = document.getElementById('tab-payslip');
+  if (!el) return;
+
+  // 데이터 준비 (renderPayslipWrite 와 동일)
+  ps.view = 'write';
+  ps.workerData = null; ps.annualData = null;
+  ps.bonus=''; ps.specialBonus=''; ps.extraPay=''; ps.dormitory=''; ps.bankAccount='';
+
+  const workers = await getWorkersList();
+  window._psWorkers = workers;
+
+  const months = [];
+  const now = new Date();
+  for (let i = 0; i < 13; i++) {
+    const d = new Date(now.getFullYear(), now.getMonth()-i, 1);
+    months.push(`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`);
+  }
+  if (!ps.month) ps.month = months[1];
+  if (!ps.payDate) ps.payDate = window.calcPayDateGlobal(ps.month);
+
+  // 뼈대 렌더
+  el.innerHTML = `
+    <div style="display:flex;flex-direction:column;height:100%;background:#F4F7FB;">
+
+      <!-- 상단 헤더 -->
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 20px;background:#fff;border-bottom:1px solid #DDE4EF;flex-shrink:0;">
+        <div style="font-size:15px;font-weight:700;color:#1A2540;">💰 급여명세서</div>
+        <div style="display:flex;gap:8px;">
+          <button onclick="renderPayslipPCList()" style="padding:7px 14px;background:#F0F4F9;border:1px solid #DDE4EF;border-radius:8px;font-size:12px;font-weight:600;color:${C2.sub};cursor:pointer;">📂 조회</button>
+        </div>
+      </div>
+
+      <!-- 본문 -->
+      <div style="display:flex;flex:1;min-height:0;overflow:hidden;">
+
+        <!-- 좌패널: 기준정보 선택 -->
+        <div id="ps-pc-left" style="width:280px;flex-shrink:0;background:#fff;border-right:1px solid #DDE4EF;overflow-y:auto;padding:16px;">
+          <div style="font-size:11px;font-weight:700;color:${C2.blue};letter-spacing:.05em;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid #F0F4FA;">📋 기준 정보</div>
+          <div style="font-size:11px;color:#9AAABF;margin-bottom:12px;">① 기준월 → ② 근로자 순서로 선택</div>
+
+          ${field2('① 기준월', `<select id="ps-pc-month-sel"
+            onchange="window.psPcMonthChange(this.value)"
+            style="width:100%;border:1px solid #DDE4EF;border-radius:8px;padding:9px 12px;font-size:13px;color:${C2.blue};background:#E8F0FB;cursor:pointer;">
+            ${months.map(m=>`<option value="${m}" ${ps.month===m?'selected':''}>${m.replace('-','년 ')}월</option>`).join('')}
+          </select>`)}
+
+          ${field2('② 근로자', `<select id="ps-pc-worker-sel"
+            onchange="window.psPcWorkerSelect(this.value)"
+            style="width:100%;border:1px solid #DDE4EF;border-radius:8px;padding:9px 12px;font-size:13px;color:${C2.blue};background:#E8F0FB;cursor:pointer;">
+            <option value="">근로자를 선택하세요</option>
+            ${workers.map(w=>`<option value="${w.id}" ${ps.workerId===w.id?'selected':''}>${w.empNo||'-'} · ${w.name} (${w.rank||''})</option>`).join('')}
+          </select>`)}
+
+          ${field2('지급일', `<input type="date" id="ps-pc-paydate" value="${ps.payDate}"
+            onchange="ps.payDate=this.value"
+            style="width:100%;border:1px solid #DDE4EF;border-radius:8px;padding:9px 12px;font-size:13px;color:#1A2540;background:#FAFCFF;box-sizing:border-box;">`)}
+
+          <div id="ps-pc-worker-info" style="margin-top:4px;"></div>
+        </div>
+
+        <!-- 우패널: 지급/공제/실지급 -->
+        <div id="ps-pc-right" style="flex:1;overflow-y:auto;padding:20px;">
+          <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;color:${C2.mute};">
+            <div style="font-size:36px;margin-bottom:12px;">💰</div>
+            <div style="font-size:14px;">좌측에서 기준월과 근로자를 선택해 주세요</div>
+          </div>
+        </div>
+      </div>
+    </div>`;
+
+  // ── 이벤트 핸들러 ──
+  window.psPcMonthChange = async (month) => {
+    ps.month = month;
+    ps.payDate = window.calcPayDateGlobal(month);
+    const pd = document.getElementById('ps-pc-paydate');
+    if (pd) pd.value = ps.payDate;
+    if (ps.workerData?.name && window.getOvertimeAmountForPayslip) {
+      try { ps.bonus = await window.getOvertimeAmountForPayslip(ps.workerData.name, month); } catch(e) {}
+    }
+    renderPayslipPCRight();
+  };
+
+  window.psPcWorkerSelect = async (wid) => {
+    if (!wid) { ps.workerId=''; ps.workerData=null; ps.annualData=null; renderPayslipPCRight(); return; }
+    ps.workerId = wid;
+    ps.workerData = workers.find(w=>w.id===wid) || null;
+    if (ps.workerData?.bankAccount) ps.bankAccount = ps.workerData.bankAccount;
+
+    // 연봉계약서 로드
+    if (window._db && wid) {
+      try {
+        const { getDocs, collection } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+        const snap = await getDocs(collection(window._db, `annual_contracts/${wid}/contracts`));
+        let latest = null, latestDate = '';
+        snap.forEach(d => { const dd=d.data(); if((dd.contractDate||'')>latestDate){latestDate=dd.contractDate||'';latest=dd;} });
+        ps.annualData = latest;
+      } catch(e) {}
+    }
+    // 초과근로 연동
+    if (ps.workerData?.name && ps.month) {
+      try { ps.bonus = await window.getOvertimeAmountForPayslip(ps.workerData.name, ps.month); } catch(e) {}
+    }
+
+    // 좌패널 근로자 정보
+    const info = document.getElementById('ps-pc-worker-info');
+    if (info && ps.workerData) {
+      info.innerHTML = `
+        <div style="margin-top:16px;padding-top:14px;border-top:1px solid #F0F4FA;">
+          <div style="font-size:11px;font-weight:700;color:${C2.blue};letter-spacing:.05em;margin-bottom:10px;">👤 근로자 정보</div>
+          ${[
+            ['이름', ps.workerData.name||'-'],
+            ['사번', ps.workerData.empNo||'-'],
+            ['소속/직급', (ps.workerData.dept||'-')+' / '+(ps.workerData.rank||'-')],
+            ['입사일', ps.workerData.hireDate||'-'],
+            ['계좌번호', ps.workerData.bankAccount||'-'],
+          ].map(([l,v])=>`
+            <div style="display:flex;padding:6px 0;border-bottom:1px solid #F0F4FA;font-size:12px;">
+              <span style="color:${C2.sub};min-width:72px;font-weight:600;">${l}</span>
+              <span style="color:${C2.text};">${v}</span>
+            </div>`).join('')}
+        </div>`;
+    }
+    renderPayslipPCRight();
+  };
+};
+
+// 우패널 렌더 (계산값 반영)
+function renderPayslipPCRight() {
+  const right = document.getElementById('ps-pc-right');
+  if (!right) return;
+
+  if (!ps.workerData) {
+    right.innerHTML = `
+      <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;color:${C2.mute};">
+        <div style="font-size:36px;margin-bottom:12px;">💰</div>
+        <div style="font-size:14px;">좌측에서 기준월과 근로자를 선택해 주세요</div>
+      </div>`;
+    return;
+  }
+
+  const c = psCalcAll();
+
+  const payFixed = ps.annualData ? [
+    ['기본근로수당', c.sal.basic,     '연봉계약서 연동'],
+    ['고정연장수당', c.sal.fixedOt,   '연봉계약서 연동'],
+    ['고정야간수당', c.sal.fixedNight,'연봉계약서 연동'],
+    ['주휴수당',    c.sal.weekly,     '연봉계약서 연동'],
+  ].filter(([,v])=>v>0).map(([l,v,note])=>`
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 12px;border-bottom:1px solid #F0F4FA;font-size:12px;">
+      <div><span style="color:${C2.sub};font-weight:600;">${l}</span><span style="font-size:10px;color:${C2.mute};margin-left:6px;">${note}</span></div>
+      <span style="color:${C2.text};font-weight:600;">₩${v.toLocaleString()}</span>
+    </div>`).join('')
+  : `<div style="text-align:center;padding:14px;font-size:12px;color:${C2.mute};">⚠️ 연봉계약서를 먼저 등록해야 지급내역이 자동 연동됩니다.</div>`;
+
+  const deductRows = [
+    ['국민연금',     c.pension,   '지급계 × 4.5%'],
+    ['건강보험',     c.health,    '지급계 × 3.545%'],
+    ['장기요양보험', c.ltcare,    '건강보험 × 12.81%'],
+    ['고용보험',     c.employ,    '지급계 × 0.9%'],
+    ['소득세',       c.incomeTax, '간이세액표'],
+    ['지방소득세',   c.localTax,  '소득세 × 10%'],
+  ].map(([l,v,note])=>`
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 12px;border-bottom:1px solid #FFE8E8;font-size:12px;">
+      <div><span style="color:${C2.sub};font-weight:600;">${l}</span><span style="font-size:10px;color:${C2.mute};margin-left:6px;">${note}</span></div>
+      <span style="color:#DC2626;font-weight:600;">-₩${v.toLocaleString()}</span>
+    </div>`).join('');
+
+  right.innerHTML = `
+    <div style="max-width:900px;">
+
+      <!-- 지급 / 공제 2열 -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;">
+
+        <!-- 지급 내역 -->
+        <div style="background:#fff;border-radius:12px;border:1px solid #DDE4EF;padding:16px;box-shadow:${C2.shadow};">
+          <div style="font-size:12px;font-weight:700;color:${C2.blue};margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid #EEF2FA;">💳 지급 내역</div>
+          <div style="background:#F8FAFD;border-radius:8px;overflow:hidden;margin-bottom:12px;">${payFixed}</div>
+
+          ${field2('상여금', `
+            <input type="number" value="${ps.bonus}" placeholder="0"
+              oninput="ps.bonus=Number(this.value);renderPayslipPCRight();"
+              style="width:100%;border:1px solid #DDE4EF;border-radius:8px;padding:9px 12px;font-size:13px;color:#1A2540;background:#FAFCFF;box-sizing:border-box;">
+            <div style="display:flex;align-items:center;gap:6px;margin-top:4px;">
+              <div style="font-size:10px;color:#9AAABF;flex:1;">⏱ 초과근로 탭 누계 자동 연동 · 직접 수정 가능</div>
+              <button onclick="psDebugOT()" style="font-size:10px;padding:2px 8px;background:#F0F4F9;border:1px solid #DDE4EF;border-radius:6px;color:#5C6F8A;cursor:pointer;white-space:nowrap;">🔍 확인</button>
+            </div>
+            <div id="ps-ot-debug" style="display:none;margin-top:6px;font-size:11px;background:#F8FAFD;border-radius:6px;padding:8px 10px;color:#5C6F8A;"></div>
+          `)}
+          ${field2('특별성과급', `<input type="number" value="${ps.specialBonus}" placeholder="0"
+            onchange="ps.specialBonus=this.value;renderPayslipPCRight();"
+            style="width:100%;border:1px solid #DDE4EF;border-radius:8px;padding:9px 12px;font-size:13px;color:#1A2540;background:#FAFCFF;box-sizing:border-box;">`)}
+          ${field2('특근수당', `<input type="number" value="${ps.extraPay}" placeholder="0"
+            onchange="ps.extraPay=this.value;renderPayslipPCRight();"
+            style="width:100%;border:1px solid #DDE4EF;border-radius:8px;padding:9px 12px;font-size:13px;color:#1A2540;background:#FAFCFF;box-sizing:border-box;">`)}
+
+          <div style="display:flex;justify-content:space-between;padding:10px 12px;background:#E8F0FB;border-radius:8px;font-size:14px;font-weight:700;margin-top:8px;">
+            <span style="color:${C2.blue};">지급계</span>
+            <span style="color:${C2.blue};">₩${c.totalPay.toLocaleString()}</span>
+          </div>
+        </div>
+
+        <!-- 공제 내역 -->
+        <div style="background:#fff;border-radius:12px;border:1px solid #DDE4EF;padding:16px;box-shadow:${C2.shadow};">
+          <div style="font-size:12px;font-weight:700;color:#DC2626;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid #FFE8E8;">➖ 공제 내역</div>
+          <div style="background:#FFF8F8;border-radius:8px;overflow:hidden;margin-bottom:12px;">${deductRows}</div>
+
+          <div style="margin-bottom:12px;">
+            <div style="font-size:11px;font-weight:700;color:${C2.sub};margin-bottom:5px;">기숙사 공제</div>
+            <input type="number" id="ps-dormitory-input" value="${ps.dormitory||''}" placeholder="0"
+              onchange="ps.dormitory=this.value;renderPayslipPCRight();"
+              style="width:100%;border:1px solid #DDE4EF;border-radius:8px;padding:9px 12px;font-size:13px;color:#1A2540;background:#FAFCFF;box-sizing:border-box;">
+          </div>
+
+          <div style="display:flex;justify-content:space-between;padding:10px 12px;background:#FEE2E2;border-radius:8px;font-size:14px;font-weight:700;">
+            <span style="color:#DC2626;">공제계</span>
+            <span style="color:#DC2626;">-₩${c.totalDeduct.toLocaleString()}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 실 지급액 -->
+      <div style="background:#1D5BA6;border-radius:14px;padding:18px 24px;margin-bottom:14px;display:flex;justify-content:space-between;align-items:center;box-shadow:0 4px 16px rgba(29,91,166,0.3);">
+        <span style="font-size:16px;font-weight:700;color:#fff;">실 지급액</span>
+        <span style="font-size:26px;font-weight:800;color:#fff;">₩${c.netPay.toLocaleString()}</span>
+      </div>
+
+      <!-- 버튼 -->
+      <div style="display:flex;gap:10px;">
+        <button onclick="psPreview();" style="flex:1;padding:13px;background:${C2.sub};border:none;border-radius:12px;color:#fff;font-size:13px;font-weight:700;cursor:pointer;">📄 미리보기</button>
+        <button onclick="psSave();"    style="flex:1;padding:13px;background:${C2.green};border:none;border-radius:12px;color:#fff;font-size:13px;font-weight:700;cursor:pointer;">✅ 확정 저장</button>
+      </div>
+    </div>`;
+}
+
+// ── PC 조회 뷰 ──
+window.renderPayslipPCList = async () => {
+  const el = document.getElementById('tab-payslip');
+  if (!el) return;
+
+  el.innerHTML = `
+    <div style="display:flex;flex-direction:column;height:100%;background:#F4F7FB;">
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 20px;background:#fff;border-bottom:1px solid #DDE4EF;flex-shrink:0;">
+        <div style="font-size:15px;font-weight:700;color:#1A2540;">📂 급여명세서 조회</div>
+        <button onclick="renderPayslipPC()" style="padding:7px 14px;background:#E8F0FB;border:1px solid #DDE4EF;border-radius:8px;font-size:12px;font-weight:600;color:${C2.blue};cursor:pointer;">✏️ 작성</button>
+      </div>
+      <div style="display:flex;flex:1;min-height:0;overflow:hidden;">
+        <!-- 좌: 근로자 목록 -->
+        <div id="ps-pclist-left" style="width:240px;flex-shrink:0;background:#fff;border-right:1px solid #DDE4EF;overflow-y:auto;">
+          <div style="padding:12px 16px 6px;font-size:11px;font-weight:700;color:${C2.blue};letter-spacing:.05em;">근로자 목록</div>
+          <div id="ps-pclist-workers" style="text-align:center;padding:32px;color:${C2.mute};">⏳ 불러오는 중...</div>
+        </div>
+        <!-- 우: 월별 명세서 -->
+        <div id="ps-pclist-right" style="flex:1;overflow-y:auto;padding:20px;">
+          <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;color:${C2.mute};">
+            <div style="font-size:36px;margin-bottom:12px;">📋</div>
+            <div style="font-size:14px;">좌측에서 근로자를 선택해 주세요</div>
+          </div>
+        </div>
+      </div>
+    </div>`;
+
+  const workers = await getWorkersList();
+  const wrapEl = document.getElementById('ps-pclist-workers');
+  if (!wrapEl) return;
+
+  if (!workers.length) {
+    wrapEl.innerHTML = '<div style="text-align:center;padding:40px;color:#9AAABF;">등록된 근로자가 없습니다.</div>';
+    return;
+  }
+
+  wrapEl.innerHTML = workers.map((w,i)=>`
+    <button onclick="psLoadWorkerSlips('${w.id}','${w.name}',this)"
+      style="width:100%;display:block;padding:10px 16px;background:#fff;border:none;border-bottom:1px solid #F0F4FA;cursor:pointer;text-align:left;transition:background .1s;"
+      onmouseover="this.style.background='#F4F7FB'" onmouseout="this.style.background=this._sel?'#E8F0FB':'#fff'">
+      <div style="font-size:13px;font-weight:600;color:${C2.text};">${w.name}</div>
+      <div style="font-size:11px;color:${C2.sub};margin-top:2px;">${w.empNo||'-'} · ${w.dept||'-'} · ${w.rank||'-'}</div>
+    </button>`).join('');
+};
+
+window.psLoadWorkerSlips = async (wid, wname, btn) => {
+  // 선택 강조
+  document.querySelectorAll('#ps-pclist-workers button').forEach(b => { b._sel=false; b.style.background='#fff'; });
+  if (btn) { btn._sel=true; btn.style.background='#E8F0FB'; }
+
+  const right = document.getElementById('ps-pclist-right');
+  if (!right) return;
+  right.innerHTML = `<div style="text-align:center;padding:40px;color:${C2.mute};">⏳ 불러오는 중...</div>`;
+
+  try {
+    const { getDocs, collection, doc, deleteDoc } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+    const snap = await getDocs(collection(window._db, `payslips/${wid}/months`));
+    const docs = [];
+    snap.forEach(d => docs.push({id:d.id,...d.data()}));
+    docs.sort((a,b)=>(b.month||b.id).localeCompare(a.month||a.id));
+
+    if (!docs.length) {
+      right.innerHTML = `
+        <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;color:${C2.mute};">
+          <div style="font-size:36px;margin-bottom:12px;">📋</div>
+          <div style="font-size:14px;">저장된 급여명세서가 없습니다.</div>
+        </div>`;
+      return;
+    }
+
+    right.innerHTML = `
+      <div style="margin-bottom:16px;">
+        <div style="font-size:15px;font-weight:700;color:${C2.text};">${wname}</div>
+        <div style="font-size:12px;color:${C2.sub};margin-top:2px;">총 ${docs.length}개월 저장됨</div>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px;">
+        ${docs.map(d=>`
+          <div style="background:#fff;border-radius:12px;border:1px solid #DDE4EF;padding:14px;box-shadow:${C2.shadow};">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+              <span style="font-size:14px;font-weight:700;color:${C2.blue};">${(d.month||d.id).replace('-','년 ')}월</span>
+              <span style="font-size:10px;background:${C2.greenLt};color:${C2.green};padding:2px 8px;border-radius:8px;font-weight:700;">✅</span>
+            </div>
+            <div style="font-size:11px;color:${C2.sub};margin-bottom:2px;">지급계 ₩${Math.round(d.grossPay||0).toLocaleString()}</div>
+            <div style="font-size:16px;font-weight:800;color:#1D5BA6;margin-bottom:10px;">₩${Math.round(d.netPay||0).toLocaleString()}</div>
+            <div style="display:flex;gap:6px;">
+              <button onclick="psViewDetail(${JSON.stringify(d).replace(/"/g,'&quot;')},'${wid}')"
+                style="flex:1;padding:7px;background:#E8F0FB;border:1px solid #DDE4EF;border-radius:8px;font-size:12px;font-weight:600;color:${C2.blue};cursor:pointer;">📄 PDF</button>
+              <button onclick="psDeleteSlipPC('${wid}','${d.id}','${wname}',this.closest('div.ps-slip-card')||this)"
+                style="padding:7px 10px;background:#FEE2E2;border:1px solid #fca5a5;border-radius:8px;font-size:12px;font-weight:600;color:#DC2626;cursor:pointer;">🗑</button>
+            </div>
+          </div>`).join('')}
+      </div>`;
+  } catch(e) {
+    right.innerHTML = `<div style="color:#DC2626;padding:20px;">오류: ${e.message}</div>`;
+  }
+};
+
+window.psDeleteSlipPC = async (wid, mid, wname, _el) => {
+  if (!confirm(`${wname}님의 ${mid} 급여명세서를 삭제하시겠습니까?`)) return;
+  const { doc, deleteDoc } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+  await deleteDoc(doc(window._db, `payslips/${wid}/months`, mid));
+  // 현재 선택된 버튼 찾아 재로드
+  const btn = document.querySelector('#ps-pclist-workers button._sel') ||
+               [...document.querySelectorAll('#ps-pclist-workers button')].find(b=>b._sel);
+  psLoadWorkerSlips(wid, wname, btn||null);
+};
   if (!month) return '';
   const [y, m] = month.split('-').map(Number);
   const nextMonth = m === 12 ? 1 : m + 1;
