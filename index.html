@@ -304,7 +304,6 @@
   .oc-login-btn{display:flex; align-items:center; justify-content:center; gap:6px; width:100%; padding:9px; border-radius:9px; background:#0078D4; color:#fff; font-size:13px; font-weight:600; border:none; cursor:pointer; font-family:inherit; margin-bottom:10px;}
   .oc-login-btn:hover{background:#005fa3;}
 </style>
-<script src="https://alcdn.msauth.net/browser/2.38.3/js/msal-browser.min.js"></script>
 </head>
 <body>
 <div class="splash" id="splash"><div class="spin"></div></div>
@@ -1706,7 +1705,7 @@ window._goEdocApprove = function(){
   if(m) openModule(m,'approve',null);
 };
 
-// ── Outlook 카드 ─────────────────────────────────────────────
+// ── Outlook 카드 (MSAL ESM import 방식) ──────────────────────
 const MSAL_CONFIG = {
   auth: {
     clientId: '97f0a368-a746-42f9-8782-38ac8cc0962c',
@@ -1716,25 +1715,15 @@ const MSAL_CONFIG = {
   cache: { cacheLocation: 'sessionStorage', storeAuthStateInCookie: false }
 };
 const MSAL_SCOPES = ['Mail.Read', 'User.Read'];
+const MSAL_ESM_URL = 'https://esm.sh/@azure/msal-browser@3.28.0';
 let _msalApp = null;
-let _msalInitialized = false;
 let _msalAccount = null;
 
 async function getMsalApp(){
-  // msal 라이브러리가 window에 로드될 때까지 대기
-  let waited = 0;
-  while(typeof msal === 'undefined' && waited < 5000){
-    await new Promise(r=>setTimeout(r,100));
-    waited += 100;
-  }
-  if(typeof msal === 'undefined') throw new Error('MSAL 로드 실패');
-  if(!_msalApp){
-    _msalApp = new msal.PublicClientApplication(MSAL_CONFIG);
-  }
-  if(!_msalInitialized){
-    await _msalApp.initialize();
-    _msalInitialized = true;
-  }
+  if(_msalApp) return _msalApp;
+  const { PublicClientApplication } = await import(MSAL_ESM_URL);
+  _msalApp = new PublicClientApplication(MSAL_CONFIG);
+  await _msalApp.initialize();
   return _msalApp;
 }
 
