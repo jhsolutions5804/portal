@@ -79,15 +79,18 @@ onAuthStateChanged(auth, async u => {
     }
   }
 
-  // 직접 접근: edoc_users 체크
-  const snap = await getDoc(doc(db, 'edoc_users', u.uid));
-  if (snap.exists() && snap.data().approved) {
-    _isAdmin = !!snap.data().admin;
-    enterApp(u);
-  } else {
-    await setDoc(doc(db,'edoc_requests',u.uid), {
-      email:u.email, name:u.displayName||'', uid:u.uid, requestedAt:serverTimestamp()
-    });
+  // 직접 접근: portal_users 승인 체크
+  try {
+    const ps = await getDoc(doc(db, 'portal_users', u.uid));
+    if (ps.exists() && ps.data().status === 'approved') {
+      const d = ps.data();
+      _isAdmin = !!d.admin;
+      _myInfo = { name: d.name||u.displayName||'', rank: d.rank||'', dept: d.dept||'', email: u.email };
+      enterApp(u);
+    } else {
+      show('denied');
+    }
+  } catch(e) {
     show('denied');
   }
 });
