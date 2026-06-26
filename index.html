@@ -834,7 +834,7 @@ function renderPjtHomeCards(){
       +'</div>'
       +'<div id="pjt-kpi-'+st.key+'" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">'
       +'<div style="background:#f4f7fb;border-radius:10px;padding:12px 16px;display:flex;align-items:center;justify-content:space-between"><div><div style="font-size:22px;font-weight:800;color:#1D5BA6" id="kpi-pct-'+st.key+'">—</div><div style="font-size:10px;color:#86868b;margin-top:2px">전체 공정율</div></div></div>'
-      +'<div style="background:#f4f7fb;border-radius:10px;padding:12px 16px;display:flex;align-items:center;justify-content:space-between"><div><div style="font-size:22px;font-weight:800;color:#1A2540" id="kpi-day-'+st.key+'">—</div><div style="font-size:10px;color:#86868b;margin-top:2px">프로젝트 D+</div></div></div>'
+      +'<div style="background:#f4f7fb;border-radius:10px;padding:12px 16px;cursor:pointer" id="kpi-day-wrap-'+st.key+'" onclick="event.stopPropagation();pjtToggleStartInput(\'"+st.key+"\')">'      +'<div style="font-size:22px;font-weight:800;color:#1A2540" id="kpi-day-'+st.key+'">—</div>'      +'<div style="font-size:10px;color:#86868b;margin-top:2px">프로젝트 D+ <span style="font-size:9px;opacity:.6">(탭)</span></div>'      +'<input type="date" id="kpi-day-input-'+st.key+'" style="display:none;margin-top:6px;border:1px solid #1D5BA6;border-radius:6px;padding:4px 8px;font-size:12px;width:100%;box-sizing:border-box" onclick="event.stopPropagation()" onchange="pjtSaveStartDate(\'"+st.key+"\'",this.value)">'      +'</div>'
       +'<div style="background:#f4f7fb;border-radius:10px;padding:12px 16px;display:flex;align-items:center;justify-content:space-between"><div><div style="font-size:22px;font-weight:800;color:#1D5BA6" id="kpi-md-'+st.key+'">—</div><div style="font-size:10px;color:#86868b;margin-top:2px">전체 누적공수</div></div></div>'
       +'</div>';
     card.querySelector('button').onclick=function(e){
@@ -2067,7 +2067,34 @@ function resetAutoLogout(){
 });
 
 function doLogout(){ clearTimeout(_autoLogoutTimer); clearMsalCache(); signOut(auth).then(()=>{ me=null; $('login-pw').value=''; if(window.mbnHideNav) mbnHideNav(); showAuth('s-login'); }); }
-window.go=showAuth; window.showView=showView; window.doLogin=doLogin; window.doLogout=doLogout; window.createEmployee=createEmployee; window.loadPerms=loadPerms; window.openEmpDetail=openEmpDetail; window.saveEmpDetail=saveEmpDetail; window.loadOrg=loadOrg; window.fmtPhone=fmtPhone; window.openMyProfile=openMyProfile; window.closeMyProfile=closeMyProfile; window.saveMyProfile=saveMyProfile; window.showPjtHome=showPjtHome; window.openModule=openModule;
+// D+ 시작일 입력 토글
+function pjtToggleStartInput(key){
+  const inp=document.getElementById('kpi-day-input-'+key);
+  if(!inp) return;
+  const startKeyMap={'p4ph2':'fab_pjt_start_date','p4ph4':'ph4_pjt_start_date'};
+  const saved=localStorage.getItem(startKeyMap[key]||('pjt_start_'+key))||'';
+  if(inp.style.display==='none'){
+    if(saved) inp.value=saved;
+    inp.style.display='block';
+    setTimeout(()=>inp.focus(),50);
+  } else {
+    inp.style.display='none';
+  }
+}
+// D+ 시작일 저장 및 표시 업데이트
+function pjtSaveStartDate(key,val){
+  const startKeyMap={'p4ph2':'fab_pjt_start_date','p4ph4':'ph4_pjt_start_date'};
+  const storageKey=startKeyMap[key]||('pjt_start_'+key);
+  localStorage.setItem(storageKey,val);
+  const dayEl=document.getElementById('kpi-day-'+key);
+  const inp=document.getElementById('kpi-day-input-'+key);
+  if(dayEl && val){
+    const diff=Math.floor((new Date()-new Date(val+'T00:00:00'))/(1000*60*60*24));
+    dayEl.textContent='D+'+diff+'일';
+  }
+  if(inp) inp.style.display='none';
+}
+window.go=showAuth; window.showView=showView; window.doLogin=doLogin; window.doLogout=doLogout; window.createEmployee=createEmployee; window.loadPerms=loadPerms; window.openEmpDetail=openEmpDetail; window.saveEmpDetail=saveEmpDetail; window.loadOrg=loadOrg; window.fmtPhone=fmtPhone; window.openMyProfile=openMyProfile; window.closeMyProfile=closeMyProfile; window.saveMyProfile=saveMyProfile; window.showPjtHome=showPjtHome; window.openModule=openModule; window.pjtToggleStartInput=pjtToggleStartInput; window.pjtSaveStartDate=pjtSaveStartDate;
 </script>
 
 <!-- ===== 모바일 하단 탭바 ===== -->
