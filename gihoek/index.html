@@ -506,13 +506,7 @@ function drawEstForm(){ const d=estDraft;
     </div>
     <div class="field" style="margin-top:-4px"><button class="btn gray sm" onclick="tab('comp')">+ 거래처 추가·관리</button></div>
     <div class="field"><label>견적 제목</label><input class="inp" id="ed-title" placeholder="예: FCU 설치 1차 견적" value="${d.title}" oninput="setDraft('title',this.value)"></div>
-    <label style="font-size:12px;color:var(--sub);font-weight:600">작성자 <span style="font-weight:400">· 계정 정보가 자동 입력됩니다. 필요시 수정하세요.</span></label>
-    <div class="row2" style="margin-top:6px">
-      <div class="field"><label>소속부서</label><input class="inp" value="${(d.authorDept||'').replace(/"/g,'&quot;')}" oninput="setDraft('authorDept',this.value)"></div>
-      <div class="field"><label>이름</label><input class="inp" value="${(d.authorName||'').replace(/"/g,'&quot;')}" oninput="setDraft('authorName',this.value)"></div>
-    </div>
-    <div class="field"><label>메일주소</label><input class="inp" type="email" value="${(d.authorEmail||'').replace(/"/g,'&quot;')}" oninput="setDraft('authorEmail',this.value)"></div>
-    <div class="field"><label>작성자 <span class="small muted" style="font-weight:500">(비우면 로그인 계정명 사용)</span></label><input class="inp" id="ed-author" placeholder="${((me&&me.name)||'작성자')}" value="${(d.author||'').replace(/"/g,'&quot;')}" oninput="setDraft('author',this.value)"></div>
+
     <label style="font-size:12px;color:var(--sub);font-weight:600">품목</label>
     <div class="scroll"><table class="items">
       <colgroup><col class="c-no"><col><col><col class="c-qty"><col class="c-price"><col class="c-amt"><col class="c-del"></colgroup>
@@ -667,7 +661,7 @@ window.printEst=function(id){ const e=estimates.find(x=>x.id===id); if(!e) retur
     <tr><td colspan="5" style="text-align:right">부가세 (10%)</td><td style="text-align:right">${won(vat)}</td></tr>
     <tr class="tot"><td colspan="5" style="text-align:right">합계금액</td><td style="text-align:right">${won(tot)}</td></tr>
   </tfoot></table>
-  <div class="stamp">위와 같이 견적합니다.<br>${(e.authorDept||e.authorName||e.authorEmail)?'<span style="font-size:11px;color:#666">작성자: '+[e.authorDept,e.authorName].filter(Boolean).join(' ')+(e.authorEmail?'　'+e.authorEmail:'')+'</span><br>':''}<br>${iss.company||''} ${iss.ceo?'　대표 '+iss.ceo+' (인)':''}</div>
+  <div class="stamp">위와 같이 견적합니다.<br><br>${iss.company||''} ${iss.ceo?'　대표 '+iss.ceo+' (인)':''} ${iss.contact?'<br><span style="font-size:11px;color:#555">담당: '+iss.contact+'</span>':''}</div>
   <scr`+`ipt>window.onload=function(){setTimeout(function(){window.print();},250);}</scr`+`ipt>
   </body></html>`);
   w.document.close();
