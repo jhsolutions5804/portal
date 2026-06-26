@@ -99,16 +99,18 @@
       }
     }
 
-    const snap = await getDoc(doc(db, 'allowed_users', user.email));
-    if (snap.exists()) {
-      document.getElementById('user-initial').textContent =
-        (user.displayName || user.email)[0].toUpperCase();
-      showScreen('app');
-    } else {
-      await setDoc(doc(db, 'access_requests', user.email), {
-        email: user.email, displayName: user.displayName || '',
-        requestedAt: serverTimestamp()
-      });
+    // 직접 접근: portal_users 승인 체크
+    try {
+      const ps = await getDoc(doc(db, 'portal_users', user.uid));
+      if (ps.exists() && ps.data().status === 'approved') {
+        const d = ps.data();
+        document.getElementById('user-initial').textContent =
+          (d.name || user.displayName || user.email)[0].toUpperCase();
+        showScreen('app');
+      } else {
+        showScreen('denied');
+      }
+    } catch(e) {
       showScreen('denied');
     }
   });
