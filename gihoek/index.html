@@ -577,8 +577,8 @@ window.saveEst=async function(){ const d=estDraft;
   const id='est_'+Date.now();
   $('est-save').disabled=true;
   const payload={ pjtId:d.pjtId, no, baseNo, rev, status:'active', date:d.date, title:d.title.trim(), items, authorDept, authorName, authorEmail, authorUid,
-      clientId:d.clientId||'', client: cl?{company:cl.company,ceo:cl.ceo||'',bizno:cl.bizno||'',tel:cl.tel||'',email:cl.email||'',address:cl.address||'',contact:d.clientContact||''}:null,
-      issuerId:d.issuerId||'', issuer: iss?{company:iss.company,ceo:iss.ceo||'',bizno:iss.bizno||'',tel:iss.tel||'',email:iss.email||'',address:iss.address||'',contact:d.issuerContact||''}:null,
+      clientId:d.clientId||'', client: cl?{company:cl.company,ceo:cl.ceo||'',bizno:cl.bizno||'',tel:cl.tel||'',email:cl.email||'',address:cl.address||'',...ctSnap(d.clientId,d.clientContact)}:null,
+      issuerId:d.issuerId||'', issuer: iss?{company:iss.company,ceo:iss.ceo||'',bizno:iss.bizno||'',tel:iss.tel||'',email:iss.email||'',address:iss.address||'',...ctSnap(d.issuerId,d.issuerContact)}:null,
       clientContact:d.clientContact||'', issuerContact:d.issuerContact||'',
       createdAt:serverTimestamp() };
   try{
@@ -661,7 +661,7 @@ window.printEst=function(id){ const e=estimates.find(x=>x.id===id); if(!e) retur
     <tr><td colspan="5" style="text-align:right">부가세 (10%)</td><td style="text-align:right">${won(vat)}</td></tr>
     <tr class="tot"><td colspan="5" style="text-align:right">합계금액</td><td style="text-align:right">${won(tot)}</td></tr>
   </tfoot></table>
-  <div class="stamp">위와 같이 견적합니다.<br><br>${iss.company||''} ${iss.ceo?'　대표 '+iss.ceo+' (인)':''} ${iss.contact?'<br><span style="font-size:11px;color:#555">담당: '+iss.contact+'</span>':''}</div>
+  <div class="stamp">위와 같이 견적합니다.<br><br>${iss.company||''} ${iss.ceo?'　대표 '+iss.ceo+' (인)':''} ${iss.contact?'<br><span style="font-size:11px;color:#555">담당: '+iss.contact+(iss.contactTel?' &nbsp;'+iss.contactTel:'')+(iss.contactEmail?' &nbsp;'+iss.contactEmail:'')+'</span>':''}</div>
   <scr`+`ipt>window.onload=function(){setTimeout(function(){window.print();},250);}</scr`+`ipt>
   </body></html>`);
   w.document.close();
@@ -1067,7 +1067,8 @@ window.publishSettle=async function(){ const d=settleDraft; const sup=setSupply(
   const yymm=d.issueDate.slice(2,4)+d.issueDate.slice(5,7);
   const seq=settlements.filter(s=>s.docType===d.docType && (s.no||'').startsWith(yymm)).length+1;
   const no=yymm+String(seq).padStart(3,'0'); const id='set_'+Date.now();
-  const snap=c=>c?{company:c.company,ceo:c.ceo||'',bizno:c.bizno||'',tel:c.tel||'',address:c.address||''}:null;
+  const ctSnap=(cid,name)=>{ const c=compById(cid); const ct=(c?.contacts||[]).find(x=>x.name===name)||{}; return {contact:name||'',contactTel:ct.tel||'',contactEmail:ct.email||''}; };
+  const snap=c=>c?{company:c.company,ceo:c.ceo||'',bizno:c.bizno||'',tel:c.tel||'',email:c.email||'',address:c.address||''}:null;
   const perEst={}; const perItem={}; let mandayUsed=0;
   if(d.method==='progress') d.estIds.forEach(eid=>perEst[eid]=calcSetRow(eid).thisBill);
   if(d.method==='qty') d.estIds.forEach(eid=>{ const e=estimates.find(x=>x.id===eid); if(!e) return; perItem[eid]={}; let es=0; (e.items||[]).forEach((it,idx)=>{ const q=qVal(eid,idx); const amt=qAmt(eid,idx,it); if(q>0||amt>0){ perItem[eid][idx]={qty:q,amount:amt}; es+=amt; } }); perEst[eid]=es; });
@@ -1076,7 +1077,7 @@ window.publishSettle=async function(){ const d=settleDraft; const sup=setSupply(
   $('set-save').disabled=true;
   try{ await setDoc(doc(db,'gihoek_settlements',id),{ pjtId:d.pjtId, no, docType:d.docType, method:d.method,
       baseMonth:d.baseMonth, issueDate:d.issueDate, payDate:d.payDate||'',
-      senderId:d.senderId||'', sender:{...snap(compById(d.senderId)), contact:d.senderContact||''}, recipientId:d.recipientId||'', recipient:{...snap(compById(d.recipientId)), contact:d.recipientContact||''},
+      senderId:d.senderId||'', sender:{...snap(compById(d.senderId)), ...ctSnap(d.senderId,d.senderContact)}, recipientId:d.recipientId||'', recipient:{...snap(compById(d.recipientId)), ...ctSnap(d.recipientId,d.recipientContact)},
       estIds:d.estIds||[], perEst, perItem, mandayUsed, lines:settleLines(),
       supply:sup, vat, total:sup+vat, amount:sup, status:'active',
       author:(me&&me.name)||'', authorUid:(me&&me.uid)||'', createdAt:serverTimestamp() });
@@ -1133,7 +1134,7 @@ function settleDocHTML(s){ const title=s.docType==='invoice'?'대 금 청 구 �
   <tfoot><tr><td colspan="3" style="text-align:right">공급가액</td><td style="text-align:right">${won(s.supply)}</td></tr>
     <tr><td colspan="3" style="text-align:right">부가세 (10%)</td><td style="text-align:right">${won(s.vat)}</td></tr>
     <tr><td colspan="3" style="text-align:right;font-size:14px">${s.docType==='invoice'?'청구금액 합계':'지급금액 합계'}</td><td style="text-align:right;font-size:14px">${won(s.total)}</td></tr></tfoot></table>
-  <div class="stamp">위와 같이 ${s.docType==='invoice'?'청구':'지급 예정 통보'}합니다.<br><br>${sd.company||''}　${sd.ceo?'대표 '+sd.ceo+' (인)':''}</div>`;
+  <div class="stamp">위와 같이 ${s.docType==='invoice'?'청구':'지급 예정 통보'}합니다.<br><br>${sd.company||''}　${sd.ceo?'대표 '+sd.ceo+' (인)':''} ${sd.contact?'<br><span style="font-size:11px;color:#555">담당: '+sd.contact+(sd.contactTel?' &nbsp;'+sd.contactTel:'')+(sd.contactEmail?' &nbsp;'+sd.contactEmail:'')+'</span>':''}</div>`;
 }
 const SET_DOC_CSS=`*{box-sizing:border-box;font-family:'Malgun Gothic',sans-serif}body{margin:0;color:#1a2330;font-size:12px}
   h1{text-align:center;font-size:25px;letter-spacing:10px;margin:0 0 16px;font-weight:800}
