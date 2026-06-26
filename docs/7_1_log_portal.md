@@ -29,6 +29,56 @@
 | `0a8dc3ec` | 2026-06-26 | fix: MSAL 초기화 타이밍 문제 수정 |
 | `45d58bcd` | 2026-06-26 | fix: MSAL ESM dynamic import 방식으로 전환 |
 | `26942bcf` | 2026-06-26 | fix: MSAL uid별 인스턴스 격리 — 계정별 Outlook 독립 연결 |
+| `5d51634c` | 2026-06-26 | mobile: 하단 탭바 추가 (PC 네이비 컬러톤) |
+| `aa017cc6` | 2026-06-26 | fix: 모바일 탭바 window 전역 등록 누락 수정 |
+| `b08087ca` | 2026-06-26 | fix: 모바일 탭바 onclick→addEventListener 방식으로 교체 |
+| `8817a2b0` | 2026-06-26 | fix: 모바일 탭바 window.* 경유 호출로 스크립트 격리 문제 해결 |
+| `bb4abe85` | 2026-06-26 | fix: PJT홈 모바일 1단 레이아웃 (인라인 grid→CSS 클래스) |
+| `da75d677` | 2026-06-26 | fix: PJT홈 D+ 시작일 직접 입력 기능 추가 |
+| `1287c3e7` | 2026-06-26 | fix: 모바일 iframe 높이 확보 + via=portal 파라미터 추가 |
+| `5f5274de` | 2026-06-26 | fix: overrideUrl에도 via=portal 추가 |
+| `1817364c` | 2026-06-26 | fix(C안): overrideUrl via=portal + D+ Firestore 연동 |
+| `5b9953d6` | 2026-06-26 | 완결: 모바일 최종 정리 |
+
+---
+
+## 모바일 대응 구현 상세 (2026-06-26)
+
+### 하단 탭바 구조
+```
+#m-bottom-nav (background: var(--navy), height: 58px, position:fixed bottom:0)
+  ├── 🏠 홈     → showView('home')
+  ├── 📋 결재   → openModule(edoc, 'approve') + 미결재 배지
+  ├── 🏗️ PJT   → showPjtHome()
+  └── ☰ 더보기  → 슬라이드업 패널 (#m-more-overlay)
+```
+
+### 더보기 패널 구조
+```
+#m-more-panel (background: var(--navy), border-radius: 20px 20px 0 0)
+  ├── 내 정보
+  ├── 업무 메뉴 (권한별 분기, 서브탭 아코디언)
+  ├── 조직도
+  ├── Portal 관리 (admin only)
+  └── 로그아웃
+```
+
+### 핵심 기술 원칙 (이슈 반복 방지)
+- 탭바 버튼 이벤트: `onclick` 인라인 금지 → `setTimeout(0)` 후 `addEventListener`
+- module 스크립트 함수 접근: 반드시 `window.xxx` 경유
+- `me`, `MODULES`, `SUBTABS`: `window.me = getter/setter`, `window.MODULES` 노출 필수
+- iframe URL: `overrideUrl` 여부와 무관하게 항상 `?via=portal` 포함
+
+### PJT홈 반응형
+- `home-dash`: 모바일 `flex-direction:column` → PC `grid 1fr 1fr`
+- `pjt-home-grid`: 모바일 `flex-direction:column` → PC `grid 1fr 360px`
+- `#s-app.shown`: 모바일 `max-width` 제거, `overflow-x:hidden`
+- `#view-home`: `box-sizing:border-box`, `overflow-x:hidden`
+
+### D+ Firestore 연동
+- 저장: `pjt_settings/{p4ph2|p4ph4}` → `{startDate, updatedAt}`
+- 포털 읽기: Firestore 우선 → localStorage 폴백
+- 포털 저장: `pjtSaveStartDate()` → Firestore + localStorage 동시
 
 ---
 
@@ -36,13 +86,18 @@
 
 | 이슈 | 해결 |
 |------|------|
-| 직원 상세 `ed-dept`에 guest 부서 누락 | `deptOpts`에 `<option value="guest">guest</option>` 추가 |
+| 직원 상세 `ed-dept`에 guest 부서 누락 | `deptOpts`에 guest 옵션 추가 |
 | PJT홈 공정률 0% (PAST 상수 미포함) | `loadPjtStats`에 `FAB_PAST_PROGRESS` 상수 삽입 후 Firestore와 병합 |
 | iframe 빈 화면 | `embed-frame-wrap`에 `position:relative` 추가 |
 | 배포 SHA 충돌 | 배포 전 반드시 GET으로 최신 SHA 재확인 |
 | Outlook "연결 중" 멈춤 | MSAL CDN script 태그 → ESM dynamic import 방식으로 전환 |
 | MSAL 중복 initialize | `_msalInitialized` 플래그 → `_msalApps[uid]` 캐싱으로 개선 |
 | 계정 전환 시 타 계정 Outlook 노출 | me.uid 기반 MSAL 인스턴스 격리 + 로그아웃 시 캐시 강제 삭제 |
+| 모바일 탭바 버튼 미작동 | onclick 인라인 → addEventListener + window.* 경유 호출로 교체 |
+| 모바일 PJT홈 화면 밖 넘침 | grid 인라인 style → CSS 클래스 반응형으로 교체 |
+| 워크스페이스 iframe 그래픽 깨짐 | 홈탭 CSS가 PC @media 전용 → 모바일 기본값 CSS 별도 추가 |
+| D+ 타 기기 미연동 | localStorage → Firestore `pjt_settings` 저장/읽기로 전환 |
+| overrideUrl 사용 시 via=portal 미전달 | `(overrideUrl||m.url)+'?via=portal'` 방식으로 통일 |
 
 ---
 
@@ -61,18 +116,6 @@ Tenant ID:  548fcb48-1ab8-4c47-8242-bc098ea80416
 - **계정 격리**: `_msalApps[me.uid]` — 포털 uid별 독립 인스턴스
 - **sessionStorage 태깅**: `msal_portal_uid_{homeAccountId}` = uid
 - **로그아웃 연동**: `doLogout()` → `clearMsalCache()` 호출
-
-### 홈 대시보드 구조
-```
-.home-dash (grid 1fr 1fr)
-  ├── 전자결재 결재함 카드 (좌)
-  │     └── 내 차례 문서 최대 5건
-  │     └── 전자결재 결재함 전체 보기 버튼
-  └── Outlook 메일 카드 (우)
-        ├── 읽지 않은 메일 수 뱃지
-        ├── 최근 메일 5건 목록
-        └── Outlook Web 열기 버튼
-```
 
 ### Outlook 카드 상태 3가지
 | 상태 | 표시 |
