@@ -2986,9 +2986,26 @@ function waitForFirebaseAndInit() {
       });
     }
     initToday();
-    // URL ?tab= 파라미터 확인 (없으면 home)
+    // URL ?tab= / ?via= 파라미터 확인
     var _urlTab='home';
-    try{ var _sp=new URLSearchParams(location.search); var _t=_sp.get('tab'); if(_t) _urlTab=_t; }catch(e){}
+    var _viaPortal=false;
+    try{
+      var _sp=new URLSearchParams(location.search);
+      var _t=_sp.get('tab'); if(_t) _urlTab=_t;
+      _viaPortal=_sp.get('via')==='portal';
+    }catch(e){}
+    // 포털 iframe 안에서 열릴 때: 모바일 레이아웃을 풀스크린으로 전환
+    if(_viaPortal){
+      var _styleEl=document.createElement('style');
+      _styleEl.textContent=
+        'html,body{height:100%;overflow:hidden}'+
+        '.ws-wrapper{height:100vh;display:flex;flex-direction:column}'+
+        '.app{max-width:none!important;margin:0!important;flex:1;display:flex;flex-direction:column;overflow:hidden}'+
+        '.content{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch}'+
+        '.header{position:relative}'+
+        '.tab-bar{flex-shrink:0}';
+      document.head.appendChild(_styleEl);
+    }
     var _hasPcNav=document.querySelector('.pc-topnav');
     if(_hasPcNav){
       switchTab(_urlTab,null);
