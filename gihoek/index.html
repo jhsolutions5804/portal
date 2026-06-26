@@ -462,6 +462,19 @@ window.editEst=function(id){
 };
 function clientOpt(sel){ const list=clientList(); return `<option value="">— 선택 —</option>`+list.map(c=>`<option value="${c.id}" ${c.id===sel?'selected':''}>${c.company}${c.ceo?' ('+c.ceo+')':''}</option>`).join(''); }
 function issuerOpt(sel){ const list=supplierList(); return `<option value="">— 선택 —</option>`+list.map(c=>`<option value="${c.id}" ${c.id===sel?'selected':''}>${c.company}${c.ceo?' ('+c.ceo+')':''}</option>`).join(''); }
+// 전화번호 포맷 공통 함수
+function fmtTel(v){
+  var d=v.replace(/\D/g,'');
+  if(d.length<=3) return d;
+  if(d.length<=6) return d.slice(0,3)+'-'+d.slice(3);
+  if(d.length<=10) return d.slice(0,3)+'-'+d.slice(3,6)+'-'+d.slice(6);
+  return d.slice(0,3)+'-'+d.slice(3,7)+'-'+d.slice(7,11);
+}
+function fmtTelBlur(el){
+  var d=el.value.replace(/\D/g,'');
+  if(d.length===8 && d[0]!=='0') d='010'+d;
+  el.value=fmtTel(d);
+}
 // 업체 선택 후 담당자 드롭다운 렌더
 function contactOptHtml(compId, selName){
   const c = compById(compId);
@@ -681,7 +694,7 @@ window.renderContactRows=function(){
   wrap.innerHTML = window._cfContacts.map((ct,i)=>`
     <div style="display:flex;gap:6px;align-items:center;margin-bottom:6px">
       <input class="inp" style="flex:1;min-width:0" placeholder="이름" value="${(ct.name||'').replace(/"/g,'&quot;')}" oninput="window._cfContacts[${i}].name=this.value">
-      <input class="inp" style="flex:1.2;min-width:0" placeholder="전화번호" value="${ct.tel||''}" oninput="window._cfContacts[${i}].tel=this.value">
+      <input class="inp" style="flex:1.2;min-width:0" placeholder="전화번호" value="${ct.tel||''}" oninput="window._cfContacts[${i}].tel=fmtTel(this.value);this.value=fmtTel(this.value)" onblur="fmtTelBlur(this)">
       <input class="inp" style="flex:1.8;min-width:0" placeholder="이메일" value="${ct.email||''}" oninput="window._cfContacts[${i}].email=this.value">
       <button class="btn gray sm" style="flex-shrink:0;padding:4px 8px" onclick="window._cfContacts.splice(${i},1);window.renderContactRows()">✕</button>
     </div>`).join('');
