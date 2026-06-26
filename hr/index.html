@@ -691,34 +691,13 @@ body { font-family:-apple-system,'Apple SD Gothic Neo','Pretendard',sans-serif; 
 .spinner { width:28px; height:28px; border:3px solid #DDE4EF; border-top-color:#1D5BA6; border-radius:50%; animation:spin 0.8s linear infinite; }
 @keyframes spin { to { transform:rotate(360deg); } }
 
-/* === 인사 셸: PC 사이드바 / 모바일 상단바 === */
-#hr-sidebar { display:none; }
 #hr-body { flex:1; min-width:0; display:flex; flex-direction:column; }
 @media (min-width:900px){
   #app-screen { flex-direction:row; align-items:stretch; }
-  #hr-sidebar { display:flex; flex-direction:column; width:212px; flex:0 0 auto; background:#13335C; color:#CDD8E8; padding:16px 12px; min-height:100vh; }
   #app-screen .app-header { display:none; }
   #app-screen #tabbar-hr { display:none; }
   .tab-content { max-width:none; }
 }
-@media (max-width:899px){ #hr-sidebar { display:none !important; } }
-/* 포털에 임베드되면 포털 왼쪽 메뉴가 내비를 제공하므로 자체 사이드바 숨김 */
-.portal-embed #hr-sidebar { display:none !important; }
-.sb-brand { display:flex; align-items:center; gap:9px; padding:4px 6px 14px; border-bottom:1px solid rgba(255,255,255,0.1); margin-bottom:8px; }
-.sb-logo { width:30px; height:30px; border-radius:8px; background:#fff; color:#13335C; font-weight:800; font-size:13px; display:flex; align-items:center; justify-content:center; }
-.sb-brand .nm { font-size:13px; font-weight:700; color:#fff; line-height:1.2; }
-.sb-brand .nm small { display:block; font-size:10px; font-weight:400; color:#8FA3C0; }
-.sb-grp { font-size:10px; color:#6F88AD; font-weight:600; padding:11px 8px 5px; }
-.sb-item { display:flex; align-items:center; gap:8px; font-size:12.5px; padding:8px 9px; border-radius:8px; color:#CDD8E8; cursor:pointer; border:none; background:none; width:100%; text-align:left; }
-.sb-item:hover { background:rgba(255,255,255,0.07); }
-.sb-item.active { background:#1D5BA6; color:#fff; font-weight:600; }
-.sb-item.active .sb-num { background:rgba(255,255,255,0.25); color:#fff; }
-.sb-item.soon { color:#7D8BA6; cursor:default; }
-.sb-num { width:18px; height:18px; border-radius:5px; background:rgba(255,255,255,0.1); font-size:10px; font-weight:700; display:flex; align-items:center; justify-content:center; flex:0 0 auto; }
-.sb-soon { margin-left:auto; font-size:8px; font-weight:700; background:rgba(255,255,255,0.14); color:#AEBCD4; padding:1px 6px; border-radius:10px; }
-.sb-foot { margin-top:auto; padding-top:12px; border-top:1px solid rgba(255,255,255,0.1); display:flex; align-items:center; gap:8px; font-size:11px; color:#8FA3C0; }
-.sb-foot .av { width:26px; height:26px; border-radius:50%; background:rgba(255,255,255,0.18); display:flex; align-items:center; justify-content:center; font-weight:700; color:#fff; font-size:12px; flex:0 0 auto; }
-.sb-foot button { margin-left:auto; background:none; border:none; color:#8FA3C0; font-size:11px; cursor:pointer; }
 
 /* === 인사 홈 대시보드 === */
 .hm-alert { background:#FFF4E5; border:1px solid #F4D9AD; border-radius:11px; padding:11px 13px; display:flex; align-items:center; gap:9px; margin-bottom:14px; }
@@ -783,24 +762,6 @@ body { font-family:-apple-system,'Apple SD Gothic Neo','Pretendard',sans-serif; 
 
 <!-- 앱 -->
 <div id="app-screen" class="screen">
-  <aside id="hr-sidebar">
-    <div class="sb-brand"><div class="sb-logo">JH</div><div class="nm">인사<small>제이에이치솔루션</small></div></div>
-    <button class="sb-item" data-navkey="home" onclick="goTab('home')"><span class="sb-num">★</span> 인사 홈</button>
-    <div class="sb-grp">1 · 입사</div>
-    <button class="sb-item" data-navkey="roster" onclick="goTab('roster')"><span class="sb-num">1</span> 근로자 명부</button>
-    <div class="sb-grp">2 · 계약</div>
-    <button class="sb-item" data-navkey="labor" onclick="goTab('labor')"><span class="sb-num">2</span> 근로계약서</button>
-    <button class="sb-item" data-navkey="annual" onclick="goTab('annual')"><span class="sb-num">2</span> 연봉계약서</button>
-    <div class="sb-grp">3 · 근무</div>
-    <button class="sb-item" data-navkey="overtime" onclick="goTab('overtime')"><span class="sb-num">3</span> 초과근로</button>
-    <div class="sb-grp">4 · 급여</div>
-    <button class="sb-item" data-navkey="payslip" onclick="goTab('payslip')"><span class="sb-num">4</span> 급여명세서</button>
-    <div class="sb-grp">5 · 퇴직</div>
-    <button class="sb-item" data-navkey="retire" onclick="goTab('retire')"><span class="sb-num">5</span> 퇴직금 정산</button>
-    <button class="sb-item" data-navkey="leave" onclick="goTab('leave')"><span class="sb-num">6</span> 연차 현황</button>
-    <div class="sb-foot"><div class="av" id="sb-user">?</div><button onclick="doLogout()">로그아웃</button></div>
-  </aside>
-
   <div id="hr-body">
   <div class="app-header">
     <div style="display:flex;align-items:center;gap:10px;">
