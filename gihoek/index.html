@@ -817,7 +817,7 @@ const setActive=s=>s.status!=='void';
 function renderSettle(){ settleDraft=null; viewSetId=null;
   const inv=settlements.filter(s=>s.docType==='invoice'&&setActive(s)).reduce((a,s)=>a+(s.total||0),0);
   const pay=settlements.filter(s=>s.docType==='payment'&&setActive(s)).reduce((a,s)=>a+(s.total||0),0);
-  const done=settlements.filter(s=>s.docType==='invoice'&&s.status==='done').reduce((a,s)=>a+(s.amount||0),0);
+  const done=settlements.filter(s=>s.docType==='invoice'&&s.status==='done').reduce((a,s)=>a+(s.total||0),0);
   const sorted=[...settlements].sort((a,b)=>(b.issueDate||'').localeCompare(a.issueDate||'')||(b.no||'').localeCompare(a.no||'')||((b.createdAt?.seconds||0)-(a.createdAt?.seconds||0)));
   $('v-settle').innerHTML=`<button class="back" onclick="tab('home')">← 기획 홈</button>
   <div class="sec-h"><h2>정산</h2><button class="btn pri sm" onclick="newSettle()">+ 정산서 발행</button></div>
