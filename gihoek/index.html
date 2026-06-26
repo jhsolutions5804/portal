@@ -491,6 +491,8 @@ function contactDropdown(compId, selName, onchangeJs){
 }
 
 function drawEstForm(){ const d=estDraft;
+  console.log('[drawEstForm] d.clientId=', d?.clientId, 'd.issuerId=', d?.issuerId, 'companies.length=', companies.length);
+  if(d?.clientId){ const cc=compById(d.clientId); console.log('[drawEstForm] compById result=', cc?.company, 'contacts=', JSON.stringify(cc?.contacts)); }
   $('v-est').innerHTML=`<button class="back" onclick="renderEst()">← 견적 목록</button>
   <div class="card">
     ${d.editId?`<div class="void-banner" style="background:#fff3e0;color:#9a5a00;border-color:#f3e0c4">📝 개정 발행: 저장하면 원본 <b>${d.srcNo}</b>은 폐기 처리되고, 개정본이 새로 발행됩니다.</div>`:''}
