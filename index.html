@@ -287,6 +287,7 @@
     #view-home{overflow-y:auto; padding:0; flex:1; min-height:0;}
     .home-inner{max-width:960px; margin:0 auto; padding:34px 40px 60px}
     .home-dash{display:grid; grid-template-columns:1fr 1fr; gap:20px; align-items:stretch; margin-top:24px;}
+    .pjt-home-grid{ display:grid; grid-template-columns:1fr 360px; gap:20px; align-items:start; }
     .hello{padding:0 0 6px}
     .hello h1{font-size:26px}
     .hello p{font-size:13.5px}
@@ -361,6 +362,9 @@
   /* 사이드바 클릭 가능한 사용자 영역 */
   .sb-user-btn{display:flex; align-items:center; gap:10px; flex:1; cursor:pointer; background:none; border:none; padding:0; font-family:inherit; text-align:left}
   .sb-user-btn:hover .nm{text-decoration:underline}
+  /* PJT 홈 그리드 — 모바일: 1단 */
+  .pjt-home-grid{ display:flex; flex-direction:column; gap:16px; }
+
   /* 홈 대시보드 — 모바일 기본: 1단 세로 */
   .home-dash{display:flex; flex-direction:column; gap:16px; margin-top:20px;}
   .dash-approve-wrap{display:flex; flex-direction:column;}
@@ -472,7 +476,7 @@
     </section>
 
     <!-- PJT 홈 뷰 -->
-    <section id="view-pjt-home" style="display:none; flex:1; overflow-y:auto; padding:24px 20px;">
+    <section id="view-pjt-home" style="display:none; flex:1; overflow-y:auto; padding:24px 16px; box-sizing:border-box;">
       <div style="max-width:1200px; margin:0 auto;">
         <!-- 헤더 -->
         <div style="display:flex; align-items:center; gap:10px; margin-bottom:20px;">
@@ -481,7 +485,7 @@
           <button onclick="openNewPjtForm()" id="new-pjt-btn" style="margin-left:auto;padding:9px 18px;background:#1D5BA6;color:#fff;border:none;border-radius:9px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;display:none">+ 신규 PJT</button>
         </div>
         <!-- 2단 레이아웃: 좌=PJT카드 / 우=일정+보고 -->
-        <div style="display:grid; grid-template-columns:1fr 360px; gap:20px; align-items:start;">
+        <div class="pjt-home-grid">
           <!-- 좌: 진행 중 PJT 카드 -->
           <div>
             <div id="pjt-home-cards" style="display:flex; flex-direction:column; gap:16px; margin-bottom:16px;"></div>
