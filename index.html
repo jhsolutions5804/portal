@@ -681,7 +681,7 @@
     </div>
     <div class="modal-field">
       <label>전화번호</label>
-      <input id="my-phone" type="tel" placeholder="010-0000-0000" oninput="fmtPhone(this)" maxlength="13">
+      <input id="my-phone" type="tel" placeholder="010-0000-0000" oninput="fmtPhone(this)" onblur="fmtTelBlur(this)" maxlength="13">
     </div>
     <div class="modal-btns">
       <button class="modal-cancel" onclick="closeMyProfile()">취소</button>
@@ -1452,7 +1452,7 @@ function openEmpDetail(uid){
       </div>
       <div class="detail-row">
         <div class="detail-label">전화번호</div>
-        <input class="detail-input" id="ed-phone" type="tel" value="${u.phone||''}" placeholder="010-0000-0000" oninput="fmtPhone(this)" maxlength="13">
+        <input class="detail-input" id="ed-phone" type="tel" value="${u.phone||''}" placeholder="010-0000-0000" oninput="fmtPhone(this)" onblur="fmtTelBlur(this)" onblur="fmtTelBlur(this)" maxlength="13">
       </div>
       <div class="detail-row">
         <div class="detail-label">비밀번호 변경</div>
@@ -1616,12 +1616,20 @@ async function loadOrg(){
   }catch(e){ box.innerHTML=`<div class="empty">불러오기 실패: ${e.code||e.message}</div>`; }
 }
 
-function fmtPhone(el){
-  let v=el.value.replace(/[^0-9]/g,'');
-  if(v.length<=3) el.value=v;
-  else if(v.length<=7) el.value=v.slice(0,3)+'-'+v.slice(3);
-  else el.value=v.slice(0,3)+'-'+v.slice(3,7)+'-'+v.slice(7,11);
+// 전화번호 포맷 공통 함수
+function fmtTel(v){
+  var d=v.replace(/\D/g,'');
+  if(d.length<=3) return d;
+  if(d.length<=6) return d.slice(0,3)+'-'+d.slice(3);
+  if(d.length<=10) return d.slice(0,3)+'-'+d.slice(3,6)+'-'+d.slice(6);
+  return d.slice(0,3)+'-'+d.slice(3,7)+'-'+d.slice(7,11);
 }
+function fmtTelBlur(el){
+  var d=el.value.replace(/\D/g,'');
+  if(d.length===8 && d[0]!=='0') d='010'+d;
+  el.value=fmtTel(d);
+}
+function fmtPhone(el){ el.value=fmtTel(el.value); }
 function openMyProfile(){
   $('my-pw').value='';
   $('my-phone').value=me.phone||'';
