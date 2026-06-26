@@ -715,9 +715,9 @@ const db=getFirestore(app);
 const DOMAIN='@jhsol.kr';
 const ADMIN_EMAIL='jh.kim@jhsol.kr';
 const MODULES=[
-  { key:'plan', name:'기획',          desc:'영업·정산·회계 (견적·정산서·손익)',   ic:'plan', emoji:'🧭', url:'https://jhsolutions5804.github.io/portal/gihoek/?via=portal' },
-  { key:'hr',   name:'인사',          desc:'급여·계약·근태·연차 관리',         ic:'hr',   emoji:'👥', url:'https://jhsolutions5804.github.io/portal/hr/?via=portal' },
-  { key:'edoc', name:'전자결재',       desc:'업무일지·연차·구매품의·지출결의',   ic:'edoc', emoji:'📋', url:'https://jhsolutions5804.github.io/portal/edoc/?via=portal' },
+  { key:'plan', name:'기획',          desc:'영업·정산·회계 (견적·정산서·손익)',   ic:'plan', emoji:'🧭', url:'https://jhsolutions5804.github.io/portal/gihoek/' },
+  { key:'hr',   name:'인사',          desc:'급여·계약·근태·연차 관리',         ic:'hr',   emoji:'👥', url:'https://jhsolutions5804.github.io/portal/hr/' },
+  { key:'edoc', name:'전자결재',       desc:'업무일지·연차·구매품의·지출결의',   ic:'edoc', emoji:'📋', url:'https://jhsolutions5804.github.io/portal/edoc/' },
   { key:'pjt',  name:'PJT 관리',       desc:'진행 중인 프로젝트 현장 관리',    ic:'pjt',  emoji:'🏗️', url:'https://jhsolutions5804.github.io/portal/pjt/' },
 ];
 // PJT별 서브 목록 (url: 각 PJT 전용 워크스페이스 URL)
@@ -731,11 +731,11 @@ const HR_SUBTABS=[
   { key:'home',     name:'인사 홈',     emoji:'★' },
   { key:'roster',   name:'근로자 명부', emoji:'1' },
   { key:'labor',    name:'근로계약서',  emoji:'2' },
-  { key:'annual',   name:'연봉계약서',  emoji:'3' },
-  { key:'overtime', name:'초과근로',    emoji:'4' },
-  { key:'payslip',  name:'급여명세서',  emoji:'5' },
-  { key:'retire',   name:'퇴직금 정산', emoji:'6' },
-  { key:'leave',    name:'연차 현황',   emoji:'7' },
+  { key:'annual',   name:'연봉계약서',  emoji:'2' },
+  { key:'overtime', name:'초과근로',    emoji:'3' },
+  { key:'payslip',  name:'급여명세서',  emoji:'4' },
+  { key:'retire',   name:'퇴직금 정산', emoji:'5' },
+  { key:'leave',    name:'연차 현황',   emoji:'6' },
 ];
 // 기획(plan) 하위 탭 — gihoek 앱의 tab() 키와 일치
 const PLAN_SUBTABS=[
@@ -1407,28 +1407,10 @@ function getEmpNo(uid){
   return idx>=0 ? String(idx+1).padStart(3,'0') : '---';
 }
 
-async function openEmpDetail(uid){
+function openEmpDetail(uid){
   const u=_allUsers.find(x=>x.uid===uid); if(!u) return;
   _editUid=uid;
   const empNo=u.empNo || getEmpNo(uid);
-
-  // workers 컬렉션에서 명부 정보 로드 (workers → portal_users 방향)
-  let workerData = { phone:'', jumin:'', address:'', bankAccount:'', hireDate:'', job:'', empType:'' };
-  try {
-    const wq = await getDocs(query(collection(db,'workers'),where('portalUid','==',uid)));
-    if (!wq.empty) {
-      const wd = wq.docs[0].data();
-      workerData = {
-        phone:       wd.phone       || '',
-        jumin:       wd.jumin       || '',
-        address:     wd.address     || '',
-        bankAccount: wd.bankAccount || '',
-        hireDate:    wd.hireDate    || '',
-        job:         wd.job         || '',
-        empType:     wd.empType     || '',
-      };
-    }
-  } catch(we) { console.warn('workers 로드 실패:', we); }
   const RANKS=['대표','부사장','차장','과장','대리','사원'];
   const rankOpts=RANKS.map(r=>`<option value="${r}" ${u.rank===r?'selected':''}>${r}</option>`).join('');
   const deptOpts=`<option value="">미지정</option>
@@ -1470,7 +1452,7 @@ async function openEmpDetail(uid){
       </div>
       <div class="detail-row">
         <div class="detail-label">전화번호</div>
-        <input class="detail-input" id="ed-phone" type="tel" value="${workerData.phone||u.phone||''}" placeholder="010-0000-0000" oninput="fmtPhone(this)" onblur="fmtTelBlur(this)" maxlength="13">
+        <input class="detail-input" id="ed-phone" type="tel" value="${u.phone||''}" placeholder="010-0000-0000" oninput="fmtPhone(this)" onblur="fmtTelBlur(this)" onblur="fmtTelBlur(this)" maxlength="13">
       </div>
       <div class="detail-row">
         <div class="detail-label">비밀번호 변경</div>
@@ -1485,15 +1467,6 @@ async function openEmpDetail(uid){
           </div>
         </div>
       </div>
-      ${workerData.jumin || workerData.address || workerData.bankAccount || workerData.hireDate ? `
-      <div class="detail-row" style="background:#F8FAFD;border-radius:10px;padding:10px 14px;margin:4px 0;flex-direction:column;align-items:flex-start;gap:6px;">
-        <div style="font-size:11px;font-weight:700;color:#1D5BA6;margin-bottom:2px;">📋 근로자 명부 정보 <span style="font-weight:400;color:#9AAABF;">(hr 앱에서 수정)</span></div>
-        ${workerData.jumin     ?`<div style="font-size:12px;color:#5C6F8A;"><span style="font-weight:600;min-width:60px;display:inline-block;">주민번호</span> <span style="color:#1A2540;">${workerData.jumin.slice(0,6)}-*******</span></div>`:''}
-        ${workerData.address   ?`<div style="font-size:12px;color:#5C6F8A;"><span style="font-weight:600;min-width:60px;display:inline-block;">주소</span> <span style="color:#1A2540;">${workerData.address}</span></div>`:''}
-        ${workerData.bankAccount?`<div style="font-size:12px;color:#5C6F8A;"><span style="font-weight:600;min-width:60px;display:inline-block;">계좌</span> <span style="color:#1A2540;">${workerData.bankAccount}</span></div>`:''}
-        ${workerData.hireDate  ?`<div style="font-size:12px;color:#5C6F8A;"><span style="font-weight:600;min-width:60px;display:inline-block;">입사일</span> <span style="color:#1A2540;">${workerData.hireDate}</span></div>`:''}
-        ${workerData.job       ?`<div style="font-size:12px;color:#5C6F8A;"><span style="font-weight:600;min-width:60px;display:inline-block;">담당업무</span> <span style="color:#1A2540;">${workerData.job}</span></div>`:''}
-      </div>` : ''}
       <div class="detail-row">
         <div class="detail-label">접근 권한</div>
         <div class="detail-value"><div class="chips">${permsHtml}</div></div>
