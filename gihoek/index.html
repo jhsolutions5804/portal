@@ -392,7 +392,7 @@ window.pjtDetail=function(id){ detailId=id; pjtForm=false;
       <div class="sumcell"><div class="l">실현 손익</div><div class="v ${pr>=0?'pos':'neg'}">${pr>=0?'+':''}${won(pr)}</div></div></div>
     <div class="sec-h" style="margin-top:22px"><h2>견적 내역 (${ests.length})</h2><button class="btn line sm" onclick="newEst('${id}')">+ 견적 작성</button></div>
     ${ests.length? ests.map(e=>{ const v=!isActive(e); return `<div class="litem ${v?'void':''}" onclick="openEst('${e.id}')"><div class="d"><div class="ti">${e.title}${e.status==='void'?'<span class="void-tag">폐기</span>':e.status==='closed'?'<span class="void-tag" style="background:#E6F1FB;color:#1D5BA6">종결</span>':((e.rev||1)>1?'<span class="rev-tag">개정 r'+e.rev+'</span>':'')}</div><div class="mt">${e.no} · ${e.date}${e.client?.company?' · '+e.client.company:''}</div></div><div class="amt">${won(estTotal(e))}</div></div>`; }).join('') : '<div class="empty">아직 견적이 없습니다.</div>'}
-    <div class="sec-h" style="margin-top:22px"><h2>정산 내역 (${setts.length})</h2></div>
+    <div class="sec-h" style="margin-top:22px"><h2>정산 내역 (${setts.length})</h2><button class="btn line sm" onclick="newSettle('${id}')">+ 정산서 발행</button></div>
     ${setts.length? setts.map(s=>{ const v=!setActive(s); const done=s.status==='done'; const isInv=s.docType==='invoice';
       const stLbl=v?'폐기':(done?'완결':'유효'); const stCol=v?'#9AAABF':(done?'#16A34A':'#1D5BA6');
       const typeLbl=isInv?'대금청구서':'지급예정서';
