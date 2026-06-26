@@ -227,6 +227,12 @@
   /* 모바일에서 view-home 하단 여백 */
   @media (max-width:899px){
     #view-home{ padding-bottom:74px }
+    /* PJT 홈 그리드 — 모바일: 1단 */
+    .pjt-home-grid{ display:flex; flex-direction:column; gap:16px; }
+    /* 홈 대시보드 — 모바일: 1단 세로 */
+    .home-dash{ display:flex; flex-direction:column; gap:16px; margin-top:20px; }
+    .dash-approve-wrap{ display:flex; flex-direction:column; }
+    .dash-outlook-wrap{ display:flex; flex-direction:column; }
   }
 
   /* ====================== PC 레이아웃 (≥ 900px) ====================== */
@@ -363,13 +369,6 @@
   /* 사이드바 클릭 가능한 사용자 영역 */
   .sb-user-btn{display:flex; align-items:center; gap:10px; flex:1; cursor:pointer; background:none; border:none; padding:0; font-family:inherit; text-align:left}
   .sb-user-btn:hover .nm{text-decoration:underline}
-  /* PJT 홈 그리드 — 모바일: 1단 */
-  .pjt-home-grid{ display:flex; flex-direction:column; gap:16px; }
-
-  /* 홈 대시보드 — 모바일 기본: 1단 세로 */
-  .home-dash{display:flex; flex-direction:column; gap:16px; margin-top:20px;}
-  .dash-approve-wrap{display:flex; flex-direction:column;}
-  .dash-outlook-wrap{display:flex; flex-direction:column;}
   /* 결재함 카드 */
   .section-card{background:#fff; border:1px solid #DDE4EF; border-radius:14px; padding:20px 22px; box-shadow:0 1px 4px rgba(29,91,166,.06); display:flex; flex-direction:column; flex:1;}
   .section-card-header{display:flex; align-items:center; gap:10px; margin-bottom:16px;}
