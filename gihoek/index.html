@@ -530,6 +530,8 @@ function drawEstForm(){ const d=estDraft;
   drawRows(); window.scrollTo(0,0);
 }
 window.setDraft=function(k,v){ if(estDraft) estDraft[k]=v; };
+window.drawEstForm=function(){ drawEstForm(); };
+window.drawSettleForm=function(){ drawSettleForm(); };
 window.setItem=function(i,k,v){ if(estDraft&&estDraft.items[i]) estDraft.items[i][k]=v; };
 function drawRows(){
   $('est-rows').innerHTML=estDraft.items.map((it,i)=>`<tr>
