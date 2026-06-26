@@ -2065,27 +2065,27 @@ window.go=showAuth; window.showView=showView; window.doLogin=doLogin; window.doL
 
 <!-- ===== 모바일 하단 탭바 ===== -->
 <nav id="m-bottom-nav">
-  <button class="mbn-item active" id="mbn-home" onclick="mbnGo('home')">
+  <button class="mbn-item active" id="mbn-home">
     <span class="mbn-ic">🏠</span>
     <span>홈</span>
   </button>
-  <button class="mbn-item" id="mbn-edoc" onclick="mbnGo('edoc')">
+  <button class="mbn-item" id="mbn-edoc">
     <span class="mbn-ic">📋</span>
     <span>결재</span>
     <span class="mbn-badge" id="mbn-approve-badge"></span>
   </button>
-  <button class="mbn-item" id="mbn-pjt" onclick="mbnGo('pjt')">
+  <button class="mbn-item" id="mbn-pjt">
     <span class="mbn-ic">🏗️</span>
     <span>PJT</span>
   </button>
-  <button class="mbn-item" id="mbn-more" onclick="mbnOpenMore()">
+  <button class="mbn-item" id="mbn-more">
     <span class="mbn-ic">☰</span>
     <span>더보기</span>
   </button>
 </nav>
 
 <!-- 더보기 슬라이드업 패널 -->
-<div id="m-more-overlay" onclick="mbnCloseMore()">
+<div id="m-more-overlay">
   <div id="m-more-panel" onclick="event.stopPropagation()">
     <div class="mmp-handle"></div>
     <div id="mmp-content"></div>
@@ -2094,6 +2094,20 @@ window.go=showAuth; window.showView=showView; window.doLogin=doLogin; window.doL
 
 <script>
 // ===== 모바일 하단 탭바 로직 =====
+
+// DOM 준비 후 이벤트 바인딩
+document.addEventListener('DOMContentLoaded', function(){
+  var btnHome = document.getElementById('mbn-home');
+  var btnEdoc = document.getElementById('mbn-edoc');
+  var btnPjt  = document.getElementById('mbn-pjt');
+  var btnMore = document.getElementById('mbn-more');
+  var overlay = document.getElementById('m-more-overlay');
+  if(btnHome) btnHome.addEventListener('click', function(){ mbnGo('home'); });
+  if(btnEdoc) btnEdoc.addEventListener('click', function(){ mbnGo('edoc'); });
+  if(btnPjt)  btnPjt.addEventListener('click',  function(){ mbnGo('pjt'); });
+  if(btnMore) btnMore.addEventListener('click',  function(){ mbnOpenMore(); });
+  if(overlay) overlay.addEventListener('click',  function(){ mbnCloseMore(); });
+});
 function mbnSetActive(key){
   document.querySelectorAll('.mbn-item').forEach(b=>b.classList.remove('active'));
   const el=document.getElementById('mbn-'+key);
