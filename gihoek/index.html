@@ -557,6 +557,9 @@ window.onTotalEdit=function(v){ const X=num(v); const items=estDraft.items; if(!
 window.addRow=function(){ estDraft.items.push({name:'',spec:'',qty:1,price:0,amount:0}); drawRows(); };
 window.delRow=function(i){ estDraft.items.splice(i,1); if(!estDraft.items.length) estDraft.items.push({name:'',spec:'',qty:1,price:0,amount:0}); drawRows(); };
 
+// ctSnap: 담당자 스냅샷 헬퍼 (saveEst / saveSettle 공통)
+function ctSnap(cid,name){ const c=compById(cid); const ct=(c?.contacts||[]).find(x=>x.name===name)||{}; return {contact:name||'',contactTel:ct.tel||'',contactEmail:ct.email||''}; }
+
 window.saveEst=async function(){ const d=estDraft;
   if(!d.title.trim()){ toast('견적 제목을 입력하세요.'); return; }
   const items=d.items.filter(i=>(i.name||'').trim()).map(i=>({name:i.name.trim(),spec:i.spec||'',qty:i.qty||0,price:i.price||0,amount:Math.round(itemAmt(i))}));
@@ -1067,7 +1070,6 @@ window.publishSettle=async function(){ const d=settleDraft; const sup=setSupply(
   const yymm=d.issueDate.slice(2,4)+d.issueDate.slice(5,7);
   const seq=settlements.filter(s=>s.docType===d.docType && (s.no||'').startsWith(yymm)).length+1;
   const no=yymm+String(seq).padStart(3,'0'); const id='set_'+Date.now();
-  const ctSnap=(cid,name)=>{ const c=compById(cid); const ct=(c?.contacts||[]).find(x=>x.name===name)||{}; return {contact:name||'',contactTel:ct.tel||'',contactEmail:ct.email||''}; };
   const snap=c=>c?{company:c.company,ceo:c.ceo||'',bizno:c.bizno||'',tel:c.tel||'',email:c.email||'',address:c.address||''}:null;
   const perEst={}; const perItem={}; let mandayUsed=0;
   if(d.method==='progress') d.estIds.forEach(eid=>perEst[eid]=calcSetRow(eid).thisBill);
