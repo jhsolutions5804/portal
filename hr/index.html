@@ -2295,8 +2295,7 @@ async function getWorkersList() {
     const snap = await getDocs(collection(window._db, 'workers'));
     const docs = [];
     snap.forEach(d => docs.push({id:d.id, ...d.data()}));
-    docs.sort((a,b)=>(a.empNo||'').localeCompare(b.empNo||''));
-    return docs.sort((a,b)=>(a.name||'').localeCompare(b.name||'','ko'));
+    return docs.sort((a,b)=>(a.empNo||'').localeCompare(b.empNo||''));
   } catch(e) { return []; }
 }
 
