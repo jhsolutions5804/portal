@@ -756,6 +756,9 @@ const EDOC_SUBTABS=[
 ];
 const SUBTABS={ plan:PLAN_SUBTABS, hr:HR_SUBTABS, edoc:EDOC_SUBTABS, pjt:PJT_SUBTABS };
 let me=null;
+// 하단 탭바(일반 script)에서 접근 가능하도록 window 노출
+window.MODULES=MODULES; window.SUBTABS=SUBTABS;
+Object.defineProperty(window,'me',{get:()=>me,set:v=>{me=v;}});
 
 const $=id=>document.getElementById(id);
 function showAuth(id){
@@ -2060,7 +2063,7 @@ function resetAutoLogout(){
 });
 
 function doLogout(){ clearTimeout(_autoLogoutTimer); clearMsalCache(); signOut(auth).then(()=>{ me=null; $('login-pw').value=''; if(window.mbnHideNav) mbnHideNav(); showAuth('s-login'); }); }
-window.go=showAuth; window.showView=showView; window.doLogin=doLogin; window.doLogout=doLogout; window.createEmployee=createEmployee; window.loadPerms=loadPerms; window.openEmpDetail=openEmpDetail; window.saveEmpDetail=saveEmpDetail; window.loadOrg=loadOrg; window.fmtPhone=fmtPhone; window.openMyProfile=openMyProfile; window.closeMyProfile=closeMyProfile; window.saveMyProfile=saveMyProfile;
+window.go=showAuth; window.showView=showView; window.doLogin=doLogin; window.doLogout=doLogout; window.createEmployee=createEmployee; window.loadPerms=loadPerms; window.openEmpDetail=openEmpDetail; window.saveEmpDetail=saveEmpDetail; window.loadOrg=loadOrg; window.fmtPhone=fmtPhone; window.openMyProfile=openMyProfile; window.closeMyProfile=closeMyProfile; window.saveMyProfile=saveMyProfile; window.showPjtHome=showPjtHome; window.openModule=openModule;
 </script>
 
 <!-- ===== 모바일 하단 탭바 ===== -->
@@ -2095,8 +2098,8 @@ window.go=showAuth; window.showView=showView; window.doLogin=doLogin; window.doL
 <script>
 // ===== 모바일 하단 탭바 로직 =====
 
-// DOM 준비 후 이벤트 바인딩
-document.addEventListener('DOMContentLoaded', function(){
+// body 끝에 위치하므로 DOM은 이미 파싱 완료 → 즉시 바인딩
+setTimeout(function(){
   var btnHome = document.getElementById('mbn-home');
   var btnEdoc = document.getElementById('mbn-edoc');
   var btnPjt  = document.getElementById('mbn-pjt');
@@ -2107,7 +2110,7 @@ document.addEventListener('DOMContentLoaded', function(){
   if(btnPjt)  btnPjt.addEventListener('click',  function(){ mbnGo('pjt'); });
   if(btnMore) btnMore.addEventListener('click',  function(){ mbnOpenMore(); });
   if(overlay) overlay.addEventListener('click',  function(){ mbnCloseMore(); });
-});
+}, 0);
 function mbnSetActive(key){
   document.querySelectorAll('.mbn-item').forEach(b=>b.classList.remove('active'));
   const el=document.getElementById('mbn-'+key);
@@ -2117,147 +2120,110 @@ function mbnSetActive(key){
 function mbnGo(key){
   mbnCloseMore();
   if(key==='home'){
-    showView('home');
+    window.showView('home');
     mbnSetActive('home');
   } else if(key==='edoc'){
-    if(!me) return;
-    const m=MODULES.find(x=>x.key==='edoc');
-    const allowed=me.admin||(me.perms&&me.perms.edoc);
+    if(!window.me) return;
+    const m=window.MODULES&&window.MODULES.find(x=>x.key==='edoc');
+    const allowed=window.me.admin||(window.me.perms&&window.me.perms.edoc);
     if(!allowed){ alert('전자결재 접근 권한이 없습니다.'); return; }
-    openModule(m, 'approve', null);
+    if(m) window.openModule(m, 'approve', null);
     mbnSetActive('edoc');
   } else if(key==='pjt'){
-    if(!me) return;
-    const allowed=me.admin||(me.perms&&me.perms.pjt);
+    if(!window.me) return;
+    const allowed=window.me.admin||(window.me.perms&&window.me.perms.pjt);
     if(!allowed){ alert('PJT 접근 권한이 없습니다.'); return; }
-    showPjtHome();
+    window.showPjtHome();
     mbnSetActive('pjt');
   }
 }
 
 function mbnOpenMore(){
-  if(!me) return;
+  const _me=window.me; if(!_me) return;
+  const _MODULES=window.MODULES||[]; const _SUBTABS=window.SUBTABS||{};
   const panel=document.getElementById('mmp-content');
   panel.innerHTML='';
 
-  // 섹션 생성 함수
   function addSection(label, items){
-    const sec=document.createElement('div');
-    sec.className='mmp-section';
-    if(label){
-      const lbl=document.createElement('div');
-      lbl.className='mmp-section-label';
-      lbl.textContent=label;
-      sec.appendChild(lbl);
-    }
-    items.forEach(item=>sec.appendChild(item));
-    panel.appendChild(sec);
+    const sec=document.createElement('div'); sec.className='mmp-section';
+    if(label){ const lbl=document.createElement('div'); lbl.className='mmp-section-label'; lbl.textContent=label; sec.appendChild(lbl); }
+    items.forEach(item=>sec.appendChild(item)); panel.appendChild(sec);
   }
 
   // 내 정보
-  const myInfo=document.createElement('button');
-  myInfo.className='mmp-btn';
-  myInfo.innerHTML='<span class="mmp-ic">👤</span><div><div>내 정보</div><div class="mmp-sub">'+( me.name||'')+'  '+(me.rank||'')+'</div></div>';
-  myInfo.onclick=()=>{ mbnCloseMore(); openMyProfile(); };
+  const myInfo=document.createElement('button'); myInfo.className='mmp-btn';
+  myInfo.innerHTML='<span class="mmp-ic">👤</span><div><div>내 정보</div><div class="mmp-sub">'+(_me.name||'')+' '+(_me.rank||'')+'</div></div>';
+  myInfo.onclick=()=>{ mbnCloseMore(); window.openMyProfile&&window.openMyProfile(); };
   addSection(null,[myInfo]);
-
-  const div0=document.createElement('div'); div0.className='mmp-divider';
-  panel.appendChild(div0);
+  const div0=document.createElement('div'); div0.className='mmp-divider'; panel.appendChild(div0);
 
   // 업무 메뉴
   const workItems=[];
-  MODULES.forEach(m=>{
-    const allowed=me.admin||(me.perms&&me.perms[m.key]);
-    const btn=document.createElement('button');
-    btn.className='mmp-btn'+(allowed?'':' locked');
-
-    if(SUBTABS[m.key] && allowed){
-      // 서브메뉴 확장형
-      const wrap=document.createElement('div');
-      wrap.style.cssText='width:100%';
-      const head=document.createElement('button');
-      head.className='mmp-btn';
-      head.style.cssText='width:100%;padding:13px 20px';
-      head.innerHTML='<span class="mmp-ic">'+m.emoji+'</span><div><div>'+m.name+'</div><div class="mmp-sub">'+m.desc+'</div></div><span style="margin-left:auto;color:var(--mute);font-size:14px;">›</span>';
-      const sublist=document.createElement('div');
-      sublist.className='mmp-sublist';
-      sublist.style.display='none';
-      SUBTABS[m.key].forEach(st=>{
-        const sbtn=document.createElement('button');
-        sbtn.className='mmp-subbtn';
+  _MODULES.forEach(m=>{
+    const allowed=_me.admin||(_me.perms&&_me.perms[m.key]);
+    if(_SUBTABS[m.key] && allowed){
+      const wrap=document.createElement('div'); wrap.style.cssText='width:100%';
+      const head=document.createElement('button'); head.className='mmp-btn'; head.style.cssText='width:100%;padding:12px 20px';
+      head.innerHTML='<span class="mmp-ic">'+m.emoji+'</span><div><div>'+m.name+'</div><div class="mmp-sub">'+m.desc+'</div></div><span style="margin-left:auto;font-size:14px;">›</span>';
+      const sublist=document.createElement('div'); sublist.className='mmp-sublist'; sublist.style.display='none';
+      _SUBTABS[m.key].forEach(st=>{
+        const sbtn=document.createElement('button'); sbtn.className='mmp-subbtn';
         sbtn.innerHTML='<span style="font-size:15px;">'+st.emoji+'</span> '+st.name;
         sbtn.onclick=()=>{
           mbnCloseMore();
           if(m.key==='pjt'){
-            if(st.key==='pjt_home'){ showPjtHome(); mbnSetActive('pjt'); return; }
-            openModule(m, st.key, st.url||null); mbnSetActive('pjt');
+            if(st.key==='pjt_home'){ window.showPjtHome&&window.showPjtHome(); mbnSetActive('pjt'); return; }
+            window.openModule&&window.openModule(m, st.key, st.url||null); mbnSetActive('pjt');
           } else {
-            openModule(m, st.key, st.url||null);
+            window.openModule&&window.openModule(m, st.key, st.url||null);
           }
-          mbnSetActive(m.key==='plan'?'more':m.key==='hr'?'more':'edoc');
         };
         sublist.appendChild(sbtn);
       });
       head.onclick=(e)=>{
         e.stopPropagation();
         const isOpen=sublist.style.display!=='none';
-        // 다른 서브리스트 닫기
         panel.querySelectorAll('.mmp-sublist').forEach(s=>s.style.display='none');
-        panel.querySelectorAll('.mmp-chev').forEach(c=>c.textContent='›');
-        if(!isOpen){
-          sublist.style.display='flex';
-          sublist.style.flexDirection='column';
-          head.querySelector('.mmp-chev')?head.querySelector('.mmp-chev').textContent='⌄':'';
-        }
+        if(!isOpen){ sublist.style.display='flex'; sublist.style.flexDirection='column'; }
         head.querySelector('span:last-child').textContent=isOpen?'›':'⌄';
       };
-      wrap.appendChild(head);
-      wrap.appendChild(sublist);
-      workItems.push(wrap);
+      wrap.appendChild(head); wrap.appendChild(sublist); workItems.push(wrap);
     } else {
+      const btn=document.createElement('button');
+      btn.className='mmp-btn'+(allowed?'':' locked');
       btn.innerHTML='<span class="mmp-ic">'+m.emoji+'</span><div><div>'+m.name+'</div><div class="mmp-sub">'+m.desc+'</div></div>'+(allowed?'':'<span class="mmp-lock">🔒 권한없음</span>');
       if(allowed) btn.onclick=()=>{
         mbnCloseMore();
-        if(m.key==='pjt'){ showPjtHome(); mbnSetActive('pjt'); return; }
-        const fs=SUBTABS[m.key]?SUBTABS[m.key][0]:null;
-        openModule(m, fs?fs.key:null, fs?fs.url||null:null);
+        if(m.key==='pjt'){ window.showPjtHome&&window.showPjtHome(); mbnSetActive('pjt'); return; }
+        const fs=_SUBTABS[m.key]?_SUBTABS[m.key][0]:null;
+        window.openModule&&window.openModule(m, fs?fs.key:null, fs?fs.url||null:null);
       };
       workItems.push(btn);
     }
   });
   addSection('업무 메뉴', workItems);
-
-  const div1=document.createElement('div'); div1.className='mmp-divider';
-  panel.appendChild(div1);
+  const div1=document.createElement('div'); div1.className='mmp-divider'; panel.appendChild(div1);
 
   // 조직도
-  const orgBtn=document.createElement('button');
-  orgBtn.className='mmp-btn';
+  const orgBtn=document.createElement('button'); orgBtn.className='mmp-btn';
   orgBtn.innerHTML='<span class="mmp-ic">🏢</span><div><div>조직도</div></div>';
-  orgBtn.onclick=()=>{ mbnCloseMore(); showView('org'); loadOrg(); };
+  orgBtn.onclick=()=>{ mbnCloseMore(); window.showView&&window.showView('org'); window.loadOrg&&window.loadOrg(); };
   const extraItems=[orgBtn];
 
-  // 관리자 전용
-  if(me.admin){
-    const admBtn=document.createElement('button');
-    admBtn.className='mmp-btn';
+  if(_me.admin){
+    const admBtn=document.createElement('button'); admBtn.className='mmp-btn';
     admBtn.innerHTML='<span class="mmp-ic">⚙️</span><div><div>Portal 관리</div></div>';
-    admBtn.onclick=()=>{ mbnCloseMore(); showView('admin'); loadPerms(); };
+    admBtn.onclick=()=>{ mbnCloseMore(); window.showView&&window.showView('admin'); window.loadPerms&&window.loadPerms(); };
     extraItems.push(admBtn);
   }
 
-  // 로그아웃
-  const lgBtn=document.createElement('button');
-  lgBtn.className='mmp-btn';
-  lgBtn.style.color='var(--warn)';
+  const lgBtn=document.createElement('button'); lgBtn.className='mmp-btn'; lgBtn.style.color='var(--warn)';
   lgBtn.innerHTML='<span class="mmp-ic">🚪</span><div><div>로그아웃</div></div>';
-  lgBtn.onclick=()=>{ mbnCloseMore(); doLogout(); };
+  lgBtn.onclick=()=>{ mbnCloseMore(); window.doLogout&&window.doLogout(); };
   extraItems.push(lgBtn);
-
   addSection('', extraItems);
 
-  const overlay=document.getElementById('m-more-overlay');
-  overlay.classList.add('on');
+  document.getElementById('m-more-overlay').classList.add('on');
   mbnSetActive('more');
 }
 
