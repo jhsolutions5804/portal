@@ -207,7 +207,7 @@ const pjtBilled=pid=>settlements.filter(s=>s.pjtId===pid&&s.docType==='invoice'&
 const pjtPaid =pid=>settlements.filter(s=>s.pjtId===pid&&s.docType==='payment'&&s.status!=='void').reduce((a,s)=>a+(s.amount||0),0);
 // 완결된 청구 합계 (status==='done')
 const pjtDone =pid=>settlements.filter(s=>s.pjtId===pid&&s.docType==='invoice'&&s.status==='done').reduce((a,s)=>a+(s.amount||0),0);
-// 미수금 = 대금청구 누계 - 완결된 청구서 합계
+// 미수금 = 청구액 - 수금액 (완결된 청구서 = 수금으로 간주)
 const pjtDue  =pid=>pjtBilled(pid)-pjtDone(pid);
 
 const SEED_COMPANIES=[
@@ -386,10 +386,9 @@ window.pjtDetail=function(id){ detailId=id; pjtForm=false;
       <span class="badge ${p.status==='done'?'done':'run'}">${p.status==='done'?'종료':'진행중'}</span></div>
       <div style="margin-top:12px; display:flex; gap:8px"><button class="btn gray sm" onclick="editPjt('${p.id}')">정보 수정</button><button class="btn gray sm" onclick="delPjt('${p.id}')">삭제</button></div></div>
     <div class="sec-h" style="margin-top:18px"><h2>요약</h2></div>
-    <div class="sumgrid" style="grid-template-columns:repeat(5,1fr)"><div class="sumcell"><div class="l">견적 합계</div><div class="v">${won(est)}</div></div>
+    <div class="sumgrid" style="grid-template-columns:repeat(4,1fr)"><div class="sumcell"><div class="l">견적 합계</div><div class="v">${won(est)}</div></div>
       <div class="sumcell"><div class="l">청구 누계</div><div class="v">${won(b)}</div></div>
       <div class="sumcell"><div class="l">지급 누계</div><div class="v">${won(pd)}</div></div>
-      <div class="sumcell"><div class="l">미수 잔금</div><div class="v" style="color:${(b-pd)>0?'#DC2626':'#16A34A'}">${won(b-pd)}</div></div>
       <div class="sumcell"><div class="l">실현 손익</div><div class="v ${pr>=0?'pos':'neg'}">${pr>=0?'+':''}${won(pr)}</div></div></div>
     <div class="sec-h" style="margin-top:22px"><h2>견적 내역 (${ests.length})</h2><button class="btn line sm" onclick="newEst('${id}')">+ 견적 작성</button></div>
     ${ests.length? ests.map(e=>{ const v=!isActive(e); return `<div class="litem ${v?'void':''}" onclick="openEst('${e.id}')"><div class="d"><div class="ti">${e.title}${e.status==='void'?'<span class="void-tag">폐기</span>':e.status==='closed'?'<span class="void-tag" style="background:#E6F1FB;color:#1D5BA6">종결</span>':((e.rev||1)>1?'<span class="rev-tag">개정 r'+e.rev+'</span>':'')}</div><div class="mt">${e.no} · ${e.date}${e.client?.company?' · '+e.client.company:''}</div></div><div class="amt">${won(estTotal(e))}</div></div>`; }).join('') : '<div class="empty">아직 견적이 없습니다.</div>'}
@@ -771,7 +770,7 @@ function renderSettle(){ settleDraft=null; viewSetId=null;
     <div class="sumgrid" style="grid-template-columns:1fr 1fr 1fr;margin-bottom:16px">
       <div class="sumcell"><div class="l">대금청구 누계</div><div class="v">${won(inv)}</div></div>
       <div class="sumcell"><div class="l">지급예정 누계</div><div class="v">${won(pay)}</div></div>
-      <div class="sumcell"><div class="l">미수 잔금 (청구−완결)</div><div class="v" style="color:${(inv-done)>0?'#DC2626':'#16A34A'}">${won(inv-done)}</div></div></div>
+      <div class="sumcell"><div class="l">미수금 (청구−수금)</div><div class="v" style="color:${(inv-done)>0?'#DC2626':'#16A34A'}">${won(inv-done)}</div></div></div>
     ${sorted.length? sorted.map(s=>{ const p=projects.find(x=>x.id===s.pjtId); const v=!setActive(s);
       return `<div class="litem ${v?'void':''}" onclick="openSettle('${s.id}')"><div class="d"><div class="ti">${s.docType==='invoice'?'대금청구서':'지급예정서'} <span class="pill">${s.no}</span>${v?'<span class="void-tag">폐기</span>':''}${s.status==='done'?'<span class="void-tag" style="background:#E1F5EE;color:#085041">✓ 완결</span>':''}</div><div class="mt"><span class="pill">${p?p.code:'-'}</span> &nbsp;기준월 ${s.baseMonth} · 발행 ${s.issueDate}${s.recipient?.company?' · '+s.recipient.company:''}</div></div><div class="amt">${won(s.total)}</div></div>`;
     }).join('') : '<div class="empty">발행된 정산서가 없습니다.</div>'}`;
@@ -1054,7 +1053,7 @@ window.openSettle=function(id){ viewSetId=id; const s=settlements.find(x=>x.id==
 window.doneSettle=async function(id){
   const s=settlements.find(x=>x.id===id); if(!s) return;
   const bal=pjtBilled(s.pjtId)-pjtPaid(s.pjtId);
-  const msg=bal>0?('이 청구 정산을 완결 처리할까요?\n\n현재 프로젝트 미수 잔금: '+won(bal)+'\n(잔금이 남아 있어도 수동 완결 가능)\n\n완결 시 회계 매출로 인식됩니다.'):'이 청구 정산을 완결 처리할까요?\n\n미수 잔금 0 — 완결 권장 상태입니다.\n완결 시 회계 매출로 인식됩니다.';
+  const msg=bal>0?('이 청구 정산을 완결 처리할까요?\n\n현재 프로젝트 미수금: '+won(bal)+'\n(미수금이 남아 있어도 수동 완결 가능)\n\n완결 시 수금 처리되어 회계 매출로 인식됩니다.'):'이 청구 정산을 완결 처리할까요?\n\n미수금 0 — 완결 권장 상태입니다.\n완결 시 수금 처리되어 회계 매출로 인식됩니다.';
   if(!confirm(msg)) return;
   try{ await setDoc(doc(db,'gihoek_settlements',id),{status:'done',doneAt:serverTimestamp()},{merge:true}); toast('완결 처리했습니다.'); openSettle(id); }catch(e){ toast('실패: '+(e.code||e.message)); }
 };
