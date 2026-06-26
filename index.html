@@ -1717,27 +1717,38 @@ const MSAL_CONFIG = {
 };
 const MSAL_SCOPES = ['Mail.Read', 'User.Read'];
 let _msalApp = null;
+let _msalInitialized = false;
 let _msalAccount = null;
 
-function getMsalApp(){
-  if(!_msalApp) _msalApp = new msal.PublicClientApplication(MSAL_CONFIG);
+async function getMsalApp(){
+  // msal 라이브러리가 window에 로드될 때까지 대기
+  let waited = 0;
+  while(typeof msal === 'undefined' && waited < 5000){
+    await new Promise(r=>setTimeout(r,100));
+    waited += 100;
+  }
+  if(typeof msal === 'undefined') throw new Error('MSAL 로드 실패');
+  if(!_msalApp){
+    _msalApp = new msal.PublicClientApplication(MSAL_CONFIG);
+  }
+  if(!_msalInitialized){
+    await _msalApp.initialize();
+    _msalInitialized = true;
+  }
   return _msalApp;
 }
 
 async function msalGetToken(){
-  const app = getMsalApp();
-  await app.initialize();
-  const accounts = app.getAllAccounts();
-  if(accounts.length > 0){
-    _msalAccount = accounts[0];
-    try{
-      const res = await app.acquireTokenSilent({ scopes: MSAL_SCOPES, account: _msalAccount });
-      return res.accessToken;
-    } catch(e){
-      // silent 실패 시 popup
-    }
-  }
   try{
+    const app = await getMsalApp();
+    const accounts = app.getAllAccounts();
+    if(accounts.length > 0){
+      _msalAccount = accounts[0];
+      try{
+        const res = await app.acquireTokenSilent({ scopes: MSAL_SCOPES, account: _msalAccount });
+        return res.accessToken;
+      } catch(e){ /* silent 실패 → popup으로 진행 */ }
+    }
     const res = await app.acquireTokenPopup({ scopes: MSAL_SCOPES });
     _msalAccount = res.account;
     return res.accessToken;
@@ -1745,11 +1756,12 @@ async function msalGetToken(){
 }
 
 async function msalLogout(){
-  const app = getMsalApp();
-  await app.initialize();
-  const accounts = app.getAllAccounts();
-  if(accounts.length > 0) await app.logoutPopup({ account: accounts[0] });
-  _msalAccount = null;
+  try{
+    const app = await getMsalApp();
+    const accounts = app.getAllAccounts();
+    if(accounts.length > 0) await app.logoutPopup({ account: accounts[0] });
+    _msalAccount = null;
+  } catch(e){}
   renderOutlookCard();
 }
 
@@ -1757,14 +1769,20 @@ async function renderOutlookCard(){
   const container = document.getElementById('outlook-card-wrap');
   if(!container) return;
   container.style.display = '';
-
-  // 로딩 상태
   container.innerHTML = '<div class="oc-loading">📬 Outlook 연결 중...</div>';
 
-  const app = getMsalApp();
-  await app.initialize();
-  const accounts = app.getAllAccounts();
-  const isLinked = accounts.length > 0;
+  let app, accounts, isLinked;
+  try{
+    app = await getMsalApp();
+    accounts = app.getAllAccounts();
+    isLinked = accounts.length > 0;
+  } catch(e){
+    container.innerHTML =
+      '<div class="outlook-card-header"><div class="oc-icon">📧</div><div class="oc-title">Outlook 메일</div></div>'
+      +'<div style="font-size:12px;color:#DC2626;margin-bottom:10px;">MSAL 초기화 실패: '+e.message+'</div>'
+      +'<a href="https://outlook.office.com/mail/" target="_blank" class="outlook-open-btn">📬 Outlook Web 열기</a>';
+    return;
+  }
 
   if(!isLinked){
     container.innerHTML = `
