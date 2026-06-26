@@ -3406,6 +3406,265 @@ let otMonth = new Date().getMonth() + 1;
 // ── 메인 뷰 ──
 window.renderOvertimeMain = () => {
   otClearWageCache();
+  if (window.innerWidth >= 900) {
+    renderOvertimePC();
+  } else {
+    renderOvertimeMobile();
+  }
+};
+
+// ── PC 뷰 ──
+let _otPcYear  = new Date().getFullYear();
+let _otPcMonth = new Date().getMonth() + 1;
+
+window.renderOvertimePC = async () => {
+  const el = document.getElementById('tab-overtime');
+  el.innerHTML = `
+    <div style="max-width:1100px;margin:0 auto;padding:16px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+        <div style="font-size:16px;font-weight:700;color:#1A2540;">⏱ 초과근로</div>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <button onclick="otPcChangeMonth(-1)" style="border:none;background:#F0F4F9;border-radius:6px;padding:4px 10px;cursor:pointer;font-size:14px;">◀</button>
+          <span id="ot-pc-label" style="font-size:14px;font-weight:600;color:#1A2540;">${_otPcYear}년 ${String(_otPcMonth).padStart(2,'0')}월</span>
+          <button onclick="otPcChangeMonth(1)" style="border:none;background:#F0F4F9;border-radius:6px;padding:4px 10px;cursor:pointer;font-size:14px;">▶</button>
+        </div>
+      </div>
+      <div id="ot-pc-kpi" style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px;">
+        <div style="background:#fff;border-radius:10px;padding:12px;text-align:center;"><div style="font-size:11px;color:#9AAABF;">총 시간</div><div id="ot-kpi-hours" style="font-size:18px;font-weight:700;color:#1A2540;">-</div></div>
+        <div style="background:#fff;border-radius:10px;padding:12px;text-align:center;"><div style="font-size:11px;color:#9AAABF;">총 수당</div><div id="ot-kpi-amt" style="font-size:18px;font-weight:700;color:#1A2540;">-</div></div>
+        <div style="background:#fff;border-radius:10px;padding:12px;text-align:center;"><div style="font-size:11px;color:#9AAABF;">인원</div><div id="ot-kpi-persons" style="font-size:18px;font-weight:700;color:#1A2540;">-</div></div>
+        <div style="background:#fff;border-radius:10px;padding:12px;text-align:center;"><div style="font-size:11px;color:#9AAABF;">건수</div><div id="ot-kpi-count" style="font-size:18px;font-weight:700;color:#1A2540;">-</div></div>
+      </div>
+      <div style="display:flex;gap:14px;align-items:flex-start;">
+        <div style="width:220px;flex:0 0 auto;">
+          <div style="background:#fff;border-radius:12px;padding:12px;margin-bottom:10px;">
+            <div style="font-size:12px;font-weight:700;color:#1A2540;margin-bottom:8px;">직원 목록</div>
+            <div id="ot-pc-workers" style="display:flex;flex-direction:column;gap:4px;max-height:260px;overflow-y:auto;"></div>
+          </div>
+          <div style="background:#fff;border-radius:12px;padding:14px;">
+            <div style="font-size:12px;font-weight:700;color:#1A2540;margin-bottom:10px;">➕ 초과근로 입력</div>
+            <div style="display:flex;flex-direction:column;gap:8px;">
+              <input type="date" id="ot-pc-date" style="padding:7px 10px;border:1px solid #DDE3EE;border-radius:8px;font-size:13px;width:100%;box-sizing:border-box;">
+              <select id="ot-pc-worker-sel" onchange="otPcCalcPreview()" style="padding:7px 10px;border:1px solid #DDE3EE;border-radius:8px;font-size:13px;width:100%;box-sizing:border-box;">
+                <option value="">직원 선택</option>
+              </select>
+              <div id="ot-pc-wage-info" style="font-size:11px;color:#5C6F8A;background:#F7F9FC;padding:7px 10px;border-radius:7px;min-height:18px;"></div>
+              <div style="display:flex;align-items:center;gap:6px;">
+                <label style="font-size:12px;color:#5C6F8A;white-space:nowrap;">시간(h)</label>
+                <input type="number" id="ot-pc-hours" step="0.5" min="0.5" max="24" oninput="otPcCalcPreview()" placeholder="0.5" style="padding:7px 10px;border:1px solid #DDE3EE;border-radius:8px;font-size:13px;flex:1;min-width:0;">
+              </div>
+              <div id="ot-pc-preview" style="font-size:12px;color:#1D5BA6;font-weight:600;min-height:18px;"></div>
+              <button onclick="otPcSave()" style="padding:9px;background:#1D5BA6;border:none;border-radius:8px;color:#fff;font-size:13px;font-weight:700;cursor:pointer;width:100%;">저장</button>
+              <button onclick="otClearAllData()" style="padding:7px;background:#fff0f0;border:1px dashed #fca5a5;border-radius:8px;color:#dc2626;font-size:11px;cursor:pointer;width:100%;">🗑 전체 초기화</button>
+            </div>
+          </div>
+        </div>
+        <div style="flex:1;min-width:0;">
+          <div id="ot-pc-detail" style="background:#fff;border-radius:12px;padding:16px;min-height:200px;">
+            <div style="color:#9AAABF;font-size:13px;text-align:center;padding:40px 0;">좌측에서 직원을 선택하세요</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+  await otPcInit();
+};
+
+window.otPcInit = async () => {
+  try {
+    const { collection, getDocs } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+    const snap = await getDocs(collection(window._db, 'workers'));
+    const workers = [];
+    snap.forEach(d => workers.push({ id: d.id, ...d.data() }));
+    workers.sort((a,b) => (a.empNo||'').localeCompare(b.empNo||''));
+
+    // 직원 목록 렌더
+    const wBox = document.getElementById('ot-pc-workers');
+    const sel  = document.getElementById('ot-pc-worker-sel');
+    if (wBox) wBox.innerHTML = workers.map(w => `
+      <button id="ot-pw-${w.id}" onclick="otPcSelectWorker('${w.id}','${w.name}','${w.rank||''}')"
+        style="text-align:left;padding:7px 10px;border:none;border-radius:7px;background:#F7F9FC;cursor:pointer;font-size:12px;color:#1A2540;width:100%;">
+        ${w.name} <span style="color:#9AAABF;font-size:10px;">${w.rank||''}</span>
+      </button>`).join('');
+    if (sel) {
+      sel.innerHTML = '<option value="">직원 선택</option>' +
+        workers.map(w => `<option value="${w.id}|${w.name}|${w.rank||''}">${w.name} ${w.rank||''}</option>`).join('');
+    }
+    await otPcLoadKpiAndHours(workers);
+  } catch(e) { console.error(e); }
+};
+
+window.otPcLoadKpiAndHours = async (workers) => {
+  try {
+    const { collection, getDocs, query, where } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+    const ym = `${_otPcYear}-${String(_otPcMonth).padStart(2,'0')}`;
+    const snap = await getDocs(query(collection(window._db,'overtime'), where('yearMonth','==',ym)));
+    let totalH=0, totalA=0, persons=new Set(), count=0;
+    const personHours = {};
+    snap.forEach(d => {
+      const r = d.data();
+      totalH += Number(r.hours)||0;
+      totalA += Number(r.amount)||0;
+      if(r.workerId) persons.add(r.workerId);
+      count++;
+      personHours[r.workerId] = (personHours[r.workerId]||0) + (Number(r.hours)||0);
+    });
+    const fmt = v => v>=10000 ? Math.round(v/10000)+'만원' : v.toLocaleString()+'원';
+    const s = id => document.getElementById(id);
+    if(s('ot-kpi-hours')) s('ot-kpi-hours').textContent = totalH+'h';
+    if(s('ot-kpi-amt'))   s('ot-kpi-amt').textContent   = fmt(totalA);
+    if(s('ot-kpi-persons')) s('ot-kpi-persons').textContent = persons.size+'명';
+    if(s('ot-kpi-count'))   s('ot-kpi-count').textContent   = count+'건';
+    // 직원 목록에 시간 표시
+    (workers||[]).forEach(w => {
+      const btn = document.getElementById('ot-pw-'+w.id);
+      if(btn) {
+        const h = personHours[w.id]||0;
+        btn.innerHTML = `${w.name} <span style="color:#9AAABF;font-size:10px;">${w.rank||''}</span>${h>0?`<span style="float:right;color:#1D5BA6;font-size:10px;">${h}h</span>`:''}`;
+      }
+    });
+  } catch(e) { console.error(e); }
+};
+
+window.otPcChangeMonth = async (delta) => {
+  _otPcMonth += delta;
+  if(_otPcMonth > 12){ _otPcMonth=1; _otPcYear++; }
+  if(_otPcMonth < 1) { _otPcMonth=12; _otPcYear--; }
+  const lbl = document.getElementById('ot-pc-label');
+  if(lbl) lbl.textContent = `${_otPcYear}년 ${String(_otPcMonth).padStart(2,'0')}월`;
+  // 날짜 입력 초기화
+  const di = document.getElementById('ot-pc-date');
+  if(di) di.value = `${_otPcYear}-${String(_otPcMonth).padStart(2,'0')}-01`;
+  // KPI 갱신
+  try {
+    const { collection, getDocs, query, where } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+    const snap = await getDocs(collection(window._db,'workers'));
+    const workers = [];
+    snap.forEach(d => workers.push({id:d.id,...d.data()}));
+    await otPcLoadKpiAndHours(workers);
+  } catch(e){}
+  // 우패널도 갱신 (현재 선택 직원 있으면)
+  const sel = document.getElementById('ot-pc-worker-sel');
+  if(sel && sel.value) {
+    const [id,name,rank] = sel.value.split('|');
+    if(id) otPcShowPersonDetail(id,name,rank);
+  }
+};
+
+window.otPcSelectWorker = (id, name, rank) => {
+  document.querySelectorAll('#ot-pc-workers button').forEach(b => b.style.background='#F7F9FC');
+  const btn = document.getElementById('ot-pw-'+id);
+  if(btn) btn.style.background='#E8F0FB';
+  // select 동기화
+  const sel = document.getElementById('ot-pc-worker-sel');
+  if(sel) sel.value = `${id}|${name}|${rank}`;
+  otPcCalcPreview();
+  otPcShowPersonDetail(id, name, rank);
+};
+
+window.otPcCalcPreview = async () => {
+  const sel = document.getElementById('ot-pc-worker-sel');
+  if(!sel||!sel.value) return;
+  const [id,name,rank] = sel.value.split('|');
+  // active 동기화
+  document.querySelectorAll('#ot-pc-workers button').forEach(b => b.style.background='#F7F9FC');
+  const btn = document.getElementById('ot-pw-'+id);
+  if(btn) btn.style.background='#E8F0FB';
+
+  const wageInfo = document.getElementById('ot-pc-wage-info');
+  const preview  = document.getElementById('ot-pc-preview');
+  const wage = await otGetWage(id, name);
+  if(wage && wageInfo) wageInfo.textContent = `통상임금 ${wage.rate.toLocaleString()}원/h (연봉계약서 기준)`;
+  else if(wageInfo) wageInfo.textContent = '통상임금 정보 없음 (연봉계약서 필요)';
+  const h = parseFloat(document.getElementById('ot-pc-hours')?.value)||0;
+  if(wage && h>0 && preview) preview.textContent = `예상 수당: ${Math.round(wage.rate*h).toLocaleString()}원`;
+  else if(preview) preview.textContent = '';
+};
+
+window.otPcSave = async () => {
+  const date = document.getElementById('ot-pc-date')?.value;
+  const sel  = document.getElementById('ot-pc-worker-sel')?.value;
+  const h    = parseFloat(document.getElementById('ot-pc-hours')?.value);
+  if(!date||!sel||!h||h<=0){ alert('날짜·직원·시간을 모두 입력해주세요.'); return; }
+  const [workerId,name,rank] = sel.split('|');
+  const wage = await otGetWage(workerId,name);
+  const rate = wage?wage.rate:0;
+  const amount = Math.round(rate*h);
+  try {
+    const { collection, addDoc, serverTimestamp } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+    await addDoc(collection(window._db,'overtime'), {
+      date, name, rank:rank||'', workerId, hours:h, amount, rate, yearMonth:date.slice(0,7), savedAt:serverTimestamp()
+    });
+    document.getElementById('ot-pc-date').value='';
+    document.getElementById('ot-pc-hours').value='';
+    document.getElementById('ot-pc-preview').textContent='';
+    // KPI 갱신
+    const { collection:col2, getDocs:gd2 } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+    const wsnap = await gd2(col2(window._db,'workers'));
+    const workers=[]; wsnap.forEach(d=>workers.push({id:d.id,...d.data()}));
+    await otPcLoadKpiAndHours(workers);
+    otPcShowPersonDetail(workerId,name,rank);
+  } catch(e){ alert('오류: '+e.message); }
+};
+
+window.otPcShowPersonDetail = async (id, name, rank) => {
+  const panel = document.getElementById('ot-pc-detail');
+  if(!panel) return;
+  panel.innerHTML = `<div style="color:#9AAABF;font-size:13px;text-align:center;padding:40px 0;"><div class="spinner"></div></div>`;
+  try {
+    const { collection, getDocs, query, where, orderBy } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+    const ym = `${_otPcYear}-${String(_otPcMonth).padStart(2,'0')}`;
+    const snap = await getDocs(query(collection(window._db,'overtime'), where('workerId','==',id), where('yearMonth','==',ym)));
+    const rows = [];
+    snap.forEach(d => rows.push({id:d.id,...d.data()}));
+    rows.sort((a,b)=>a.date.localeCompare(b.date));
+    const totalH = rows.reduce((s,r)=>s+(Number(r.hours)||0),0);
+    const totalA = rows.reduce((s,r)=>s+(Number(r.amount)||0),0);
+    const wage = await otGetWage(id,name);
+    const fmt = v => v>=10000?Math.round(v/10000)+'만원':v.toLocaleString()+'원';
+    panel.innerHTML = `
+      <div style="font-size:14px;font-weight:700;color:#1A2540;margin-bottom:12px;">${name} ${rank||''}</div>
+      ${wage?`<div style="font-size:12px;color:#5C6F8A;margin-bottom:10px;">통상임금 ${wage.rate.toLocaleString()}원/h</div>`:''}
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px;">
+        <div style="background:#F0F4F9;border-radius:8px;padding:10px;text-align:center;"><div style="font-size:11px;color:#9AAABF;">누계 시간</div><div style="font-size:18px;font-weight:700;color:#1A2540;">${totalH}h</div></div>
+        <div style="background:#F0F4F9;border-radius:8px;padding:10px;text-align:center;"><div style="font-size:11px;color:#9AAABF;">누계 수당</div><div style="font-size:18px;font-weight:700;color:#1D5BA6;">${fmt(totalA)}</div></div>
+      </div>
+      ${rows.length===0?'<div style="color:#9AAABF;text-align:center;padding:20px;">이번 달 초과근로 내역이 없습니다.</div>':
+      `<table style="width:100%;border-collapse:collapse;font-size:12px;">
+        <thead><tr style="background:#F7F9FC;">${['날짜','시간','수당',''].map(h=>`<th style="padding:7px 10px;text-align:left;color:#5C6F8A;font-weight:600;">${h}</th>`).join('')}</tr></thead>
+        <tbody>${rows.map(r=>`<tr style="border-bottom:1px solid #F0F4F9;">
+          <td style="padding:8px 10px;">${r.date}</td>
+          <td style="padding:8px 10px;">${r.hours}h</td>
+          <td style="padding:8px 10px;">${(r.amount||0).toLocaleString()}원</td>
+          <td style="padding:8px 10px;">
+            <button onclick="otPcEdit('${r.id}','${id}','${name}','${rank||''}')" style="background:#E8F0FB;border:none;border-radius:5px;color:#1D5BA6;padding:3px 8px;font-size:11px;cursor:pointer;margin-right:4px;">수정</button>
+            <button onclick="otPcDelete('${r.id}','${id}','${name}','${rank||''}')" style="background:#FEE2E2;border:none;border-radius:5px;color:#DC2626;padding:3px 8px;font-size:11px;cursor:pointer;">삭제</button>
+          </td>
+        </tr>`).join('')}</tbody>
+      </table>`}`;
+  } catch(e){ panel.innerHTML=`<div style="color:#dc2626;">오류: ${e.message}</div>`; }
+};
+
+window.otPcDelete = async (docId, workerId, name, rank) => {
+  if(!confirm('이 내역을 삭제하시겠습니까?')) return;
+  try {
+    const { doc, deleteDoc } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+    await deleteDoc(doc(window._db,'overtime',docId));
+    const { collection, getDocs } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+    const wsnap = await getDocs(collection(window._db,'workers'));
+    const workers=[]; wsnap.forEach(d=>workers.push({id:d.id,...d.data()}));
+    await otPcLoadKpiAndHours(workers);
+    otPcShowPersonDetail(workerId,name,rank);
+  } catch(e){ alert('오류: '+e.message); }
+};
+
+window.otPcEdit = (docId, workerId, name, rank) => {
+  renderOvertimeEdit(docId, workerId, name, rank, 'pc');
+};
+
+// ── 모바일 뷰 (기존 카드 방식 유지) ──
+window.renderOvertimeMobile = () => {
+  otClearWageCache();
   const el = document.getElementById('tab-overtime');
   el.innerHTML = `
     ${card2('⏱ 초과근로수당',`
@@ -3847,7 +4106,8 @@ window.otUpdate = async (docId, backType) => {
       date, name, rank: rank||'', workerId, hours, amount, rate, yearMonth: date.slice(0,7)
     });
     alert('수정되었습니다.');
-    if (backType==='person') renderOvertimePersonDetail(workerId, name, rank);
+    if (backType==='pc') renderOvertimeMain();
+    else if (backType==='person') renderOvertimePersonDetail(workerId, name, rank);
     else renderOvertimeSummary();
   } catch(e) { alert('오류: ' + e.message); }
 };
