@@ -411,6 +411,22 @@ body{font-family:-apple-system,'Apple SD Gothic Neo','Pretendard',sans-serif;bac
   #dr-print-area{display:block!important}
 }
 }}
+
+  /* ── 모바일 홈탭 기본 CSS (iframe 포함) ── */
+  .home-kpi-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px}
+  .home-kpi-card{background:#fff;border-radius:12px;border:1px solid #e5e5e5;padding:14px 16px}
+  .home-kpi-lbl{font-size:11px;color:#86868b;margin-bottom:4px;font-weight:500;text-transform:uppercase;letter-spacing:.3px}
+  .home-kpi-val{font-size:22px;font-weight:800;color:#1d1d1f;letter-spacing:-.5px;line-height:1.1}
+  .home-kpi-val.blue{color:#1D5BA6}
+  .home-kpi-sub{font-size:11px;color:#86868b;margin-top:3px}
+  .home-row2{display:grid;grid-template-columns:1fr;gap:12px;margin-top:16px}
+  .home-card{background:#fff;border-radius:12px;border:1px solid #e5e5e5;padding:16px}
+  .home-section-hd{font-size:13px;font-weight:700;color:#1d1d1f;margin-bottom:12px;display:flex;align-items:center;gap:6px}
+  .home-shortcuts{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .home-sc{background:#f9fafc;border:1px solid #e5e5e5;border-radius:10px;padding:12px;cursor:pointer;display:flex;align-items:center;gap:10px}
+  .home-sc .sci{font-size:20px;flex-shrink:0}
+  .home-sc .sct{font-size:13px;font-weight:700;color:#1d1d1f}
+  .home-sc .scd{font-size:11px;color:#86868b;margin-top:1px}
 </style>
 </head>
 <body>
@@ -2945,6 +2961,11 @@ async function renderHome(){
 // 시작일 저장
 function saveStartDate(v){
   localStorage.setItem('fab_pjt_start_date',v);
+  // Firestore에도 저장 (포털·타 기기에서 읽을 수 있도록)
+  try{
+    setDoc(doc(db,'pjt_settings','p4ph2'),{startDate:v,updatedAt:serverTimestamp()},{merge:true})
+      .catch(function(e){console.warn('startDate Firestore 저장 실패',e);});
+  }catch(e){}
   renderHome();
 }
 
@@ -3031,6 +3052,24 @@ function waitForFirebaseAndInit() {
   }
 }
 waitForFirebaseAndInit();
+// Firestore에서 시작일 읽어 localStorage 동기화 (포털·타 기기에서 저장된 값 반영)
+(function(){
+  try{
+    getDoc(doc(db,'pjt_settings','p4ph2')).then(function(snap){
+      if(!snap.exists()) return;
+      var sd=snap.data().startDate;
+      if(!sd) return;
+      var local=''; try{local=localStorage.getItem('fab_pjt_start_date')||'';}catch(e){}
+      if(sd!==local){
+        try{localStorage.setItem('fab_pjt_start_date',sd);}catch(e){}
+        // 홈 시작일 input 갱신
+        var inp=document.getElementById('home-start-date');
+        if(inp) inp.value=sd;
+        if(typeof renderHome==='function') renderHome();
+      }
+    }).catch(function(){});
+  }catch(e){}
+})();
 renderProgress(); // 공정 탭은 탭 클릭 시 initProgress()로 갱신
 
 // 리포트 입력창 Enter 키
