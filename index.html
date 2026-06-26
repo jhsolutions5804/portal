@@ -13,7 +13,7 @@
     --radius:14px;
   }
   *{box-sizing:border-box; -webkit-tap-highlight-color:transparent}
-  html,body{margin:0; height:100%}
+  html,body{margin:0; height:100%; overflow-x:hidden;}
   body{font-family:-apple-system,"Apple SD Gothic Neo","Pretendard",sans-serif;
     background:var(--bg); color:var(--ink); line-height:1.5;}
 
@@ -66,7 +66,7 @@
 
   /* ====================== 앱 셸 (로그인 후) ====================== */
   #s-app{display:none}
-  #s-app.shown{display:flex; flex-direction:column; max-width:460px; margin:0 auto; width:100%; min-height:100vh;}
+  #s-app.shown{display:flex; flex-direction:column; width:100%; min-height:100vh; overflow-x:hidden;}
 
   /* 사이드바 (PC 전용) */
   .sidebar{display:none}
@@ -83,7 +83,7 @@
   .logout{font-size:11.5px; color:var(--sub); background:none; border:none; cursor:pointer; padding:4px}
 
   .main{flex:1; display:flex; flex-direction:column; min-height:0}
-  #view-home{flex:1; padding:0 20px 28px}
+  #view-home{flex:1; padding:0 16px 28px; box-sizing:border-box; overflow-x:hidden;}
   #view-embed{flex:1; display:none; flex-direction:column; min-height:0}
   #view-embed.on{display:flex}
   #view-home.off{display:none !important}
@@ -139,10 +139,107 @@
   .embed-frame{position:absolute; inset:0; width:100%; height:100%; border:none; display:block}
   .foot{text-align:center; font-size:10.5px; color:#9aa6b4; padding:18px 0 6px}
 
+  /* ====================== 모바일 하단 탭바 ====================== */
+  /* ── 모바일 하단 탭바 (PC 사이드바 컬러톤 통일) ── */
+  #m-bottom-nav{
+    display:none;
+    position:fixed; bottom:0; left:0; right:0; z-index:100;
+    background:var(--navy); border-top:2px solid rgba(255,255,255,.1);
+    flex-direction:row; align-items:stretch;
+    height:58px; box-shadow:0 -2px 12px rgba(0,0,0,.3);
+  }
+  #m-bottom-nav.visible{ display:flex }
+  .mbn-item{
+    flex:1; display:flex; flex-direction:column; align-items:center;
+    justify-content:center; gap:2px; padding:6px 0 4px;
+    border:none; background:none; cursor:pointer; font-family:inherit;
+    color:var(--sidebar-ink); font-size:10px; font-weight:600; transition:.12s;
+    position:relative; opacity:.65;
+  }
+  .mbn-item.active{ color:#fff; opacity:1; }
+  .mbn-item .mbn-ic{ font-size:20px; line-height:1 }
+  .mbn-item .mbn-badge{
+    position:absolute; top:4px; right:calc(50% - 14px);
+    background:var(--warn); color:#fff; font-size:9px; font-weight:800;
+    border-radius:10px; padding:1px 5px; min-width:16px; text-align:center;
+    display:none;
+  }
+  .mbn-item .mbn-badge.on{ display:block }
+
+  /* 하단 탭바 만큼 홈/콘텐츠 바닥 여백 */
+  body.app-shown #view-home,
+  body.app-shown #view-embed,
+  body.app-shown #view-pjt-home,
+  body.app-shown #view-admin,
+  body.app-shown #view-org { padding-bottom:66px }
+
+  /* 더보기 슬라이드업 패널 (PC 사이드바 컬러톤) */
+  #m-more-overlay{
+    display:none; position:fixed; inset:0; z-index:200;
+    background:rgba(0,0,0,.45);
+  }
+  #m-more-overlay.on{ display:block }
+  #m-more-panel{
+    position:fixed; bottom:0; left:0; right:0; z-index:201;
+    background:var(--navy); border-radius:20px 20px 0 0;
+    padding:14px 0 76px; box-shadow:0 -4px 28px rgba(0,0,0,.4);
+    transform:translateY(100%); transition:transform .25s cubic-bezier(.32,.72,0,1);
+    overflow-y:auto; max-height:80vh;
+  }
+  #m-more-overlay.on #m-more-panel{ transform:translateY(0) }
+  .mmp-handle{
+    width:40px; height:4px; background:rgba(255,255,255,.2); border-radius:2px;
+    margin:0 auto 14px;
+  }
+  .mmp-section{ margin-bottom:2px }
+  .mmp-section-label{
+    font-size:10.5px; font-weight:700; color:#7e9ec9;
+    padding:8px 20px 4px; letter-spacing:.6px; text-transform:uppercase;
+  }
+  .mmp-btn{
+    display:flex; align-items:center; gap:14px;
+    width:100%; padding:12px 20px; border:none; background:none;
+    font-family:inherit; font-size:14px; font-weight:600; color:var(--sidebar-ink);
+    cursor:pointer; text-align:left; transition:.12s; box-sizing:border-box;
+  }
+  .mmp-btn:hover{ background:rgba(255,255,255,.07); }
+  .mmp-btn:active{ background:rgba(255,255,255,.13); }
+  .mmp-btn .mmp-ic{ font-size:19px; width:28px; text-align:center; flex-shrink:0; }
+  .mmp-btn.locked{ color:rgba(207,224,244,.35); cursor:not-allowed }
+  .mmp-btn .mmp-lock{
+    font-size:11px; color:rgba(207,224,244,.4);
+    background:rgba(255,255,255,.07); padding:2px 8px;
+    border-radius:10px; margin-left:auto; font-weight:600;
+  }
+  .mmp-btn .mmp-sub{ font-size:11.5px; color:#7e9ec9; font-weight:500; margin-top:1px }
+  .mmp-divider{ height:1px; background:rgba(255,255,255,.1); margin:6px 20px }
+  .mmp-sublist{ display:flex; flex-direction:column; padding:0 0 0 62px }
+  .mmp-subbtn{
+    display:flex; align-items:center; gap:10px;
+    padding:9px 20px 9px 0; border:none; background:none;
+    font-family:inherit; font-size:13px; color:#9fbbe0; cursor:pointer;
+    text-align:left; width:100%; transition:.1s;
+  }
+  .mmp-subbtn:hover{ color:#fff; }
+  .mmp-subbtn:active{ opacity:.7 }
+
+  /* 모바일에서 view-home 하단 여백 */
+  @media (max-width:899px){
+    #view-home{ padding-bottom:74px }
+  }
+
   /* ====================== PC 레이아웃 (≥ 900px) ====================== */
   @media (min-width:900px){
     .auth-stage{max-width:420px}
     .brand{padding:8vh 0 30px}
+    /* PC에서 하단 탭바 숨김 */
+    #m-bottom-nav{ display:none !important }
+    #m-more-overlay{ display:none !important }
+    body.app-shown #view-home,
+    body.app-shown #view-embed,
+    body.app-shown #view-pjt-home,
+    body.app-shown #view-admin,
+    body.app-shown #view-org { padding-bottom:0 }
 
     #s-app.shown{flex-direction:row; max-width:none; margin:0; height:100vh; min-height:0; overflow:hidden}
 
@@ -189,6 +286,7 @@
     .main{height:100vh; overflow:hidden;}
     #view-home{overflow-y:auto; padding:0; flex:1; min-height:0;}
     .home-inner{max-width:960px; margin:0 auto; padding:34px 40px 60px}
+    .home-dash{display:grid; grid-template-columns:1fr 1fr; gap:20px; align-items:stretch; margin-top:24px;}
     .hello{padding:0 0 6px}
     .hello h1{font-size:26px}
     .hello p{font-size:13.5px}
@@ -263,8 +361,8 @@
   /* 사이드바 클릭 가능한 사용자 영역 */
   .sb-user-btn{display:flex; align-items:center; gap:10px; flex:1; cursor:pointer; background:none; border:none; padding:0; font-family:inherit; text-align:left}
   .sb-user-btn:hover .nm{text-decoration:underline}
-  /* 홈 대시보드 2단 그리드 */
-  .home-dash{display:grid; grid-template-columns:1fr 1fr; gap:20px; align-items:stretch; margin-top:24px;}
+  /* 홈 대시보드 — 모바일 기본: 1단 세로 */
+  .home-dash{display:flex; flex-direction:column; gap:16px; margin-top:20px;}
   .dash-approve-wrap{display:flex; flex-direction:column;}
   .dash-outlook-wrap{display:flex; flex-direction:column;}
   /* 결재함 카드 */
@@ -347,6 +445,7 @@
       <div class="who">
         <div class="avatar" id="p-avatar">·</div>
         <div><div class="nm" id="p-name">-</div><div class="rk" id="p-rank">-</div></div>
+        <button class="logout" onclick="openMyProfile()" style="font-size:11.5px; color:var(--sub); background:none; border:none; cursor:pointer; padding:4px 6px;">내 정보</button>
         <button class="logout" onclick="doLogout()">로그아웃</button>
       </div>
     </div>
@@ -669,6 +768,8 @@ function showApp(){
   $('auth-stage').style.display='none';
   $('s-app').classList.add('shown');
   window.scrollTo(0,0);
+  // 모바일 하단 탭바 표시 (PC에서는 display:flex가 CSS로 none됨)
+  if(window.mbnShowNav) mbnShowNav();
 }
 function showView(v){
   $('view-home').classList.toggle('off', v!=='home');
@@ -1667,6 +1768,8 @@ async function renderApproveCard(){
     }
     myTurnDocs.sort((a,b)=>(b.createdAt?.seconds||0)-(a.createdAt?.seconds||0));
     const count = myTurnDocs.length;
+    // 모바일 하단 탭바 배지 업데이트
+    if(window.mbnUpdateApproveBadge) mbnUpdateApproveBadge(count);
     const badgeClass = count===0 ? 'zero' : '';
     const badgeText = count===0 ? '✓' : (count>99 ? '99+' : String(count));
     let listHtml = '';
@@ -1956,8 +2059,212 @@ function resetAutoLogout(){
   document.addEventListener(evt, resetAutoLogout, { passive:true });
 });
 
-function doLogout(){ clearTimeout(_autoLogoutTimer); clearMsalCache(); signOut(auth).then(()=>{ me=null; $('login-pw').value=''; showAuth('s-login'); }); }
+function doLogout(){ clearTimeout(_autoLogoutTimer); clearMsalCache(); signOut(auth).then(()=>{ me=null; $('login-pw').value=''; if(window.mbnHideNav) mbnHideNav(); showAuth('s-login'); }); }
 window.go=showAuth; window.showView=showView; window.doLogin=doLogin; window.doLogout=doLogout; window.createEmployee=createEmployee; window.loadPerms=loadPerms; window.openEmpDetail=openEmpDetail; window.saveEmpDetail=saveEmpDetail; window.loadOrg=loadOrg; window.fmtPhone=fmtPhone; window.openMyProfile=openMyProfile; window.closeMyProfile=closeMyProfile; window.saveMyProfile=saveMyProfile;
+</script>
+
+<!-- ===== 모바일 하단 탭바 ===== -->
+<nav id="m-bottom-nav">
+  <button class="mbn-item active" id="mbn-home" onclick="mbnGo('home')">
+    <span class="mbn-ic">🏠</span>
+    <span>홈</span>
+  </button>
+  <button class="mbn-item" id="mbn-edoc" onclick="mbnGo('edoc')">
+    <span class="mbn-ic">📋</span>
+    <span>결재</span>
+    <span class="mbn-badge" id="mbn-approve-badge"></span>
+  </button>
+  <button class="mbn-item" id="mbn-pjt" onclick="mbnGo('pjt')">
+    <span class="mbn-ic">🏗️</span>
+    <span>PJT</span>
+  </button>
+  <button class="mbn-item" id="mbn-more" onclick="mbnOpenMore()">
+    <span class="mbn-ic">☰</span>
+    <span>더보기</span>
+  </button>
+</nav>
+
+<!-- 더보기 슬라이드업 패널 -->
+<div id="m-more-overlay" onclick="mbnCloseMore()">
+  <div id="m-more-panel" onclick="event.stopPropagation()">
+    <div class="mmp-handle"></div>
+    <div id="mmp-content"></div>
+  </div>
+</div>
+
+<script>
+// ===== 모바일 하단 탭바 로직 =====
+function mbnSetActive(key){
+  document.querySelectorAll('.mbn-item').forEach(b=>b.classList.remove('active'));
+  const el=document.getElementById('mbn-'+key);
+  if(el) el.classList.add('active');
+}
+
+function mbnGo(key){
+  mbnCloseMore();
+  if(key==='home'){
+    showView('home');
+    mbnSetActive('home');
+  } else if(key==='edoc'){
+    if(!me) return;
+    const m=MODULES.find(x=>x.key==='edoc');
+    const allowed=me.admin||(me.perms&&me.perms.edoc);
+    if(!allowed){ alert('전자결재 접근 권한이 없습니다.'); return; }
+    openModule(m, 'approve', null);
+    mbnSetActive('edoc');
+  } else if(key==='pjt'){
+    if(!me) return;
+    const allowed=me.admin||(me.perms&&me.perms.pjt);
+    if(!allowed){ alert('PJT 접근 권한이 없습니다.'); return; }
+    showPjtHome();
+    mbnSetActive('pjt');
+  }
+}
+
+function mbnOpenMore(){
+  if(!me) return;
+  const panel=document.getElementById('mmp-content');
+  panel.innerHTML='';
+
+  // 섹션 생성 함수
+  function addSection(label, items){
+    const sec=document.createElement('div');
+    sec.className='mmp-section';
+    if(label){
+      const lbl=document.createElement('div');
+      lbl.className='mmp-section-label';
+      lbl.textContent=label;
+      sec.appendChild(lbl);
+    }
+    items.forEach(item=>sec.appendChild(item));
+    panel.appendChild(sec);
+  }
+
+  // 내 정보
+  const myInfo=document.createElement('button');
+  myInfo.className='mmp-btn';
+  myInfo.innerHTML='<span class="mmp-ic">👤</span><div><div>내 정보</div><div class="mmp-sub">'+( me.name||'')+'  '+(me.rank||'')+'</div></div>';
+  myInfo.onclick=()=>{ mbnCloseMore(); openMyProfile(); };
+  addSection(null,[myInfo]);
+
+  const div0=document.createElement('div'); div0.className='mmp-divider';
+  panel.appendChild(div0);
+
+  // 업무 메뉴
+  const workItems=[];
+  MODULES.forEach(m=>{
+    const allowed=me.admin||(me.perms&&me.perms[m.key]);
+    const btn=document.createElement('button');
+    btn.className='mmp-btn'+(allowed?'':' locked');
+
+    if(SUBTABS[m.key] && allowed){
+      // 서브메뉴 확장형
+      const wrap=document.createElement('div');
+      wrap.style.cssText='width:100%';
+      const head=document.createElement('button');
+      head.className='mmp-btn';
+      head.style.cssText='width:100%;padding:13px 20px';
+      head.innerHTML='<span class="mmp-ic">'+m.emoji+'</span><div><div>'+m.name+'</div><div class="mmp-sub">'+m.desc+'</div></div><span style="margin-left:auto;color:var(--mute);font-size:14px;">›</span>';
+      const sublist=document.createElement('div');
+      sublist.className='mmp-sublist';
+      sublist.style.display='none';
+      SUBTABS[m.key].forEach(st=>{
+        const sbtn=document.createElement('button');
+        sbtn.className='mmp-subbtn';
+        sbtn.innerHTML='<span style="font-size:15px;">'+st.emoji+'</span> '+st.name;
+        sbtn.onclick=()=>{
+          mbnCloseMore();
+          if(m.key==='pjt'){
+            if(st.key==='pjt_home'){ showPjtHome(); mbnSetActive('pjt'); return; }
+            openModule(m, st.key, st.url||null); mbnSetActive('pjt');
+          } else {
+            openModule(m, st.key, st.url||null);
+          }
+          mbnSetActive(m.key==='plan'?'more':m.key==='hr'?'more':'edoc');
+        };
+        sublist.appendChild(sbtn);
+      });
+      head.onclick=(e)=>{
+        e.stopPropagation();
+        const isOpen=sublist.style.display!=='none';
+        // 다른 서브리스트 닫기
+        panel.querySelectorAll('.mmp-sublist').forEach(s=>s.style.display='none');
+        panel.querySelectorAll('.mmp-chev').forEach(c=>c.textContent='›');
+        if(!isOpen){
+          sublist.style.display='flex';
+          sublist.style.flexDirection='column';
+          head.querySelector('.mmp-chev')?head.querySelector('.mmp-chev').textContent='⌄':'';
+        }
+        head.querySelector('span:last-child').textContent=isOpen?'›':'⌄';
+      };
+      wrap.appendChild(head);
+      wrap.appendChild(sublist);
+      workItems.push(wrap);
+    } else {
+      btn.innerHTML='<span class="mmp-ic">'+m.emoji+'</span><div><div>'+m.name+'</div><div class="mmp-sub">'+m.desc+'</div></div>'+(allowed?'':'<span class="mmp-lock">🔒 권한없음</span>');
+      if(allowed) btn.onclick=()=>{
+        mbnCloseMore();
+        if(m.key==='pjt'){ showPjtHome(); mbnSetActive('pjt'); return; }
+        const fs=SUBTABS[m.key]?SUBTABS[m.key][0]:null;
+        openModule(m, fs?fs.key:null, fs?fs.url||null:null);
+      };
+      workItems.push(btn);
+    }
+  });
+  addSection('업무 메뉴', workItems);
+
+  const div1=document.createElement('div'); div1.className='mmp-divider';
+  panel.appendChild(div1);
+
+  // 조직도
+  const orgBtn=document.createElement('button');
+  orgBtn.className='mmp-btn';
+  orgBtn.innerHTML='<span class="mmp-ic">🏢</span><div><div>조직도</div></div>';
+  orgBtn.onclick=()=>{ mbnCloseMore(); showView('org'); loadOrg(); };
+  const extraItems=[orgBtn];
+
+  // 관리자 전용
+  if(me.admin){
+    const admBtn=document.createElement('button');
+    admBtn.className='mmp-btn';
+    admBtn.innerHTML='<span class="mmp-ic">⚙️</span><div><div>Portal 관리</div></div>';
+    admBtn.onclick=()=>{ mbnCloseMore(); showView('admin'); loadPerms(); };
+    extraItems.push(admBtn);
+  }
+
+  // 로그아웃
+  const lgBtn=document.createElement('button');
+  lgBtn.className='mmp-btn';
+  lgBtn.style.color='var(--warn)';
+  lgBtn.innerHTML='<span class="mmp-ic">🚪</span><div><div>로그아웃</div></div>';
+  lgBtn.onclick=()=>{ mbnCloseMore(); doLogout(); };
+  extraItems.push(lgBtn);
+
+  addSection('', extraItems);
+
+  const overlay=document.getElementById('m-more-overlay');
+  overlay.classList.add('on');
+  mbnSetActive('more');
+}
+
+function mbnCloseMore(){
+  document.getElementById('m-more-overlay').classList.remove('on');
+}
+
+function mbnShowNav(){ document.getElementById('m-bottom-nav').classList.add('visible'); document.body.classList.add('app-shown'); }
+function mbnHideNav(){ document.getElementById('m-bottom-nav').classList.remove('visible'); document.body.classList.remove('app-shown'); }
+
+// 결재 배지 업데이트
+function mbnUpdateApproveBadge(n){
+  const el=document.getElementById('mbn-approve-badge');
+  if(!el) return;
+  if(n>0){ el.textContent=n>9?'9+':n; el.classList.add('on'); }
+  else { el.textContent=''; el.classList.remove('on'); }
+}
+window.mbnUpdateApproveBadge=mbnUpdateApproveBadge;
+window.mbnShowNav=mbnShowNav;
+window.mbnHideNav=mbnHideNav;
+window.mbnSetActive=mbnSetActive;
 </script>
 </body>
 </html>
