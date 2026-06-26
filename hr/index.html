@@ -2212,8 +2212,7 @@ async function getWorkersList() {
     const snap = await getDocs(collection(window._db, 'workers'));
     const docs = [];
     snap.forEach(d => docs.push({id:d.id, ...d.data()}));
-    docs.sort((a,b)=>(a.empNo||'').localeCompare(b.empNo||''));
-    return docs.sort((a,b)=>(a.name||'').localeCompare(b.name||'','ko'));
+    return docs.sort((a,b)=>(a.empNo||'').localeCompare(b.empNo||''));
   } catch(e) { return []; }
 }
 
@@ -2738,16 +2737,93 @@ let laborSignCanvas2 = null, laborSignDrawing2 = false;
 
 
 
-window.renderLaborMain = () => {
+window.renderLaborMain = async () => {
   const el = document.getElementById('tab-labor');
   if(!el)return;
   laborView2='main';
-  el.innerHTML = wrap2(`
-    <div style="font-size:13px;color:${C2.sub};margin-bottom:16px;font-weight:600;">작업을 선택해 주세요</div>
-    <div style="display:flex;flex-direction:column;gap:10px;">
-      ${selectMain('✏️','등록','renderLaborRegister()','근로자 명부에서 선택하여 근로계약서 작성')}
-      ${selectMain('📂','조회','renderLaborList2()','저장된 근로계약서 조회 및 관리')}
-    </div>`);
+
+  el.innerHTML = `<div style="padding:20px 24px;max-width:1100px;margin:0 auto;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;">
+      <div style="font-size:16px;font-weight:800;color:#1A2540;">📝 근로계약서</div>
+      <button onclick="renderLaborRegister()" style="background:#1D5BA6;border:none;border-radius:9px;padding:8px 18px;color:#fff;font-size:13px;font-weight:700;cursor:pointer;box-shadow:0 2px 8px rgba(29,91,166,0.18);">➕ 신규 작성</button>
+    </div>
+    <div id="labor-list-loading" style="text-align:center;padding:48px;color:#9AAABF;">⏳ 불러오는 중...</div>
+    <div id="labor-list-wrap"></div>
+  </div>`;
+
+  if(!window._db){ setTimeout(renderLaborMain,500); return; }
+  try {
+    const workers = await getWorkersList();
+    const { getDocs, collection } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+
+    const ci = {};
+    for(const d of workers){
+      try {
+        const lS = await getDocs(collection(window._db,`labor_contracts/${d.id}/contracts`));
+        let lL=''; lS.forEach(c=>{ const e=c.data().endDate||''; if(e>lL) lL=e; });
+        let lDate=''; lS.forEach(c=>{ const cd=c.data().contractDate||''; if(cd>lDate) lDate=cd; });
+        ci[d.id]={ endDate:lL, contractDate:lDate, cnt:lS.size };
+      } catch(e){ ci[d.id]={ endDate:'', contractDate:'', cnt:0 }; }
+    }
+
+    document.getElementById('labor-list-loading').style.display='none';
+    if(!workers.length){
+      document.getElementById('labor-list-wrap').innerHTML=
+        '<div style="text-align:center;padding:48px;color:#9AAABF;">등록된 근로자가 없습니다.<br><small>근로자 명부에 먼저 등록하세요.</small></div>';
+      return;
+    }
+
+    const now = new Date().toISOString().slice(0,10);
+    const rows = workers.map((d,i)=>{
+      const c = ci[d.id]||{};
+      const lE = c.endDate||null;
+      const lC = lE?(lE<now?'#DC2626':'#16A34A'):'#9AAABF';
+      const statusTxt = lE
+        ?(lE<now?'⚠️ 만료':'✅ '+fmtD2(lE))
+        :(c.cnt?'확인필요':'미작성');
+      const cntTxt = c.cnt?c.cnt+'건':'-';
+      const latestDate = c.contractDate ? fmtD2(c.contractDate) : '-';
+      const etBadge = d.empType==='field'
+        ?`<span style="font-size:10px;background:#FEF3C7;color:#92400E;padding:1px 7px;border-radius:6px;font-weight:700;">현장</span>`
+        :d.empType==='office'
+        ?`<span style="font-size:10px;background:#E8F0FB;color:#1D5BA6;padding:1px 7px;border-radius:6px;font-weight:700;">사무</span>`
+        :`<span style="font-size:10px;background:#F3F4F6;color:#9AAABF;padding:1px 7px;border-radius:6px;">미지정</span>`;
+      return `
+        <tr style="background:${i%2===0?'#fff':'#F8FAFD'};border-bottom:1px solid #F0F4FA;" onmouseover="this.style.background='#EEF4FF'" onmouseout="this.style.background='${i%2===0?'#fff':'#F8FAFD'}'">
+          <td style="padding:10px 12px;font-size:12px;font-weight:700;color:#1D5BA6;">${d.empNo||'-'}</td>
+          <td style="padding:10px 12px;font-size:12px;font-weight:700;color:#1D5BA6;cursor:pointer;text-decoration:underline;" onclick="laborViewWorker2('${d.id}','${d.name}')">${d.name||'-'}</td>
+          <td style="padding:10px 12px;font-size:11px;color:#1A2540;">${d.dept||'-'}</td>
+          <td style="padding:10px 12px;font-size:11px;color:#5C6F8A;">${d.rank||'-'}</td>
+          <td style="padding:10px 12px;">${etBadge}</td>
+          <td style="padding:10px 12px;font-size:11px;color:#5C6F8A;">${latestDate}</td>
+          <td style="padding:10px 12px;font-size:11px;color:#5C6F8A;text-align:center;">${cntTxt}</td>
+          <td style="padding:10px 12px;font-size:10px;"><span style="color:${lC};font-weight:600;">${statusTxt}</span></td>
+          <td style="padding:10px 12px;">
+            <button onclick="laborViewWorker2('${d.id}','${d.name}')" style="font-size:11px;background:#E8F0FB;color:#1D5BA6;border:1px solid #DDE4EF;padding:3px 10px;border-radius:6px;cursor:pointer;font-weight:600;">조회</button>
+          </td>
+        </tr>`;
+    }).join('');
+
+    document.getElementById('labor-list-wrap').innerHTML = `
+      <div style="background:#fff;border-radius:14px;border:1px solid #DDE4EF;overflow:hidden;box-shadow:0 1px 4px rgba(29,91,166,0.08);">
+        <table style="width:100%;border-collapse:collapse;">
+          <thead>
+            <tr style="background:#E8F0FB;">
+              ${['사원번호','이름','소속','직급','구분','최신 계약일','계약 수','상태',''].map(h=>
+                `<th style="padding:10px 12px;font-size:11px;font-weight:700;color:#1D5BA6;text-align:left;white-space:nowrap;">${h}</th>`
+              ).join('')}
+            </tr>
+          </thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>
+      <div style="font-size:11px;color:#9AAABF;margin-top:8px;padding:0 4px;">
+        💡 이름 클릭 → 계약서 조회/출력 &nbsp;·&nbsp; ➕ 신규 작성으로 계약서 추가
+      </div>`;
+  } catch(e){
+    const lel = document.getElementById('labor-list-loading');
+    if(lel) lel.innerHTML=`<div style="color:#DC2626;padding:24px;text-align:center;">오류: ${e.message}</div>`;
+  }
 };
 
 window.renderLaborRegister = async () => {
@@ -3047,9 +3123,12 @@ window.renderLaborList2 = async () => {
 window.laborViewWorker2 = async (wid, wname) => {
   const el=document.getElementById('tab-labor');
   el.innerHTML=wrap2(`
-    <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">
-      ${backBtn2('renderLaborList2()','목록')}
-      <span style="font-size:13px;font-weight:700;color:${C2.text};">${wname} · 근로계약서</span>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+      <div style="display:flex;align-items:center;gap:8px;">
+        ${backBtn2('renderLaborMain()','목록')}
+        <span style="font-size:13px;font-weight:700;color:${C2.text};">${wname} · 근로계약서</span>
+      </div>
+      <button onclick="laborRegisterForWorker('${wid}')" style="background:#1D5BA6;border:none;border-radius:8px;padding:7px 14px;color:#fff;font-size:12px;font-weight:700;cursor:pointer;">➕ 신규 작성</button>
     </div>
     <div id="labor-contracts-loading" style="text-align:center;padding:32px;color:${C2.mute};">⏳ 불러오는 중...</div>
     <div id="labor-contracts-wrap"></div>
@@ -3085,6 +3164,14 @@ window.laborDeleteContract2 = async (wid, cid, wname) => {
   const { doc, deleteDoc } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
   await deleteDoc(doc(window._db,`labor_contracts/${wid}/contracts`,cid));
   laborViewWorker2(wid, wname);
+};
+
+window.laborRegisterForWorker = async (wid) => {
+  await renderLaborRegister();
+  setTimeout(()=>{
+    const sel = document.querySelector('#tab-labor select');
+    if(sel){ sel.value=wid; laborWorkerSelect2(wid); }
+  }, 300);
 };
 
 window.laborPreviewSaved2 = (d) => {
