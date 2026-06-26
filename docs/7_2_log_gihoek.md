@@ -17,26 +17,36 @@
 | `2a9910615b` | 2026-06-26 | C1 미수금 재정의 (청구−완결) |
 | `d59a156d81` | 2026-06-26 | 기획 홈 뒤로가기 버튼 추가 (5개 탭 전체) |
 | *(배포 대기)* | 2026-06-26 | D1 프로젝트 상세 잔금 칸 제거 + 미수금 용어 통일 |
-| `dee18714` | 2026-06-27 | fix: 견적 수신처 담당자 contact 스냅샷 누락 + contactDropdown 개선 |
 
 ---
 
 ## 주요 변경 상세
 
-### 견적 담당자 버그 수정 (2026-06-27)
+### 견적 담당자 버그 최종 수정 (2026-06-27)
 
-**Bug 1: client 스냅샷 contact 필드 누락**
-- `saveEst` payload에서 `issuer`에는 `contact` 있었으나 `client`에는 누락
-- 수정: `client: cl ? { ..., contact: d.clientContact||'' } : null`
-- 효과: 견적 열람 시 수신처 담당자명 정상 표시
+**진짜 원인: window.drawEstForm 전역 미등록**
 
-**Bug 2: contacts 없는 업체에서 담당자 드롭다운 완전 숨김**
-- `contactDropdown`이 `contacts` 배열 빈 경우 `return ''` → 드롭다운 자체 미렌더
-- 수정: contacts 없어도 `disabled` 상태 드롭다운 + "담당자 없음 (거래처 탭에서 추가 가능)" 안내 표시
-- 효과: 업체 선택 후 담당자 입력 가능 여부를 즉시 확인 가능
+- 발행처/수신처 `<select onchange="...;drawEstForm()">` 에서 인라인 onchange가 `drawEstForm()`을 호출
+- `<script type="module">` 내부 함수는 전역 접근 불가 → `ReferenceError` → 재렌더 중단
+- 담당자 드롭다운이 업체 변경 후 갱신되지 않던 근본 원인
 
-> ℹ️ "김종화/이경택 고정" 현상 원인: Bug 2로 담당자 드롭다운 미표시 → Bug 1로 contact 미저장 →
-> 결국 `ceo`(대표자명)만 표시되어 담당자가 고정된 것처럼 보였음
+**수정 내용 (533~534번 줄 추가)**
+```js
+window.drawEstForm   = function(){ drawEstForm(); };
+window.drawSettleForm = function(){ drawSettleForm(); };
+```
+
+**이전 수정(dee18714)과의 관계**
+- `dee18714`: client 스냅샷 contact 누락 + contactDropdown disabled 개선 → 부분 수정
+- `ca9410ef`: drawEstForm 전역 등록 → 재렌더 정상화 → 담당자 드롭다운 완전 해결
+
+**테스트 결과**
+- Unit Test: 14/14 PASS
+- Integration Test: 8/8 PASS
+- Acceptance Test: 17/17 PASS
+- Demonstration: BEFORE/AFTER 시각적 시연 완료
+
+---
 
 ### 기획-1: 정산 목록 최신순 정렬
 - 발행일 내림차순 → 같은 날 no 내림차순
@@ -99,5 +109,5 @@
 | renderHome 템플릿 리터럴 내 백틱 중첩 → SyntaxError | DOM 직접 조작 방식으로 우회 |
 | 직접 URL 접근 시 allowed_users 미존재로 접근 불가 | portal_users 기반으로 인증 통일 |
 | 미수금 개념 혼용 (지급 vs 수금) | 완결=수금으로 정의 통일, 프로젝트 상세 잔금 칸 제거 |
-| 견적 수신처(client) 담당자 미표시 | client 스냅샷에 contact 필드 추가 (issuer는 있었으나 client 누락) |
-| 거래처에 contacts 없으면 담당자 드롭다운 자체 숨김 | contactDropdown — contacts 없어도 disabled 드롭다운 + 안내 문구 표시 |
+| 견적 발행처/수신처 변경 시 담당자 드롭다운 갱신 안 됨 | `drawEstForm`이 module scope 함수라 인라인 onchange에서 `ReferenceError` → `window.drawEstForm` 전역 등록으로 해결 |
+| 정산 발신자/수신자 변경 시 담당자 드롭다운 갱신 안 됨 | 동일 원인 — `window.drawSettleForm` 전역 등록으로 함께 수정 |
