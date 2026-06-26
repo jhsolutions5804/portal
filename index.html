@@ -263,7 +263,48 @@
   /* 사이드바 클릭 가능한 사용자 영역 */
   .sb-user-btn{display:flex; align-items:center; gap:10px; flex:1; cursor:pointer; background:none; border:none; padding:0; font-family:inherit; text-align:left}
   .sb-user-btn:hover .nm{text-decoration:underline}
+  /* 홈 대시보드 2단 그리드 */
+  .home-dash{display:grid; grid-template-columns:1fr 1fr; gap:20px; align-items:stretch; margin-top:24px;}
+  .dash-approve-wrap{display:flex; flex-direction:column;}
+  .dash-outlook-wrap{display:flex; flex-direction:column;}
+  /* 결재함 카드 */
+  .section-card{background:#fff; border:1px solid #DDE4EF; border-radius:14px; padding:20px 22px; box-shadow:0 1px 4px rgba(29,91,166,.06); display:flex; flex-direction:column; flex:1;}
+  .section-card-header{display:flex; align-items:center; gap:10px; margin-bottom:16px;}
+  .section-card-header .sc-icon{width:36px; height:36px; border-radius:9px; display:flex; align-items:center; justify-content:center; font-size:18px; flex-shrink:0; background:#f0edfb;}
+  .section-card-header .sc-title{font-size:15px; font-weight:700; color:#13335C;}
+  .section-card-header .sc-badge{margin-left:auto; background:#DC2626; color:#fff; font-size:11px; font-weight:700; border-radius:20px; padding:2px 9px;}
+  .section-card-header .sc-badge.zero{background:#16A34A;}
+  .approve-list{display:flex; flex-direction:column; gap:8px; margin-bottom:16px; flex:1;}
+  .approve-item{padding:11px 13px; border-radius:9px; background:#F4F7FB; border-left:3px solid #7C3AED; cursor:pointer; display:flex; align-items:center; gap:11px; transition:background .12s;}
+  .approve-item:hover{background:#F0EDFB;}
+  .approve-item .ai-dtype{font-size:10.5px; font-weight:700; color:#7C3AED; background:#f0edfb; border-radius:6px; padding:2px 7px; white-space:nowrap; flex-shrink:0;}
+  .approve-item .ai-body{flex:1; min-width:0;}
+  .approve-item .ai-title{font-size:13px; font-weight:700; color:#1A2540; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  .approve-item .ai-meta{font-size:11.5px; color:#5C6F8A; margin-top:2px;}
+  .approve-item .ai-arrow{color:#1D5BA6; font-size:16px; font-weight:700; flex-shrink:0;}
+  .approve-empty{font-size:13px; color:#9AAABF; text-align:center; padding:24px 0;}
+  .sc-more-btn{display:flex; align-items:center; justify-content:center; width:100%; padding:9px; border-radius:9px; background:#F4F7FB; border:1px solid #DDE4EF; color:#5C6F8A; font-size:13px; font-weight:600; cursor:pointer; font-family:inherit; transition:.12s;}
+  .sc-more-btn:hover{background:#E8F0FB; color:#1D5BA6; border-color:#5BA4CF;}
+  /* Outlook 카드 */
+  .outlook-card{background:#fff; border:1px solid #DDE4EF; border-radius:14px; padding:18px 20px; box-shadow:0 1px 4px rgba(29,91,166,0.06); display:flex; flex-direction:column; flex:1;}
+  .outlook-card-header{display:flex; align-items:center; gap:10px; margin-bottom:14px;}
+  .outlook-card-header .oc-icon{width:36px; height:36px; border-radius:9px; background:#0078D4; display:flex; align-items:center; justify-content:center; font-size:18px; flex-shrink:0;}
+  .outlook-card-header .oc-title{font-size:15px; font-weight:700; color:#13335C;}
+  .outlook-card-header .oc-badge{margin-left:auto; background:#DC2626; color:#fff; font-size:11px; font-weight:700; border-radius:20px; padding:2px 8px; min-width:20px; text-align:center;}
+  .outlook-card-header .oc-badge.zero{background:#16A34A;}
+  .outlook-mail-list{display:flex; flex-direction:column; gap:8px; margin-bottom:14px;}
+  .outlook-mail-item{padding:9px 12px; border-radius:9px; background:#F4F7FB; border-left:3px solid #0078D4; cursor:pointer;}
+  .outlook-mail-item:hover{background:#E8F0FB;}
+  .outlook-mail-item .om-from{font-size:12px; font-weight:700; color:#1A2540; margin-bottom:2px;}
+  .outlook-mail-item .om-subject{font-size:12px; color:#5C6F8A; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  .outlook-mail-item.unread .om-subject{font-weight:600; color:#1A2540;}
+  .outlook-open-btn{display:flex; align-items:center; justify-content:center; gap:6px; width:100%; padding:9px; border-radius:9px; background:#0078D4; color:#fff; font-size:13px; font-weight:600; border:none; cursor:pointer; font-family:inherit; text-decoration:none;}
+  .outlook-open-btn:hover{background:#005fa3;}
+  .oc-loading{font-size:12px; color:#9AAABF; text-align:center; padding:12px 0;}
+  .oc-login-btn{display:flex; align-items:center; justify-content:center; gap:6px; width:100%; padding:9px; border-radius:9px; background:#0078D4; color:#fff; font-size:13px; font-weight:600; border:none; cursor:pointer; font-family:inherit; margin-bottom:10px;}
+  .oc-login-btn:hover{background:#005fa3;}
 </style>
+<script src="https://alcdn.msauth.net/browser/2.38.3/js/msal-browser.min.js"></script>
 </head>
 <body>
 <div class="splash" id="splash"><div class="spin"></div></div>
@@ -315,7 +356,19 @@
     <section id="view-home">
       <div class="home-inner">
         <div class="hello"><h1 id="p-hello">안녕하세요 👋</h1><p>오늘도 안전한 하루 되세요.</p></div>
-        <div class="menu" id="p-menu"></div>
+        <div id="p-menu" style="display:none"></div>
+        <div class="home-dash" id="home-dash" style="display:none;">
+          <div class="dash-approve-wrap">
+            <div class="section-card" id="approve-card-wrap">
+              <div class="oc-loading">📋 불러오는 중...</div>
+            </div>
+          </div>
+          <div class="dash-outlook-wrap">
+            <div class="outlook-card" id="outlook-card-wrap">
+              <div class="oc-loading">📬 불러오는 중...</div>
+            </div>
+          </div>
+        </div>
       </div>
       <div class="foot">JH Solutions 업무 포털</div>
     </section>
@@ -1570,7 +1623,232 @@ function renderMenu(){
     };
     nav.appendChild(adm);
   }
+  // 홈 대시보드 활성화
+  const dash = document.getElementById('home-dash');
+  if(dash) dash.style.display = '';
+  // 결재함 카드
+  renderApproveCard();
+  // Outlook 카드
+  renderOutlookCard();
 }
+
+// ── 결재함 카드 (홈) ────────────────────────────────────────
+async function renderApproveCard(){
+  const container = document.getElementById('approve-card-wrap');
+  if(!container) return;
+  container.innerHTML = '<div class="oc-loading">📋 결재함 불러오는 중...</div>';
+  try{
+    const { getDocs, collection, query, where } =
+      await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+    const EDOC_COLS = ['edoc_daily','edoc_leave','edoc_resign','edoc_cert','edoc_purchase','edoc_expense'];
+    const DOCTYPE_LABEL = {
+      daily:'업무일지', leave:'연차신청서', resign:'퇴직원서',
+      cert:'재직증명서', purchase:'구매품의서', expense:'지출결의서'
+    };
+    let myTurnDocs = [];
+    for(const col of EDOC_COLS){
+      const qs = await getDocs(query(
+        collection(db, col),
+        where('status','in',['pending','reviewing'])
+      ));
+      qs.forEach(d=>{
+        const data = d.data();
+        const line = data.approvalLine || [];
+        let myIdx = -1;
+        for(let i=0;i<line.length;i++){
+          if(line[i].uid === me.uid && line[i].status === 'pending'){ myIdx = i; break; }
+        }
+        if(myIdx < 0) return;
+        const prevDone = line.slice(0,myIdx).every(s=>
+          s.status==='approved'||s.role==='작성'||s.role==='회람'||s.role==='수신'
+        );
+        if(!prevDone) return;
+        myTurnDocs.push({ id:d.id, col, dtype:data.dtype||col.replace('edoc_',''), ...data });
+      });
+    }
+    myTurnDocs.sort((a,b)=>(b.createdAt?.seconds||0)-(a.createdAt?.seconds||0));
+    const count = myTurnDocs.length;
+    const badgeClass = count===0 ? 'zero' : '';
+    const badgeText = count===0 ? '✓' : (count>99 ? '99+' : String(count));
+    let listHtml = '';
+    if(count===0){
+      listHtml = '<div class="approve-empty">결재 대기 문서가 없습니다 ✓</div>';
+    } else {
+      listHtml = myTurnDocs.slice(0,5).map(d=>{
+        const label = DOCTYPE_LABEL[d.dtype]||d.dtype;
+        const ts = d.createdAt ? new Date(d.createdAt.seconds*1000) : null;
+        const date = ts ? (ts.getMonth()+1+'월 '+ts.getDate()+'일') : '';
+        return '<div class="approve-item" onclick="window._goEdocApprove && window._goEdocApprove()">'
+          +'<div class="ai-dtype">'+label+'</div>'
+          +'<div class="ai-body">'
+          +'<div class="ai-title">'+(d.title||'(제목 없음)')+'</div>'
+          +'<div class="ai-meta">'+(d.authorName||'')+' · '+date+'</div>'
+          +'</div>'
+          +'<div class="ai-arrow">›</div>'
+          +'</div>';
+      }).join('');
+    }
+    container.innerHTML =
+      '<div class="section-card-header">'
+      +'<div class="sc-icon">📋</div>'
+      +'<div class="sc-title">전자결재 — 결재함</div>'
+      +'<div class="sc-badge '+badgeClass+'">'+badgeText+'</div>'
+      +'</div>'
+      +'<div class="approve-list">'+listHtml+'</div>'
+      +'<button class="sc-more-btn" onclick="window._goEdocApprove && window._goEdocApprove()">전자결재 결재함 전체 보기 →</button>';
+  } catch(e){
+    container.innerHTML = '<div class="approve-empty">결재함 로드 실패</div>';
+  }
+}
+window.renderApproveCard = renderApproveCard;
+window._goEdocApprove = function(){
+  const m = MODULES.find(x=>x.key==='edoc');
+  if(m) openModule(m,'approve',null);
+};
+
+// ── Outlook 카드 ─────────────────────────────────────────────
+const MSAL_CONFIG = {
+  auth: {
+    clientId: '97f0a368-a746-42f9-8782-38ac8cc0962c',
+    authority: 'https://login.microsoftonline.com/548fcb48-1ab8-4c47-8242-bc098ea80416',
+    redirectUri: 'https://jhsolutions5804.github.io/portal/'
+  },
+  cache: { cacheLocation: 'sessionStorage', storeAuthStateInCookie: false }
+};
+const MSAL_SCOPES = ['Mail.Read', 'User.Read'];
+let _msalApp = null;
+let _msalAccount = null;
+
+function getMsalApp(){
+  if(!_msalApp) _msalApp = new msal.PublicClientApplication(MSAL_CONFIG);
+  return _msalApp;
+}
+
+async function msalGetToken(){
+  const app = getMsalApp();
+  await app.initialize();
+  const accounts = app.getAllAccounts();
+  if(accounts.length > 0){
+    _msalAccount = accounts[0];
+    try{
+      const res = await app.acquireTokenSilent({ scopes: MSAL_SCOPES, account: _msalAccount });
+      return res.accessToken;
+    } catch(e){
+      // silent 실패 시 popup
+    }
+  }
+  try{
+    const res = await app.acquireTokenPopup({ scopes: MSAL_SCOPES });
+    _msalAccount = res.account;
+    return res.accessToken;
+  } catch(e){ return null; }
+}
+
+async function msalLogout(){
+  const app = getMsalApp();
+  await app.initialize();
+  const accounts = app.getAllAccounts();
+  if(accounts.length > 0) await app.logoutPopup({ account: accounts[0] });
+  _msalAccount = null;
+  renderOutlookCard();
+}
+
+async function renderOutlookCard(){
+  const container = document.getElementById('outlook-card-wrap');
+  if(!container) return;
+  container.style.display = '';
+
+  // 로딩 상태
+  container.innerHTML = '<div class="oc-loading">📬 Outlook 연결 중...</div>';
+
+  const app = getMsalApp();
+  await app.initialize();
+  const accounts = app.getAllAccounts();
+  const isLinked = accounts.length > 0;
+
+  if(!isLinked){
+    container.innerHTML = `
+      <div class="outlook-card-header">
+        <div class="oc-icon">📧</div>
+        <div class="oc-title">Outlook 메일</div>
+      </div>
+      <div style="font-size:12px;color:#9AAABF;margin-bottom:10px;">Microsoft 계정과 연결하면<br>읽지 않은 메일을 확인할 수 있습니다.</div>
+      <button class="oc-login-btn" onclick="outlookConnect()">🔗 Microsoft 계정 연결</button>
+      <a href="https://outlook.office.com/mail/" target="_blank" class="outlook-open-btn">📬 Outlook Web 열기</a>`;
+    return;
+  }
+
+  // 토큰 취득 & 메일 조회
+  try{
+    const token = await msalGetToken();
+    if(!token) throw new Error('token_fail');
+
+    // 읽지 않은 메일 수
+    const [countRes, mailRes] = await Promise.all([
+      fetch('https://graph.microsoft.com/v1.0/me/mailFolders/inbox/messages/$count?$filter=isRead eq false', {
+        headers:{ Authorization:'Bearer '+token, ConsistencyLevel:'eventual' }
+      }),
+      fetch('https://graph.microsoft.com/v1.0/me/mailFolders/inbox/messages?$top=5&$select=subject,from,isRead,receivedDateTime&$orderby=receivedDateTime desc', {
+        headers:{ Authorization:'Bearer '+token }
+      })
+    ]);
+
+    const unreadCount = countRes.ok ? parseInt(await countRes.text()||'0') : 0;
+    const mailData = mailRes.ok ? await mailRes.json() : { value:[] };
+    const mails = mailData.value || [];
+
+    const badgeClass = unreadCount === 0 ? 'zero' : '';
+    const badgeText = unreadCount > 99 ? '99+' : String(unreadCount);
+
+    let mailListHtml = '';
+    if(mails.length === 0){
+      mailListHtml = '<div style="font-size:12px;color:#9AAABF;text-align:center;padding:8px 0;">최근 메일이 없습니다.</div>';
+    } else {
+      mailListHtml = mails.map(m => {
+        const from = m.from?.emailAddress?.name || m.from?.emailAddress?.address || '(알 수 없음)';
+        const subj = m.subject || '(제목 없음)';
+        const unread = !m.isRead ? 'unread' : '';
+        return `<div class="outlook-mail-item ${unread}" onclick="window.open('https://outlook.office.com/mail/','_blank')">
+          <div class="om-from">${from}${!m.isRead?' 🔵':''}</div>
+          <div class="om-subject">${subj}</div>
+        </div>`;
+      }).join('');
+    }
+
+    const acctName = _msalAccount?.name || _msalAccount?.username || '';
+
+    container.innerHTML = `
+      <div class="outlook-card-header">
+        <div class="oc-icon">📧</div>
+        <div class="oc-title">Outlook 메일<br><span style="font-size:11px;font-weight:400;color:#9AAABF;">${acctName}</span></div>
+        <div class="oc-badge ${badgeClass}">${unreadCount === 0 ? '✓' : badgeText}</div>
+      </div>
+      <div class="outlook-mail-list">${mailListHtml}</div>
+      <a href="https://outlook.office.com/mail/" target="_blank" class="outlook-open-btn">📬 Outlook Web 열기</a>
+      <div style="text-align:right;margin-top:8px;">
+        <button onclick="msalLogout()" style="font-size:11px;color:#9AAABF;background:none;border:none;cursor:pointer;font-family:inherit;">연결 해제</button>
+        <button onclick="renderOutlookCard()" style="font-size:11px;color:#9AAABF;background:none;border:none;cursor:pointer;font-family:inherit;margin-left:8px;">↻ 새로고침</button>
+      </div>`;
+  } catch(e){
+    container.innerHTML = `
+      <div class="outlook-card-header">
+        <div class="oc-icon">📧</div>
+        <div class="oc-title">Outlook 메일</div>
+      </div>
+      <div style="font-size:12px;color:#DC2626;margin-bottom:10px;">메일 로드 실패. 다시 시도해 주세요.</div>
+      <button class="oc-login-btn" onclick="outlookConnect()">🔄 다시 연결</button>
+      <a href="https://outlook.office.com/mail/" target="_blank" class="outlook-open-btn">📬 Outlook Web 열기</a>`;
+  }
+}
+
+async function outlookConnect(){
+  const token = await msalGetToken();
+  if(token) renderOutlookCard();
+}
+window.outlookConnect = outlookConnect;
+window.msalLogout = msalLogout;
+window.renderOutlookCard = renderOutlookCard;
+
 function openModule(m, tab, overrideUrl){
   const actualUrl=overrideUrl||m.url;
   if(tab==='pjt_home'||m.key==='pjt'&&tab===null){
