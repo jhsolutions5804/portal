@@ -2368,7 +2368,7 @@ window.renderRosterRegister = () => {
     ${card2('👤 기본 정보', `
       ${field2('이름', `<input type="text" placeholder="성명 입력" oninput="rosterForm.name=this.value" ${inp2Style}>`)}
       ${field2('주민등록번호', `<input type="text" placeholder="000000-0000000" maxlength="14" oninput="rosterForm.jumin=fmtJumin2(this.value);this.value=rosterForm.jumin;" ${inp2Style}>`)}
-      ${field2('휴대폰번호', `<input type="text" placeholder="010-0000-0000" oninput="rosterForm.phone=fmtPhone2(this.value);this.value=rosterForm.phone;" ${inp2Style}>`)}
+      ${field2('휴대폰번호', `<input type="text" placeholder="010-0000-0000" oninput="rosterForm.phone=fmtPhone2(this.value);this.value=rosterForm.phone;" onblur="fmtTelBlur(this)" ${inp2Style}>`)}
       ${field2('주소', `<input type="text" placeholder="주소 입력" oninput="rosterForm.address=this.value" ${inp2Style}>`)}
     `)}
     ${card2('💼 소속 및 업무', `
@@ -2401,13 +2401,20 @@ window.renderRosterRegister = () => {
 };
 
 window.fmtJumin2 = v => { const d=v.replace(/-/g,'').replace(/\D/g,''); return d.length<=6?d:d.slice(0,6)+'-'+d.slice(6,13); };
-window.fmtPhone2 = v => {
-  const d = v.replace(/\D/g,'');
-  if (d.length <= 3)  return d;
-  if (d.length <= 7)  return d.slice(0,3)+'-'+d.slice(3);
-  if (d.length <= 11) return d.slice(0,3)+'-'+d.slice(3,7)+'-'+d.slice(7);
+// 전화번호 포맷 공통 함수
+function fmtTel(v){
+  var d=v.replace(/\D/g,'');
+  if(d.length<=3) return d;
+  if(d.length<=6) return d.slice(0,3)+'-'+d.slice(3);
+  if(d.length<=10) return d.slice(0,3)+'-'+d.slice(3,6)+'-'+d.slice(6);
   return d.slice(0,3)+'-'+d.slice(3,7)+'-'+d.slice(7,11);
-};
+}
+function fmtTelBlur(el){
+  var d=el.value.replace(/\D/g,'');
+  if(d.length===8 && d[0]!=='0') d='010'+d;
+  el.value=fmtTel(d);
+}
+window.fmtPhone2 = v => fmtTel(v);
 
 
 window.rosterSave = async () => {
@@ -2657,7 +2664,7 @@ window.rosterDetail = (id) => {
         ].map(f=>`
           <div style="display:flex;align-items:center;padding:6px 0;border-bottom:1px solid #DDE4EF;gap:8px;">
             <span style="color:#5C6F8A;font-weight:600;min-width:68px;font-size:12px;flex-shrink:0;">${f.label}</span>
-            <input type="${f.type}" value="${f.val}" oninput="window._editRosterTarget['${f.key}']=this.value;"
+            <input type="${f.type}" value="${f.val}" oninput="window._editRosterTarget['${f.key}']=(f.key==='phone'?fmtTel(this.value):this.value);if(f.key==='phone')this.value=fmtTel(this.value);" ${f.key==='phone'?'onblur="fmtTelBlur(this)"':''}
               style="flex:1;border:1px solid #DDE4EF;border-radius:6px;padding:4px 8px;font-size:12px;color:#1A2540;"/>
           </div>`).join('')}
         <div style="display:flex;align-items:center;padding:6px 0;border-bottom:1px solid #DDE4EF;gap:8px;">
