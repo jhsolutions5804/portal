@@ -1706,25 +1706,66 @@ window._goEdocApprove = function(){
 };
 
 // ── Outlook 카드 (MSAL ESM import 방식) ──────────────────────
-const MSAL_CONFIG = {
-  auth: {
-    clientId: '97f0a368-a746-42f9-8782-38ac8cc0962c',
-    authority: 'https://login.microsoftonline.com/548fcb48-1ab8-4c47-8242-bc098ea80416',
-    redirectUri: 'https://jhsolutions5804.github.io/portal/'
-  },
-  cache: { cacheLocation: 'sessionStorage', storeAuthStateInCookie: false }
+const MSAL_AUTH = {
+  clientId: '97f0a368-a746-42f9-8782-38ac8cc0962c',
+  authority: 'https://login.microsoftonline.com/548fcb48-1ab8-4c47-8242-bc098ea80416',
+  redirectUri: 'https://jhsolutions5804.github.io/portal/'
 };
 const MSAL_SCOPES = ['Mail.Read', 'User.Read'];
 const MSAL_ESM_URL = 'https://esm.sh/@azure/msal-browser@3.28.0';
-let _msalApp = null;
+// uid별 MSAL 인스턴스 캐시 (공용PC 포함 계정 격리)
+const _msalApps = {};
 let _msalAccount = null;
 
 async function getMsalApp(){
-  if(_msalApp) return _msalApp;
+  const uid = me?.uid || 'guest';
+  if(_msalApps[uid]) return _msalApps[uid];
   const { PublicClientApplication } = await import(MSAL_ESM_URL);
-  _msalApp = new PublicClientApplication(MSAL_CONFIG);
-  await _msalApp.initialize();
-  return _msalApp;
+  // uid를 캐시 키에 포함시켜 sessionStorage 격리
+  const config = {
+    auth: MSAL_AUTH,
+    cache: {
+      cacheLocation: 'sessionStorage',
+      storeAuthStateInCookie: false,
+      // uid별 고유 prefix로 토큰 캐시 완전 분리
+      cacheMigrationEnabled: false
+    },
+    system: {
+      // 인스턴스 식별자로 uid 사용 → sessionStorage key 분리
+      loggerOptions: { logLevel: 0 }
+    }
+  };
+  const app = new PublicClientApplication(config);
+  await app.initialize();
+  // uid별로 다른 계정만 필터
+  const accounts = app.getAllAccounts().filter(a =>
+    sessionStorage.getItem('msal_portal_uid_' + a.homeAccountId) === uid
+  );
+  if(accounts.length === 0){
+    // 다른 uid의 캐시가 남아있으면 무시 (계정 전환 보호)
+    app.getAllAccounts().forEach(a => {
+      const savedUid = sessionStorage.getItem('msal_portal_uid_' + a.homeAccountId);
+      if(savedUid && savedUid !== uid) app.clearCache();
+    });
+  }
+  _msalApps[uid] = app;
+  return app;
+}
+
+// 포털 로그아웃 시 해당 uid의 MSAL 캐시 삭제
+function clearMsalCache(){
+  const uid = me?.uid || 'guest';
+  const app = _msalApps[uid];
+  if(app){
+    try{
+      app.getAllAccounts().forEach(a => {
+        sessionStorage.removeItem('msal_portal_uid_' + a.homeAccountId);
+      });
+      app.clearCache();
+    } catch(e){}
+    delete _msalApps[uid];
+  }
+  _msalAccount = null;
 }
 
 async function msalGetToken(){
@@ -1740,6 +1781,8 @@ async function msalGetToken(){
     }
     const res = await app.acquireTokenPopup({ scopes: MSAL_SCOPES });
     _msalAccount = res.account;
+    // 이 Microsoft 계정이 현재 포털 uid 소속임을 태깅
+    sessionStorage.setItem('msal_portal_uid_' + res.account.homeAccountId, me?.uid || 'guest');
     return res.accessToken;
   } catch(e){ return null; }
 }
@@ -1749,8 +1792,8 @@ async function msalLogout(){
     const app = await getMsalApp();
     const accounts = app.getAllAccounts();
     if(accounts.length > 0) await app.logoutPopup({ account: accounts[0] });
-    _msalAccount = null;
   } catch(e){}
+  clearMsalCache();
   renderOutlookCard();
 }
 
@@ -1913,7 +1956,7 @@ function resetAutoLogout(){
   document.addEventListener(evt, resetAutoLogout, { passive:true });
 });
 
-function doLogout(){ clearTimeout(_autoLogoutTimer); signOut(auth).then(()=>{ me=null; $('login-pw').value=''; showAuth('s-login'); }); }
+function doLogout(){ clearTimeout(_autoLogoutTimer); clearMsalCache(); signOut(auth).then(()=>{ me=null; $('login-pw').value=''; showAuth('s-login'); }); }
 window.go=showAuth; window.showView=showView; window.doLogin=doLogin; window.doLogout=doLogout; window.createEmployee=createEmployee; window.loadPerms=loadPerms; window.openEmpDetail=openEmpDetail; window.saveEmpDetail=saveEmpDetail; window.loadOrg=loadOrg; window.fmtPhone=fmtPhone; window.openMyProfile=openMyProfile; window.closeMyProfile=closeMyProfile; window.saveMyProfile=saveMyProfile;
 </script>
 </body>
