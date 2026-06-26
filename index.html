@@ -848,16 +848,38 @@ function renderPjtHomeCards(){
       if(m && st.url) openModule(m, 'home', st.url);
     };
     el.appendChild(card);
-    // 시작일 D+ 계산
-    // 각 PJT 워크스페이스가 저장하는 시작일 키와 일치 (fab/ph4 분리)
-    var startKeyMap={ 'p4ph2':'fab_pjt_start_date', 'p4ph4':'ph4_pjt_start_date' };
-    const startKey=startKeyMap[st.key]||('pjt_start_'+st.key);
-    const sd=localStorage.getItem(startKey);
-    if(sd){
-      const diff=Math.floor((new Date()-new Date(sd))/(1000*60*60*24));
-      const dayEl=document.getElementById('kpi-day-'+st.key);
-      if(dayEl) dayEl.textContent=diff+'일';
-    }
+    // 시작일 D+ 계산 — Firestore 우선, localStorage 폴백
+    (function(pjtKey){
+      var startKeyMap={ 'p4ph2':'fab_pjt_start_date', 'p4ph4':'ph4_pjt_start_date' };
+      var fsDocId=pjtKey; // pjt_settings/{p4ph2 or p4ph4}
+      function applyDday(sd){
+        if(!sd) return;
+        var diff=Math.floor((new Date()-new Date(sd+'T00:00:00'))/(1000*60*60*24));
+        var dayEl=document.getElementById('kpi-day-'+pjtKey);
+        var inp=document.getElementById('kpi-day-input-'+pjtKey);
+        if(dayEl) dayEl.textContent='D+'+diff+'일';
+        if(inp) inp.value=sd;
+        // localStorage 동기화
+        try{ localStorage.setItem(startKeyMap[pjtKey]||('pjt_start_'+pjtKey), sd); }catch(e){}
+      }
+      // 1) Firestore 에서 읽기
+      import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js')
+        .then(function(fs){
+          return fs.getDoc(fs.doc(db,'pjt_settings',fsDocId));
+        }).then(function(snap){
+          if(snap.exists() && snap.data().startDate){
+            applyDday(snap.data().startDate);
+          } else {
+            // 2) Firestore에 없으면 localStorage 폴백
+            var local=''; try{local=localStorage.getItem(startKeyMap[pjtKey])||'';}catch(e){}
+            applyDday(local);
+          }
+        }).catch(function(){
+          // 3) import 실패 시 localStorage 폴백
+          var local=''; try{local=localStorage.getItem(startKeyMap[pjtKey])||'';}catch(e){}
+          applyDday(local);
+        });
+    })(st.key);
     // 공정율 + 전체 누적공수 비동기 로딩
     loadPjtStats(st.key);
   });
@@ -991,7 +1013,13 @@ async function loadPjtStats(pjtKey){
     // → 각 zone별 누적 체크를 날짜 컬렉션을 순회하며 병합
     // Firestore는 collection 목록 조회가 불가하므로, 최근 N일(공사 시작일~오늘) 순회
     const startKeyMap={ 'p4ph2':'fab_pjt_start_date', 'p4ph4':'ph4_pjt_start_date' };
-    const sdStr=localStorage.getItem(startKeyMap[pjtKey]);
+    // Firestore 우선, localStorage 폴백
+    let sdStr=null;
+    try{
+      const fsSnap=await getDoc(doc(db,'pjt_settings',pjtKey));
+      if(fsSnap.exists() && fsSnap.data().startDate) sdStr=fsSnap.data().startDate;
+    }catch(e){}
+    if(!sdStr) sdStr=localStorage.getItem(startKeyMap[pjtKey])||null;
     let startDate=sdStr?new Date(sdStr):new Date(new Date().getFullYear(),0,1);
     // PJT 앱 getAppToday()와 동일 기준: 새벽 6시 이전이면 전날 (공정률 정합성)
     const today=new Date();
@@ -2018,7 +2046,7 @@ function openModule(m, tab, overrideUrl){
   if(!actualUrl){ toast(m.name+' 워크스페이스 준비 중입니다.'); return; }
   _activeMod=m.key;
   _activeSub=overrideUrl?tab:(SUBTABS[m.key]?(tab||SUBTABS[m.key][0].key):null);
-  const fullUrl=overrideUrl?overrideUrl:(m.url+'?via=portal'+(tab?('&tab='+tab):''));
+  const fullUrl=(overrideUrl||m.url)+'?via=portal'+(tab?('&tab='+tab):'');
 
   // iframe이 이미 같은 앱으로 로드된 경우 → postMessage로 탭 전환 (overrideUrl 없을 때만)
   if (!overrideUrl && SUBTABS[m.key] && _embUrl===m.url && tab) {
@@ -2087,6 +2115,11 @@ function pjtSaveStartDate(key,val){
   const startKeyMap={'p4ph2':'fab_pjt_start_date','p4ph4':'ph4_pjt_start_date'};
   const storageKey=startKeyMap[key]||('pjt_start_'+key);
   localStorage.setItem(storageKey,val);
+  // Firestore에도 저장
+  try{
+    setDoc(doc(db,'pjt_settings',key),{startDate:val,updatedAt:serverTimestamp()},{merge:true})
+      .catch(e=>console.warn('D+ Firestore 저장 실패',e));
+  }catch(e){}
   const dayEl=document.getElementById('kpi-day-'+key);
   const inp=document.getElementById('kpi-day-input-'+key);
   if(dayEl && val){
