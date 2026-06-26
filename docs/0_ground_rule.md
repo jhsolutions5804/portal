@@ -37,6 +37,31 @@
 
 ---
 
+## 테스트 방식 정의
+
+> Ground Rule 2번의 세부 절차. 모든 신규·수정 코드는 아래 순서를 반드시 준수한다.
+
+### 1단계 — Unit Test
+- **대상**: 개별 함수·메서드 등 가장 작은 단위의 코드
+- **목적**: 각 단위가 의도대로 작동하는지 독립적으로 검증
+- **통과 기준**: 모든 입력 케이스에서 예상 출력값 일치
+
+### 2단계 — Integration Test
+- **대상**: Unit Test를 통과한 모듈들을 결합한 상태
+- **목적**: 모듈 간 interaction(호출·데이터 흐름·이벤트)에서 오류 없는지 검증
+- **통과 기준**: 모듈 결합 후 사이드 이펙트·충돌 없음
+
+### 3단계 — Acceptance Test
+- **대상**: Integration Test를 통과한 코드를 기존 시스템에 편입한 상태
+- **목적**: 전체 시스템과 충돌 없이 기능하는지 확인
+- **방법**: 기존 코드를 GitHub에서 로컬로 내려받아 **mock-up(HTML format) test** 진행
+- **필수 포함**: mock-up test는 반드시 **demonstration(실제 동작 시연)을 포함**해야 함
+- **통과 기준**: demonstration까지 오류 없이 완료, 사용자 보고 후 승인
+
+### 4단계 — 배포
+- 위 3단계(Unit → Integration → Acceptance + Demonstration) **모두 통과한 경우에만** 배포 진행
+- 단계 중 하나라도 실패 시 해당 단계부터 재시작
+
 ## 기술 원칙
 
 - **배포 전 항상 최신 SHA 확인**: GitHub Contents API PUT 전 반드시 GET으로 현재 SHA를 fresh하게 가져올 것
