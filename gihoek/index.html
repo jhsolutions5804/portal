@@ -479,14 +479,15 @@ function fmtTelBlur(el){
 function contactOptHtml(compId, selName){
   const c = compById(compId);
   const cts = c?.contacts||[];
-  if(!cts.length) return '';
+  if(!cts.length) return '<option value="">— 담당자 없음 (거래처 탭에서 추가 가능) —</option>';
   return `<option value="">— 담당자 선택 (선택사항) —</option>`+cts.map(ct=>`<option value="${ct.name}" ${ct.name===selName?'selected':''}>${ct.name}${ct.tel?' · '+ct.tel:''}${ct.email?' · '+ct.email:''}</option>`).join('');
 }
 function contactDropdown(compId, selName, onchangeJs){
+  if(!compId) return '';
   const c = compById(compId);
   const cts = c?.contacts||[];
-  if(!cts.length) return '';
-  return `<div class="field" style="margin-top:-4px"><label style="font-size:12px">담당자</label><select class="sel" style="font-size:13px" onchange="${onchangeJs}">${contactOptHtml(compId,selName)}</select></div>`;
+  const dis = cts.length ? '' : ' disabled';
+  return `<div class="field" style="margin-top:-4px"><label style="font-size:12px">담당자</label><select class="sel" style="font-size:13px"${dis} onchange="${onchangeJs}">${contactOptHtml(compId,selName)}</select></div>`;
 }
 
 function drawEstForm(){ const d=estDraft;
@@ -580,7 +581,7 @@ window.saveEst=async function(){ const d=estDraft;
   const id='est_'+Date.now();
   $('est-save').disabled=true;
   const payload={ pjtId:d.pjtId, no, baseNo, rev, status:'active', date:d.date, title:d.title.trim(), items, authorDept, authorName, authorEmail, authorUid,
-      clientId:d.clientId||'', client: cl?{company:cl.company,ceo:cl.ceo||'',bizno:cl.bizno||'',tel:cl.tel||'',email:cl.email||'',address:cl.address||''}:null,
+      clientId:d.clientId||'', client: cl?{company:cl.company,ceo:cl.ceo||'',bizno:cl.bizno||'',tel:cl.tel||'',email:cl.email||'',address:cl.address||'',contact:d.clientContact||''}:null,
       issuerId:d.issuerId||'', issuer: iss?{company:iss.company,ceo:iss.ceo||'',bizno:iss.bizno||'',tel:iss.tel||'',email:iss.email||'',address:iss.address||'',contact:d.issuerContact||''}:null,
       clientContact:d.clientContact||'', issuerContact:d.issuerContact||'',
       createdAt:serverTimestamp() };
