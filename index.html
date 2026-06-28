@@ -1885,7 +1885,7 @@ const MSAL_AUTH = {
   redirectUri: 'https://jhsolutions5804.github.io/portal/'
 };
 const MSAL_SCOPES = ['Mail.Read', 'User.Read'];
-const MSAL_ESM_URL = 'https://esm.sh/@azure/msal-browser@3.28.0';
+const MSAL_ESM_URL = 'https://esm.sh/@azure/msal-browser@2.38.4';
 // uid별 MSAL 인스턴스 캐시 (공용PC 포함 계정 격리)
 const _msalApps = {};
 let _msalAccount = null;
@@ -1909,7 +1909,6 @@ async function getMsalApp(){
     }
   };
   const app = new PublicClientApplication(config);
-  await app.initialize();
   // uid별로 다른 계정만 필터
   const accounts = app.getAllAccounts().filter(a =>
     sessionStorage.getItem('msal_portal_uid_' + a.homeAccountId) === uid
