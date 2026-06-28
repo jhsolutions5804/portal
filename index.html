@@ -1920,6 +1920,16 @@ async function getMsalApp(){
       if(savedUid && savedUid !== uid) app.clearCache();
     });
   }
+  // redirect 복귀 시 토큰 처리
+  try{
+    const res = await app.handleRedirectPromise();
+    if(res && res.account){
+      _msalAccount = res.account;
+      const pendingUid = sessionStorage.getItem('msal_redirect_pending') || 'guest';
+      sessionStorage.setItem('msal_portal_uid_' + res.account.homeAccountId, pendingUid);
+      sessionStorage.removeItem('msal_redirect_pending');
+    }
+  } catch(e){}
   _msalApps[uid] = app;
   return app;
 }
@@ -1949,13 +1959,12 @@ async function msalGetToken(){
       try{
         const res = await app.acquireTokenSilent({ scopes: MSAL_SCOPES, account: _msalAccount });
         return res.accessToken;
-      } catch(e){ /* silent 실패 → popup으로 진행 */ }
+      } catch(e){ /* silent 실패 → redirect로 진행 */ }
     }
-    const res = await app.acquireTokenPopup({ scopes: MSAL_SCOPES });
-    _msalAccount = res.account;
-    // 이 Microsoft 계정이 현재 포털 uid 소속임을 태깅
-    sessionStorage.setItem('msal_portal_uid_' + res.account.homeAccountId, me?.uid || 'guest');
-    return res.accessToken;
+    // redirect 방식 — 페이지 이동 후 handleRedirectPromise에서 처리
+    sessionStorage.setItem('msal_redirect_pending', me?.uid || 'guest');
+    await app.acquireTokenRedirect({ scopes: MSAL_SCOPES });
+    return null; // redirect 후 페이지가 새로 로드됨
   } catch(e){ return null; }
 }
 
@@ -1963,7 +1972,7 @@ async function msalLogout(){
   try{
     const app = await getMsalApp();
     const accounts = app.getAllAccounts();
-    if(accounts.length > 0) await app.logoutPopup({ account: accounts[0] });
+    if(accounts.length > 0) await app.logoutRedirect({ account: accounts[0], postLogoutRedirectUri: window.location.href });
   } catch(e){}
   clearMsalCache();
   renderOutlookCard();
