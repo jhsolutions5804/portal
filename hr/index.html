@@ -734,6 +734,7 @@ function showScreen(name) {
     loadCompSignatures();
     const params = new URLSearchParams(location.search);
     if (params.get('via') === 'portal') document.documentElement.classList.add('portal-embed');
+    if (params.get('admin') === '1') window._isAdmin = true;
     const t = params.get('tab');
     goTab((t && HR_TABS[t]) ? t : 'home');
   }
@@ -770,7 +771,7 @@ window.goTab = goTab;
 async function renderHome() {
   const el = document.getElementById('tab-home');
   if (!el) return;
-  el.innerHTML = `<div style="padding:20px 24px;max-width:840px;margin:0 auto;">
+  el.innerHTML = `<div style="padding:20px 24px;max-width:1100px;margin:0 auto;">
     <div id="hm-alert-slot"></div>
     <div class="hm-kgrid" id="hm-kpi">
       ${[0,0,0,0].map(()=>'<div class="hm-kpi"><div class="lab">불러오는 중…</div><div class="val">·</div></div>').join('')}
@@ -2483,7 +2484,7 @@ const selectMain = (icon, label, fn, desc) => `
     <div style="flex:1;"><div style="font-size:16px;font-weight:800;color:${C2.text};margin-bottom:3px;">${label}</div><div style="font-size:12px;color:${C2.sub};">${desc}</div></div>
     <div style="font-size:20px;color:${C2.mute};">›</div>
   </button>`;
-const wrap2 = (body) => `<div style="padding:20px 24px;max-width:840px;margin:0 auto;">${body}</div>`;
+const wrap2 = (body) => `<div style="padding:20px 24px;max-width:1100px;margin:0 auto;">${body}</div>`;
 
 async function getWorkersList() {
   if (!window._db) return [];
@@ -5117,6 +5118,7 @@ window.renderRetirePC = async () => {
   const el = document.getElementById('tab-retire'); if(!el) return;
   el.innerHTML = `<div style="max-width:1100px;margin:0 auto;padding:16px;"><div style="text-align:center;padding:32px;color:#9AAABF;">⏳ 근로자 불러오는 중...</div></div>`;
   _rtWorkers = await getWorkersList();
+  _rtWorkers.sort((a,b)=>(a.empNo||'zzz').localeCompare(b.empNo||'zzz'));
   const today = new Date().toISOString().slice(0,10);
   const opts = ['<option value="">근로자 선택</option>'].concat(
     _rtWorkers.map(w=>`<option value="${w.id}">${w.empNo?('['+w.empNo+'] '):''}${w.name||'-'}${w.dept?(' · '+w.dept):''}${w.rank?(' '+w.rank):''}</option>`)
@@ -5322,8 +5324,39 @@ window.retireCompute = async () => {
     `;
 
     window._rtCurrent = { wid, name:w.name||'', dept:w.dept||'', rank:w.rank||'', hireDate, retireDate, serviceDays, includedTotal, periodDays, avgDaily, ordDaily, appliedDaily, substituted, under1y, severance, months: rows.map(r=>r.month) };
+    if(window.innerWidth >= 900) rtLoadListPanel(wid);
   } catch(e) {
     res.innerHTML = rtWarn('계산 중 오류가 발생했습니다: '+e.message);
+  }
+};
+
+
+// ── 퇴직금 PC: 저장 내역 패널 갱신 ──
+window.rtLoadListPanel = async (wid) => {
+  const panel = document.getElementById('rt-list-panel');
+  if (!panel || !wid || !window._db) return;
+  panel.innerHTML = '<div style="font-size:12px;color:#9AAABF;text-align:center;padding:12px 0;">불러오는 중…</div>';
+  try {
+    const { getDocs, collection } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+    const snap = await getDocs(collection(window._db, `severance/${wid}/records`));
+    let recs = []; snap.forEach(d => recs.push({ id: d.id, ...d.data() }));
+    recs.sort((a,b) => String(b.id).localeCompare(String(a.id)));
+    panel.innerHTML = recs.length ? recs.map(r => `
+      <div style="background:#F7F9FC;border:1px solid #DDE4EF;border-radius:8px;padding:10px 12px;cursor:pointer;"
+           onclick="retireViewWorker('${wid}','${(r.name||'').replace(/'/g,'')}')">
+        <div style="display:flex;justify-content:space-between;align-items:center;">
+          <span style="font-size:11px;color:#5C6F8A;">퇴직일 ${(r.retireDate||'').replace(/-/g,'.')}</span>
+          <button onclick="event.stopPropagation();retireDelete('${wid}','${r.id}','${(r.name||'').replace(/'/g,'')}');rtLoadListPanel('${wid}')"
+                  style="background:none;border:none;color:#DC2626;font-size:11px;cursor:pointer;">삭제</button>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:baseline;margin-top:4px;">
+          <span style="font-size:11px;color:#9AAABF;">${r.serviceDays}일 · 1일 ${Number(r.appliedDaily).toLocaleString()}원</span>
+          <span style="font-size:15px;font-weight:800;color:#1D5BA6;">${Number(r.severance).toLocaleString()} 원</span>
+        </div>
+      </div>`).join('')
+    : '<div style="font-size:12px;color:#9AAABF;text-align:center;padding:12px 0;">저장된 내역이 없습니다.</div>';
+  } catch(e) {
+    panel.innerHTML = '<div style="font-size:12px;color:#DC2626;padding:8px;">오류: ' + e.message + '</div>';
   }
 };
 
@@ -5336,7 +5369,7 @@ window.retireSave = async () => {
     const { doc, setDoc } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
     await setDoc(doc(window._db, `severance/${c.wid}/records`, c.retireDate), { ...c, savedAt:new Date().toISOString() });
     alert('✅ 퇴직금 정산 저장 완료!');
-    renderRetireMain();
+    if(window.innerWidth >= 900) rtLoadListPanel(c.wid); else renderRetireMain();
   } catch(e) { alert('오류: '+e.message); }
 };
 
