@@ -56,9 +56,11 @@
   // ── 인증 ──
   // 포털 경유 여부 확인 — ?via=portal 없으면 차단
   (function() {
-    const viaPortal = new URLSearchParams(location.search).get('via') === 'portal';
+    const params = new URLSearchParams(location.search);
+    const viaPortal = params.get('via') === 'portal';
     if (viaPortal) {
       document.documentElement.classList.add('portal-embed');
+      window._isAdmin = params.get('admin') === '1';
       showScreen('app');
     } else {
       showScreen('blocked');
