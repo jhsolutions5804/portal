@@ -74,3 +74,19 @@ function ctSnap(cid, name){
 | 견적서 stamp 작성자 불필요 표시 | stamp 작성자 섹션 제거 |
 | 견적서 stamp 발행처 담당자 미표시 | `iss.contact` stamp 추가 |
 | 포털 내 기획 앱 헤더 중복 표시 | `.head .t` 블록 및 관련 CSS 제거 |
+
+---
+
+### portal-embed PC 빈 헤더 박스 제거 (2026-06-29, dd1e4d42)
+
+**증상**: 기획 앱 포털 임베드 시 상단에 내용 없는 흰 박스가 표시됨
+
+**원인**: `.head .t`(📊 기획 타이틀) 제거 후 `.head` 자체의 `padding:16px 20px 0`이 남아 빈 공간 생성. PC에서 `.tabs`도 `display:none`이라 `.head` 전체가 빈 박스로 노출.
+
+**수정**
+```css
+/* 기존 */
+@media (min-width:900px){ html.portal-embed .tabs{display:none} }
+/* 변경 */
+@media (min-width:900px){ html.portal-embed .head{display:none} }
+```
