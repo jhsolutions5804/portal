@@ -2080,7 +2080,7 @@ function openModule(m, tab, overrideUrl){
   if(!actualUrl){ toast(m.name+' 워크스페이스 준비 중입니다.'); return; }
   _activeMod=m.key;
   _activeSub=overrideUrl?tab:(SUBTABS[m.key]?(tab||SUBTABS[m.key][0].key):null);
-  const fullUrl=(overrideUrl||m.url)+'?via=portal'+(tab?('&tab='+tab):'');
+  const fullUrl=(overrideUrl||m.url)+'?via=portal'+(tab?('&tab='+tab):'')+(me&&me.admin?'&admin=1':'');
 
   // iframe이 이미 같은 앱으로 로드된 경우 → postMessage로 탭 전환 (overrideUrl 없을 때만)
   if (!overrideUrl && SUBTABS[m.key] && _embUrl===m.url && tab) {
