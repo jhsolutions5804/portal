@@ -1,7 +1,8 @@
 # 7.3. 개발 로그 — 인사 앱 (r9b)
 
-> `portal/hr/index.html` 변경 이력 (후반부, r9a에서 이어짐)
+> `portal/hr/index.html` 변경 이력 (후반부 / r9a에서 이어짐)
 > 최초 작성: 2026-06-26 · 최종 수정: 2026-06-29(r9b) · 작성: 춘식이(Claude)
+
 ---
 
 ## r7 이후 누락 커밋 보완 (`620abd6c` ~ `fd0e3313`, 2026-06-27)
@@ -65,41 +66,35 @@
 
 ## 포털 전용 인증 전환 (D3, `fd0e3313`, 2026-06-29)
 
-### 변경 내용
-- Firebase Auth (`onAuthStateChanged`, `signInWithPopup`, `signOut`) 완전 제거
-- `?via=portal` 파라미터 유무로만 접근 판단
-- 직접 URL 접근 시 `blocked-screen` 표시 ("포털을 통해 접근해주세요")
-- 로그인·권한없음 화면 HTML/CSS 전체 제거
+- Firebase Auth 완전 제거, `?via=portal` 파라미터 유무로만 접근 판단
+- 직접 접근 시 `blocked-screen` 표시
 - 포털(`portal/index.html`)에서 권한 일원화
 
-### 이슈 & 해결
 | 이슈 | 원인 | 해결 |
 |------|------|------|
-| `?via=portal` 있어도 blocked 표시 | `type="module"` IIFE에서 아래 일반 `<script>` 함수 참조 불가 | 인증 IIFE를 일반 `<script>` 안으로 이동 |
-| 포털에서도 blocked 화면 표시 | MODULES url 포함 `?via=portal` + `openModule` 재추가로 이중 파라미터 | MODULES url에서 `?via=portal` 제거 (D4) |
+| `?via=portal` 있어도 blocked 표시 | `type="module"` IIFE에서 일반 `<script>` 함수 참조 불가 | 인증 IIFE를 일반 `<script>` 안으로 이동 |
+| 포털에서도 blocked 표시 | MODULES url에 `?via=portal` 포함 + `openModule`이 재추가 → 이중 파라미터 | MODULES url에서 `?via=portal` 제거 (D4) |
 
 ---
 
-## 초과근로 PC 레이아웃 복구 (F1, `d88ee9b4`, 2026-06-29)
+## 인사 홈 버튼 (G1, `0cf4fed4`, 2026-06-29)
 
-### 배경
-인증 작업 중 로컬 파일 베이스 사용으로 F1 코드가 GitHub에 누락됨 → GitHub 최신본 기준 재적용.
-
-### 구현 내용
-- `renderOvertimeMain()`: `window.innerWidth >= 900` PC/모바일 분기
-- PC 뷰: KPI 바 4개 + 좌(220px) 직원목록·입력폼 + 우 상세 패널
-- 모바일 뷰: 기존 카드 선택 방식 (`renderOvertimeMobile`) 유지
-- `otUpdate` `backType==='pc'` 분기 추가
-
-### 신규 함수
-`renderOvertimePC`, `otPcInit`, `otPcLoadKpiAndHours`, `otPcChangeMonth`,
-`otPcSelectWorker`, `otPcCalcPreview`, `otPcSave`, `otPcShowPersonDetail`,
-`otPcDelete`, `otPcEdit`, `renderOvertimeMobile`
+- `homeBtn()` 헬퍼 함수 추가 (회색 박스 버튼)
+- 7개 탭 메인 화면 좌측 상단 일괄 적용 → `goTab('home')` 호출
 
 ---
 
-## 인사 홈 버튼 추가 (G1, `0cf4fed4`, 2026-06-29)
+## PC 레이아웃 복구 (H2·I1·I2, 2026-06-29)
 
-- `homeBtn()` 헬퍼 함수 추가 (`backBtn2`와 동일 패턴, 회색 계열)
-- 7개 탭 메인 화면 좌측 상단 일괄 적용
-- 동작: `goTab('home')` 호출
+| 커밋 | 내용 |
+|------|------|
+| `49c27f03` | 급여명세서 PC 레이아웃 (`PS_PC_BP=900`, 작성·조회 분리) |
+| `d7b26a01` | 근로자 명부·근로계약서·연봉계약서·퇴직금 커밋 이력에서 복구 |
+| `de66ce72` | `_loadRosterDocs` 누락 복원, homeBtn 재삽입, 연차현황 수정버튼 복구 |
+
+| 이슈 | 원인 | 해결 |
+|------|------|------|
+| `_loadRosterDocs is not defined` | 커밋 함수 교체 시 의존 함수 누락 | a31763f1에서 추출 후 재삽입 |
+| homeBtn 사라짐 | G1 이전 커밋 기준 함수로 교체 | 헤더 위치에 직접 삽입 |
+| 연차현황 수정버튼 누락 | 다른 대화 배포본(c142acb8)이 반영 안 됨 | c142acb8에서 추출 후 교체 |
+| homeBtn 중복 삽입 | replace 중복 적용 | 중복 div 제거 |
