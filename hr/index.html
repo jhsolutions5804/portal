@@ -4874,6 +4874,7 @@ window.showLeaveDetail = async function(wid, wname, hireDate) {
           <div style="font-size:11px;color:#5C6F8A;margin-top:2px;">${lv.startDate||lv.sdate||''} ~ ${lv.endDate||lv.edate||''}</div>
         </div>
         <span style="flex-shrink:0;font-size:14px;font-weight:700;color:#1D5BA6;">${lv.days||lv.leaveDays||0}일</span>
+        ${window._isAdmin?`<button onclick="openLeaveAdminForm('${lv.id}')" style="flex-shrink:0;border:1px solid #DDE4EF;background:#F4F7FB;color:#1D5BA6;border-radius:7px;padding:4px 10px;font-size:11px;font-weight:600;cursor:pointer;">✏️ 수정</button>`:''}
       </div>`).join('')
     : '<div style="padding:40px;text-align:center;color:#9AAABF;">사용한 연차가 없습니다.</div>';
   } catch(e) { console.warn('연차 상세 로드 오류:', e); }
