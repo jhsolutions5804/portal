@@ -1585,22 +1585,17 @@ function psCalcAll() {
 const psWon = v => v ? '₩'+Math.round(v).toLocaleString() : '-';
 const psWonR = v => '₩'+Math.round(v||0).toLocaleString();
 
-const PS_PC_BP = 900;
-
 window.renderPayslipMain2 = () => {
   const el = document.getElementById('tab-payslip');
   if (!el) return;
   ps.view = 'main';
-  if (window.innerWidth >= PS_PC_BP) {
-    renderPayslipPC();
-  } else {
-    el.innerHTML = wrap2(`
-      <div style="font-size:13px;color:${C2.sub};margin-bottom:16px;font-weight:600;">작업을 선택해 주세요</div>
-      <div style="display:flex;flex-direction:column;gap:10px;">
-        ${selectMain('✏️','작성','renderPayslipWrite()','급여명세서 작성 및 저장')}
-        ${selectMain('📂','조회','renderPayslipListNew()','저장된 급여명세서 조회')}
-      </div>`);
-  }
+  el.innerHTML = wrap2(`
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;">${homeBtn()}</div>
+    <div style="font-size:13px;color:${C2.sub};margin-bottom:16px;font-weight:600;">작업을 선택해 주세요</div>
+    <div style="display:flex;flex-direction:column;gap:10px;">
+      ${selectMain('✏️','작성','renderPayslipWrite()','급여명세서 작성 및 저장')}
+      ${selectMain('📂','조회','renderPayslipListNew()','저장된 급여명세서 조회')}
+    </div>`);
 };
 
 window.renderPayslipWrite = async () => {
@@ -1800,305 +1795,6 @@ function renderPayslipWriteForm(el, workers, months, calcPayDate) {
   `);
 }
 
-
-// ════════════════════════════════
-// 💰 급여명세서 PC 레이아웃
-// ════════════════════════════════
-window.renderPayslipPC = async () => {
-  const el = document.getElementById('tab-payslip');
-  if (!el) return;
-
-  ps.view = 'write';
-  ps.workerData = null; ps.annualData = null;
-  ps.bonus=''; ps.specialBonus=''; ps.extraPay=''; ps.dormitory=''; ps.bankAccount='';
-
-  const workers = await getWorkersList();
-  window._psWorkers = workers;
-
-  const months = [];
-  const now = new Date();
-  for (let i = 0; i < 13; i++) {
-    const d = new Date(now.getFullYear(), now.getMonth()-i, 1);
-    months.push(`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`);
-  }
-  if (!ps.month) ps.month = months[1];
-  if (!ps.payDate) ps.payDate = window.calcPayDateGlobal(ps.month);
-
-  const workerOpts = workers.map(w=>`<option value="${w.id}" ${ps.workerId===w.id?'selected':''}>${w.empNo||'-'} · ${w.name} (${w.rank||''})</option>`).join('');
-  const monthOpts  = months.map(m=>`<option value="${m}" ${ps.month===m?'selected':''}>${m.replace('-','년 ')}월</option>`).join('');
-
-  el.innerHTML = `
-    <div style="max-width:1100px;margin:0 auto;padding:16px;">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
-        <div style="font-size:16px;font-weight:700;color:#1A2540;">💰 급여명세서</div>
-        <button onclick="renderPayslipPCList()" style="padding:7px 16px;background:#F0F4F9;border:1px solid #DDE4EF;border-radius:8px;font-size:12px;font-weight:600;color:${C2.sub};cursor:pointer;">📂 조회 목록</button>
-      </div>
-      <div style="display:flex;gap:16px;align-items:flex-start;">
-        <!-- 좌: 선택 패널 -->
-        <div style="width:260px;flex-shrink:0;">
-          <div style="background:#fff;border-radius:12px;border:1px solid #DDE4EF;padding:16px;box-shadow:${C2.shadow};">
-            <div style="font-size:12px;font-weight:700;color:${C2.blue};margin-bottom:10px;padding-bottom:8px;border-bottom:1px solid #F0F4FA;">📋 기준 정보</div>
-            <div style="font-size:11px;color:#9AAABF;margin-bottom:12px;">① 기준월 → ② 근로자 순서로 선택</div>
-            <div style="margin-bottom:10px;">
-              <div style="font-size:11px;font-weight:600;color:${C2.sub};margin-bottom:4px;">① 기준월</div>
-              <select id="ps-pc-month-sel" onchange="window.psPcMonthChange(this.value)"
-                style="width:100%;border:1px solid #DDE4EF;border-radius:8px;padding:9px 12px;font-size:13px;color:${C2.blue};background:#E8F0FB;cursor:pointer;box-sizing:border-box;">
-                ${monthOpts}
-              </select>
-            </div>
-            <div style="margin-bottom:10px;">
-              <div style="font-size:11px;font-weight:600;color:${C2.sub};margin-bottom:4px;">② 근로자</div>
-              <select id="ps-pc-worker-sel" onchange="window.psPcWorkerSelect(this.value)"
-                style="width:100%;border:1px solid #DDE4EF;border-radius:8px;padding:9px 12px;font-size:13px;color:${C2.blue};background:#E8F0FB;cursor:pointer;box-sizing:border-box;">
-                <option value="">근로자를 선택하세요</option>
-                ${workerOpts}
-              </select>
-            </div>
-            <div style="margin-bottom:10px;">
-              <div style="font-size:11px;font-weight:600;color:${C2.sub};margin-bottom:4px;">지급일</div>
-              <input type="date" id="ps-pc-paydate" value="${ps.payDate}" onchange="ps.payDate=this.value"
-                style="width:100%;border:1px solid #DDE4EF;border-radius:8px;padding:9px 12px;font-size:13px;color:#1A2540;background:#FAFCFF;box-sizing:border-box;">
-            </div>
-            <div id="ps-pc-worker-info"></div>
-          </div>
-        </div>
-        <!-- 우: 결과 패널 -->
-        <div id="ps-pc-right" style="flex:1;min-width:0;">
-          <div style="background:#fff;border-radius:12px;border:1px solid #DDE4EF;padding:40px;text-align:center;color:${C2.mute};box-shadow:${C2.shadow};">
-            <div style="font-size:36px;margin-bottom:12px;">💰</div>
-            <div style="font-size:14px;">좌측에서 기준월과 근로자를 선택해 주세요</div>
-          </div>
-        </div>
-      </div>
-    </div>`;
-
-  window.psPcMonthChange = async (month) => {
-    ps.month = month;
-    ps.payDate = window.calcPayDateGlobal(month);
-    const pd = document.getElementById('ps-pc-paydate');
-    if (pd) pd.value = ps.payDate;
-    if (ps.workerData?.name && window.getOvertimeAmountForPayslip) {
-      try { ps.bonus = await window.getOvertimeAmountForPayslip(ps.workerData.name, month); } catch(e) {}
-    }
-    renderPayslipPCRight();
-  };
-
-  window.psPcWorkerSelect = async (wid) => {
-    if (!wid) { ps.workerId=''; ps.workerData=null; ps.annualData=null; renderPayslipPCRight(); return; }
-    ps.workerId = wid;
-    ps.workerData = workers.find(w=>w.id===wid)||null;
-    if (ps.workerData?.bankAccount) ps.bankAccount = ps.workerData.bankAccount;
-
-    if (window._db && wid) {
-      try {
-        const { getDocs, collection } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
-        const snap = await getDocs(collection(window._db, `annual_contracts/${wid}/contracts`));
-        let latest=null, latestDate='';
-        snap.forEach(d=>{ const dd=d.data(); if((dd.contractDate||'')>latestDate){latestDate=dd.contractDate||'';latest=dd;} });
-        ps.annualData = latest;
-      } catch(e) {}
-    }
-    if (ps.workerData?.name && ps.month) {
-      try { ps.bonus = await window.getOvertimeAmountForPayslip(ps.workerData.name, ps.month); } catch(e) {}
-    }
-
-    const info = document.getElementById('ps-pc-worker-info');
-    if (info && ps.workerData) {
-      info.innerHTML = `
-        <div style="margin-top:12px;padding-top:12px;border-top:1px solid #F0F4FA;">
-          <div style="font-size:11px;font-weight:700;color:${C2.blue};margin-bottom:8px;">👤 근로자 정보</div>
-          ${[['이름',ps.workerData.name||'-'],['사번',ps.workerData.empNo||'-'],
-             ['소속/직급',(ps.workerData.dept||'-')+' / '+(ps.workerData.rank||'-')],
-             ['입사일',ps.workerData.hireDate||'-'],['계좌번호',ps.workerData.bankAccount||'-'],
-          ].map(([l,v])=>`
-            <div style="display:flex;padding:5px 0;border-bottom:1px solid #F0F4FA;font-size:11px;">
-              <span style="color:${C2.sub};min-width:68px;font-weight:600;">${l}</span>
-              <span style="color:${C2.text};">${v}</span>
-            </div>`).join('')}
-        </div>`;
-    }
-    renderPayslipPCRight();
-  };
-};
-
-function renderPayslipPCRight() {
-  const right = document.getElementById('ps-pc-right');
-  if (!right) return;
-
-  if (!ps.workerData) {
-    right.innerHTML = `
-      <div style="background:#fff;border-radius:12px;border:1px solid #DDE4EF;padding:40px;text-align:center;color:${C2.mute};box-shadow:${C2.shadow};">
-        <div style="font-size:36px;margin-bottom:12px;">💰</div>
-        <div style="font-size:14px;">좌측에서 기준월과 근로자를 선택해 주세요</div>
-      </div>`;
-    return;
-  }
-
-  const c = psCalcAll();
-
-  const payFixed = ps.annualData
-    ? [['기본근로수당',c.sal.basic,'연봉계약서 연동'],['고정연장수당',c.sal.fixedOt,'연봉계약서 연동'],
-       ['고정야간수당',c.sal.fixedNight,'연봉계약서 연동'],['주휴수당',c.sal.weekly,'연봉계약서 연동']]
-      .filter(([,v])=>v>0)
-      .map(([l,v,note])=>`
-        <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 12px;border-bottom:1px solid #F0F4FA;font-size:12px;">
-          <div><span style="color:${C2.sub};font-weight:600;">${l}</span><span style="font-size:10px;color:${C2.mute};margin-left:6px;">${note}</span></div>
-          <span style="color:${C2.text};font-weight:600;">₩${v.toLocaleString()}</span>
-        </div>`).join('')
-    : `<div style="text-align:center;padding:12px;font-size:12px;color:${C2.mute};">⚠️ 연봉계약서를 먼저 등록해야 지급내역이 자동 연동됩니다.</div>`;
-
-  const deductRows = [
-    ['국민연금',c.pension,'지급계 × 4.5%'],['건강보험',c.health,'지급계 × 3.545%'],
-    ['장기요양보험',c.ltcare,'건강보험 × 12.81%'],['고용보험',c.employ,'지급계 × 0.9%'],
-    ['소득세',c.incomeTax,'간이세액표'],['지방소득세',c.localTax,'소득세 × 10%'],
-  ].map(([l,v,note])=>`
-    <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 12px;border-bottom:1px solid #FFE8E8;font-size:12px;">
-      <div><span style="color:${C2.sub};font-weight:600;">${l}</span><span style="font-size:10px;color:${C2.mute};margin-left:6px;">${note}</span></div>
-      <span style="color:#DC2626;font-weight:600;">-₩${v.toLocaleString()}</span>
-    </div>`).join('');
-
-  right.innerHTML = `
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px;">
-      <div style="background:#fff;border-radius:12px;border:1px solid #DDE4EF;padding:16px;box-shadow:${C2.shadow};">
-        <div style="font-size:12px;font-weight:700;color:${C2.blue};margin-bottom:10px;padding-bottom:8px;border-bottom:1px solid #EEF2FA;">💳 지급 내역</div>
-        <div style="background:#F8FAFD;border-radius:8px;overflow:hidden;margin-bottom:10px;">${payFixed}</div>
-        <div style="margin-bottom:8px;">
-          <div style="font-size:11px;font-weight:600;color:${C2.sub};margin-bottom:4px;">상여금</div>
-          <input type="number" value="${ps.bonus}" placeholder="0"
-            oninput="ps.bonus=Number(this.value);renderPayslipPCRight();"
-            style="width:100%;border:1px solid #DDE4EF;border-radius:8px;padding:8px 12px;font-size:13px;color:#1A2540;background:#FAFCFF;box-sizing:border-box;">
-          <div style="display:flex;align-items:center;gap:6px;margin-top:4px;">
-            <div style="font-size:10px;color:#9AAABF;flex:1;">⏱ 초과근로 탭 누계 자동 연동 · 직접 수정 가능</div>
-            <button onclick="psDebugOT()" style="font-size:10px;padding:2px 8px;background:#F0F4F9;border:1px solid #DDE4EF;border-radius:6px;color:#5C6F8A;cursor:pointer;white-space:nowrap;">🔍</button>
-          </div>
-          <div id="ps-ot-debug" style="display:none;margin-top:6px;font-size:11px;background:#F8FAFD;border-radius:6px;padding:8px 10px;color:#5C6F8A;"></div>
-        </div>
-        <div style="margin-bottom:8px;">
-          <div style="font-size:11px;font-weight:600;color:${C2.sub};margin-bottom:4px;">특별성과급</div>
-          <input type="number" value="${ps.specialBonus}" placeholder="0"
-            onchange="ps.specialBonus=this.value;renderPayslipPCRight();"
-            style="width:100%;border:1px solid #DDE4EF;border-radius:8px;padding:8px 12px;font-size:13px;color:#1A2540;background:#FAFCFF;box-sizing:border-box;">
-        </div>
-        <div style="margin-bottom:10px;">
-          <div style="font-size:11px;font-weight:600;color:${C2.sub};margin-bottom:4px;">특근수당</div>
-          <input type="number" value="${ps.extraPay}" placeholder="0"
-            onchange="ps.extraPay=this.value;renderPayslipPCRight();"
-            style="width:100%;border:1px solid #DDE4EF;border-radius:8px;padding:8px 12px;font-size:13px;color:#1A2540;background:#FAFCFF;box-sizing:border-box;">
-        </div>
-        <div style="display:flex;justify-content:space-between;padding:10px 12px;background:#E8F0FB;border-radius:8px;font-size:14px;font-weight:700;">
-          <span style="color:${C2.blue};">지급계</span>
-          <span style="color:${C2.blue};">₩${c.totalPay.toLocaleString()}</span>
-        </div>
-      </div>
-      <div style="background:#fff;border-radius:12px;border:1px solid #DDE4EF;padding:16px;box-shadow:${C2.shadow};">
-        <div style="font-size:12px;font-weight:700;color:#DC2626;margin-bottom:10px;padding-bottom:8px;border-bottom:1px solid #FFE8E8;">➖ 공제 내역</div>
-        <div style="background:#FFF8F8;border-radius:8px;overflow:hidden;margin-bottom:10px;">${deductRows}</div>
-        <div style="margin-bottom:10px;">
-          <div style="font-size:11px;font-weight:700;color:${C2.sub};margin-bottom:4px;">기숙사 공제</div>
-          <input type="number" id="ps-dormitory-input" value="${ps.dormitory||''}" placeholder="0"
-            onchange="ps.dormitory=this.value;renderPayslipPCRight();"
-            style="width:100%;border:1px solid #DDE4EF;border-radius:8px;padding:8px 12px;font-size:13px;color:#1A2540;background:#FAFCFF;box-sizing:border-box;">
-        </div>
-        <div style="display:flex;justify-content:space-between;padding:10px 12px;background:#FEE2E2;border-radius:8px;font-size:14px;font-weight:700;">
-          <span style="color:#DC2626;">공제계</span>
-          <span style="color:#DC2626;">-₩${c.totalDeduct.toLocaleString()}</span>
-        </div>
-      </div>
-    </div>
-    <div style="background:#1D5BA6;border-radius:14px;padding:18px 24px;margin-bottom:14px;display:flex;justify-content:space-between;align-items:center;box-shadow:0 4px 16px rgba(29,91,166,0.3);">
-      <span style="font-size:16px;font-weight:700;color:#fff;">실 지급액</span>
-      <span style="font-size:26px;font-weight:800;color:#fff;">₩${c.netPay.toLocaleString()}</span>
-    </div>
-    <div style="display:flex;gap:10px;">
-      <button onclick="psPreview();" style="flex:1;padding:13px;background:${C2.sub};border:none;border-radius:12px;color:#fff;font-size:13px;font-weight:700;cursor:pointer;">📄 미리보기</button>
-      <button onclick="psSave();"    style="flex:1;padding:13px;background:${C2.green};border:none;border-radius:12px;color:#fff;font-size:13px;font-weight:700;cursor:pointer;">✅ 확정 저장</button>
-    </div>`;
-}
-
-window.renderPayslipPCList = async () => {
-  const el = document.getElementById('tab-payslip');
-  if (!el) return;
-  el.innerHTML = `
-    <div style="max-width:1100px;margin:0 auto;padding:16px;">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
-        <div style="font-size:16px;font-weight:700;color:#1A2540;">📂 급여명세서 조회</div>
-        <button onclick="renderPayslipPC()" style="padding:7px 16px;background:#E8F0FB;border:1px solid #DDE4EF;border-radius:8px;font-size:12px;font-weight:600;color:${C2.blue};cursor:pointer;">✏️ 작성</button>
-      </div>
-      <div style="display:flex;gap:16px;align-items:flex-start;">
-        <div style="width:240px;flex-shrink:0;background:#fff;border-radius:12px;border:1px solid #DDE4EF;box-shadow:${C2.shadow};overflow:hidden;">
-          <div style="padding:12px 16px;font-size:12px;font-weight:700;color:${C2.blue};border-bottom:1px solid #F0F4FA;">근로자 목록</div>
-          <div id="ps-pclist-workers" style="padding:16px;text-align:center;color:${C2.mute};">⏳ 불러오는 중...</div>
-        </div>
-        <div id="ps-pclist-right" style="flex:1;min-width:0;">
-          <div style="background:#fff;border-radius:12px;border:1px solid #DDE4EF;padding:40px;text-align:center;color:${C2.mute};box-shadow:${C2.shadow};">
-            <div style="font-size:36px;margin-bottom:12px;">📋</div>
-            <div style="font-size:14px;">좌측에서 근로자를 선택해 주세요</div>
-          </div>
-        </div>
-      </div>
-    </div>`;
-
-  const workers = await getWorkersList();
-  const wEl = document.getElementById('ps-pclist-workers');
-  if (!wEl) return;
-  if (!workers.length) { wEl.innerHTML='<div style="text-align:center;padding:20px;color:#9AAABF;">등록된 근로자가 없습니다.</div>'; return; }
-  wEl.style.padding='0';
-  wEl.innerHTML = workers.map((w,i)=>`
-    <button onclick="psLoadWorkerSlips('${w.id}','${w.name}',this)"
-      style="width:100%;display:block;padding:10px 14px;background:#fff;border:none;border-bottom:1px solid #F0F4FA;cursor:pointer;text-align:left;"
-      onmouseover="this.style.background='#F4F7FB'" onmouseout="this.style.background=this._sel?'#E8F0FB':'#fff'">
-      <div style="font-size:13px;font-weight:600;color:${C2.text};">${w.name}</div>
-      <div style="font-size:11px;color:${C2.sub};margin-top:2px;">${w.empNo||'-'} · ${w.dept||'-'}</div>
-    </button>`).join('');
-};
-
-window.psLoadWorkerSlips = async (wid, wname, btn) => {
-  document.querySelectorAll('#ps-pclist-workers button').forEach(b=>{b._sel=false;b.style.background='#fff';});
-  if (btn) { btn._sel=true; btn.style.background='#E8F0FB'; }
-  const right = document.getElementById('ps-pclist-right');
-  if (!right) return;
-  right.innerHTML=`<div style="background:#fff;border-radius:12px;border:1px solid #DDE4EF;padding:32px;text-align:center;color:${C2.mute};box-shadow:${C2.shadow};">⏳ 불러오는 중...</div>`;
-  try {
-    const { getDocs, collection } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
-    const snap = await getDocs(collection(window._db, `payslips/${wid}/months`));
-    const docs=[]; snap.forEach(d=>docs.push({id:d.id,...d.data()}));
-    docs.sort((a,b)=>(b.month||b.id).localeCompare(a.month||a.id));
-    if (!docs.length) {
-      right.innerHTML=`<div style="background:#fff;border-radius:12px;border:1px solid #DDE4EF;padding:40px;text-align:center;color:${C2.mute};box-shadow:${C2.shadow};"><div style="font-size:36px;margin-bottom:12px;">📋</div><div style="font-size:14px;">저장된 급여명세서가 없습니다.</div></div>`;
-      return;
-    }
-    right.innerHTML=`
-      <div style="margin-bottom:14px;">
-        <div style="font-size:15px;font-weight:700;color:${C2.text};">${wname}</div>
-        <div style="font-size:12px;color:${C2.sub};margin-top:2px;">총 ${docs.length}개월 저장됨</div>
-      </div>
-      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px;">
-        ${docs.map(d=>`
-          <div style="background:#fff;border-radius:12px;border:1px solid #DDE4EF;padding:14px;box-shadow:${C2.shadow};">
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
-              <span style="font-size:14px;font-weight:700;color:${C2.blue};">${(d.month||d.id).replace('-','년 ')}월</span>
-              <span style="font-size:10px;background:${C2.greenLt};color:${C2.green};padding:2px 8px;border-radius:8px;font-weight:700;">✅</span>
-            </div>
-            <div style="font-size:11px;color:${C2.sub};margin-bottom:2px;">지급계 ₩${Math.round(d.grossPay||0).toLocaleString()}</div>
-            <div style="font-size:16px;font-weight:800;color:#1D5BA6;margin-bottom:10px;">₩${Math.round(d.netPay||0).toLocaleString()}</div>
-            <div style="display:flex;gap:6px;">
-              <button onclick="psViewDetail(${JSON.stringify(d).replace(/"/g,'&quot;')},'${wid}')"
-                style="flex:1;padding:7px;background:#E8F0FB;border:1px solid #DDE4EF;border-radius:8px;font-size:12px;font-weight:600;color:${C2.blue};cursor:pointer;">📄 PDF</button>
-              <button onclick="psDeleteSlipPC('${wid}','${d.id}','${wname}')"
-                style="padding:7px 10px;background:#FEE2E2;border:1px solid #fca5a5;border-radius:8px;font-size:12px;font-weight:600;color:#DC2626;cursor:pointer;">🗑</button>
-            </div>
-          </div>`).join('')}
-      </div>`;
-  } catch(e) { right.innerHTML=`<div style="color:#DC2626;padding:20px;">오류: ${e.message}</div>`; }
-};
-
-window.psDeleteSlipPC = async (wid, mid, wname) => {
-  if (!confirm(`${wname}님의 ${mid} 급여명세서를 삭제하시겠습니까?`)) return;
-  const { doc, deleteDoc } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
-  await deleteDoc(doc(window._db, `payslips/${wid}/months`, mid));
-  const btn = [...document.querySelectorAll('#ps-pclist-workers button')].find(b=>b._sel);
-  psLoadWorkerSlips(wid, wname, btn||null);
-};
 
 window.calcPayDateGlobal = (month) => {
   if (!month) return '';
@@ -2502,6 +2198,7 @@ const inp2Style = `style="width:100%;border:1px solid #DDE4EF;border-radius:8px;
 const card2 = (title, body) => `<div style="background:#fff;border-radius:12px;border:1px solid #DDE4EF;padding:16px;margin-bottom:10px;box-shadow:${C2.shadow}"><div style="font-size:12px;font-weight:700;color:${C2.blue};margin-bottom:12px;">${title}</div>${body}</div>`;
 const field2 = (label, input) => `<div style="margin-bottom:10px;"><div style="font-size:11px;font-weight:700;color:#5C6F8A;margin-bottom:5px;">${label}</div>${input}</div>`;
 const backBtn2 = (fn, label='뒤로') => `<button onclick="${fn}" style="background:#E8F0FB;border:1px solid #DDE4EF;border-radius:8px;padding:5px 12px;color:#1D5BA6;font-size:12px;cursor:pointer;font-weight:600;">‹ ${label}</button>`;
+const homeBtn  = () => `<button onclick="goTab('home')" style="background:#F0F4F9;border:1px solid #DDE4EF;border-radius:8px;padding:5px 12px;color:#5C6F8A;font-size:12px;cursor:pointer;font-weight:600;">🏠 인사 홈</button>`;
 const selectMain = (icon, label, fn, desc) => `
   <button onclick="${fn}" style="background:#fff;border:1px solid #DDE4EF;border-radius:14px;padding:18px 20px;text-align:left;cursor:pointer;box-shadow:${C2.shadow};display:flex;align-items:center;gap:16px;width:100%;">
     <div style="width:48px;height:48px;background:${icon.includes('📂')?C2.greenLt:C2.blueLt};border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0;">${icon}</div>
@@ -2517,11 +2214,223 @@ async function getWorkersList() {
     const snap = await getDocs(collection(window._db, 'workers'));
     const docs = [];
     snap.forEach(d => docs.push({id:d.id, ...d.data()}));
-    return docs.sort((a,b)=>(a.empNo||'').localeCompare(b.empNo||''));
+    docs.sort((a,b)=>(a.empNo||'').localeCompare(b.empNo||''));
+    return docs.sort((a,b)=>(a.name||'').localeCompare(b.name||'','ko'));
   } catch(e) { return []; }
 }
 
 // ════════════════════════════════
+// 👥 근로자 명부
+// ════════════════════════════════
+let rosterView = 'main'; // main | register | list
+let rosterForm = { name:'', jumin:'', phone:'', address:'', dept:'', rank:'', job:'', empType:'', hireDate:'', bankAccount:'' };
+
+window.renderRosterMain = () => {
+  const el = document.getElementById('tab-roster');
+  if (!el) return;
+  rosterView = 'main';
+  el.innerHTML = wrap2(`
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;">${homeBtn()}</div>
+    <div style="font-size:13px;color:#5C6F8A;margin-bottom:16px;font-weight:600;">작업을 선택해 주세요</div>
+    <div style="display:flex;flex-direction:column;gap:10px;">
+      ${selectMain('✏️','등록','renderRosterRegister()','근로자 기본 정보 신규 등록')}
+      ${selectMain('📂','조회','renderRosterList()','등록된 근로자 전체 조회 및 관리')}
+    </div>`);
+};
+
+window.renderRosterRegister = () => {
+  const el = document.getElementById('tab-roster');
+  rosterForm = { name:'', jumin:'', phone:'', address:'', dept:'', rank:'', job:'' };
+  el.innerHTML = wrap2(`
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;">
+      ${backBtn2('renderRosterMain()')}
+      <span style="font-size:13px;font-weight:700;color:${C2.text};">근로자 등록</span>
+    </div>
+    ${card2('👤 기본 정보', `
+      ${field2('이름', `<input type="text" placeholder="성명 입력" oninput="rosterForm.name=this.value" ${inp2Style}>`)}
+      ${field2('주민등록번호', `<input type="text" placeholder="000000-0000000" maxlength="14" oninput="rosterForm.jumin=fmtJumin2(this.value);this.value=rosterForm.jumin;" ${inp2Style}>`)}
+      ${field2('휴대폰번호', `<input type="text" placeholder="010-0000-0000" oninput="rosterForm.phone=fmtPhone2(this.value);this.value=rosterForm.phone;" onblur="fmtTelBlur(this)" ${inp2Style}>`)}
+      ${field2('주소', `<input type="text" placeholder="주소 입력" oninput="rosterForm.address=this.value" ${inp2Style}>`)}
+    `)}
+    ${card2('💼 소속 및 업무', `
+      ${field2('직원 구분', `
+        <div style="display:flex;gap:8px;margin-bottom:8px;">
+          <button onclick="rosterForm.empType='field';this.parentElement.querySelectorAll('button').forEach(b=>b.style.background='#F8FAFD');this.style.background='#E8F0FB';this.style.color='#1D5BA6';this.style.borderColor='#1D5BA6';"
+            style="flex:1;padding:9px;border-radius:8px;border:2px solid #DDE4EF;background:#F8FAFD;color:#5C6F8A;font-weight:700;font-size:13px;cursor:pointer;">
+            🔧 현장직
+          </button>
+          <button onclick="rosterForm.empType='office';this.parentElement.querySelectorAll('button').forEach(b=>b.style.background='#F8FAFD');this.style.background='#E8F0FB';this.style.color='#1D5BA6';this.style.borderColor='#1D5BA6';"
+            style="flex:1;padding:9px;border-radius:8px;border:2px solid #DDE4EF;background:#F8FAFD;color:#5C6F8A;font-weight:700;font-size:13px;cursor:pointer;">
+            💼 사무직
+          </button>
+        </div>
+      `)}
+      ${field2('소속', `<select onchange="rosterForm.dept=this.value" style="width:100%;border:1px solid #DDE4EF;border-radius:8px;padding:9px 12px;font-size:13px;color:#1A2540;background:#FAFCFF;cursor:pointer;">
+        <option value="">선택하세요</option>
+        ${['사업본부','현장관리팀','인력배치팀','경영지원본부','경영총무팀','영업기획팀'].map(d=>`<option value="${d}">${d}</option>`).join('')}
+      </select>`)}
+      ${field2('직급', `<select onchange="rosterForm.rank=this.value" style="width:100%;border:1px solid #DDE4EF;border-radius:8px;padding:9px 12px;font-size:13px;color:#1A2540;background:#FAFCFF;cursor:pointer;">
+        <option value="">선택하세요</option>
+        ${['과장','대리','사원'].map(r=>`<option value="${r}">${r}</option>`).join('')}
+      </select>`)}
+      ${field2('최초 입사일', `<input type="date" onchange="rosterForm.hireDate=this.value" ${inp2Style}>`)}
+      ${field2('담당업무', `<input type="text" placeholder="담당 업무 입력" oninput="rosterForm.job=this.value" ${inp2Style}>`)}
+      ${field2('계좌번호', `<input type="text" placeholder="예: 국민은행 123-456-7890" oninput="rosterForm.bankAccount=this.value" ${inp2Style}>`)}
+    `)}
+    <button onclick="rosterSave()" style="width:100%;padding:13px;background:${C2.green};border:none;border-radius:12px;color:#fff;font-size:14px;font-weight:700;cursor:pointer;">✅ 등록 완료</button>
+  `);
+};
+
+window.fmtJumin2 = v => { const d=v.replace(/-/g,'').replace(/\D/g,''); return d.length<=6?d:d.slice(0,6)+'-'+d.slice(6,13); };
+// 전화번호 포맷 공통 함수
+function fmtTel(v){
+  var d=v.replace(/\D/g,'');
+  if(d.length<=3) return d;
+  if(d.length<=6) return d.slice(0,3)+'-'+d.slice(3);
+  if(d.length<=10) return d.slice(0,3)+'-'+d.slice(3,6)+'-'+d.slice(6);
+  return d.slice(0,3)+'-'+d.slice(3,7)+'-'+d.slice(7,11);
+}
+function fmtTelBlur(el){
+  var d=el.value.replace(/\D/g,'');
+  if(d.length===8 && d[0]!=='0') d='010'+d;
+  el.value=fmtTel(d);
+}
+window.fmtPhone2 = v => fmtTel(v);
+
+
+window.rosterSave = async () => {
+  if (!rosterForm.name||!rosterForm.jumin) { alert('이름과 주민등록번호는 필수입니다.'); return; }
+  if (!window._db) { alert('Firebase 연결 필요'); return; }
+  try {
+    const { getDocs, collection, setDoc, doc } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+    const wid = `${rosterForm.name}_${rosterForm.jumin.replace(/-/g,'')}`;
+
+    // 사원번호 규칙: 최초입사년도 yy + 해당 년도 순번 nnn → yynnn (5자리)
+    // 예: 25년 첫번째 → 25001, 28년 30번째 → 28030
+    const hireDate = rosterForm.hireDate || new Date().toISOString().slice(0,10);
+    const yy = hireDate.slice(2,4); // 입사년도 2자리
+
+    const snap = await getDocs(collection(window._db, 'workers'));
+    // 같은 입사년도(yy)로 시작하는 사원번호 중 최대값 추출
+    let maxSeq = 0;
+    snap.forEach(d => {
+      const no = d.data().empNo || '';
+      if (no.length === 5 && no.slice(0,2) === yy) {
+        const seq = parseInt(no.slice(2), 10);
+        if (seq > maxSeq) maxSeq = seq;
+      }
+    });
+    const nextNo = yy + String(maxSeq + 1).padStart(3, '0');
+
+    await setDoc(doc(window._db,'workers',wid), {
+      ...rosterForm,
+      empNo: nextNo,
+      registeredAt: new Date().toISOString(),
+      hireDate: rosterForm.hireDate || '',
+      bankAccount: rosterForm.bankAccount || ''
+    });
+    alert(`✅ 등록 완료! 사원번호: ${nextNo}`);
+    renderRosterMain();
+  } catch(e) { alert('오류: '+e.message); }
+};
+
+window.renderRosterList = async () => {
+  const el = document.getElementById('tab-roster');
+  el.innerHTML = wrap2(`
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">
+      ${backBtn2('renderRosterMain()')}
+      <span style="font-size:12px;color:${C2.sub};font-weight:600;">근로자 명부</span>
+    </div>
+    <div id="roster-list-loading" style="text-align:center;padding:32px;color:${C2.mute};">⏳ 불러오는 중...</div>
+    <div id="roster-list-wrap"></div>
+  `);
+
+  if (!window._db) { setTimeout(renderRosterList,500); return; }
+  try {
+    const { getDocs, collection, doc, deleteDoc, getDoc } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+    const snap = await getDocs(collection(window._db,'workers'));
+    const docs = []; snap.forEach(d=>docs.push({id:d.id,...d.data()}));
+    docs.sort((a,b)=>(a.empNo||'').localeCompare(b.empNo||''));
+    docs.sort((a,b)=>{
+      if(a.dept!==b.dept)return(a.dept||'').localeCompare(b.dept||'','ko');
+      if(a.empNo!==b.empNo)return(a.empNo||'').localeCompare(b.empNo||'');
+      return(a.rank||'').localeCompare(b.rank||'','ko');
+    });
+    window._rosterDocs2 = docs;
+
+    // 각 근로자의 계약 만료일 조회
+    const contractInfo = {};
+    for (const d of docs) {
+      try {
+        const lSnap = await getDocs(collection(window._db,`labor_contracts/${d.id}/contracts`));
+        let lLatest=''; lSnap.forEach(c=>{ const ed=c.data().endDate||''; if(ed>lLatest)lLatest=ed; });
+        const aSnap = await getDocs(collection(window._db,`annual_contracts/${d.id}/contracts`));
+        let aLatest=''; aSnap.forEach(c=>{ const ed=c.data().endDate||''; if(ed>aLatest)aLatest=ed; });
+        contractInfo[d.id] = { labor:lLatest, annual:aLatest, laborCnt:lSnap.size, annualCnt:aSnap.size };
+      } catch(e) { contractInfo[d.id]={labor:'',annual:'',laborCnt:0,annualCnt:0}; }
+    }
+
+    document.getElementById('roster-list-loading').style.display='none';
+    if (!docs.length) {
+      document.getElementById('roster-list-wrap').innerHTML='<div style="text-align:center;padding:40px;color:'+C2.mute+';">등록된 근로자가 없습니다.</div>';
+      return;
+    }
+
+    const rows = docs.map((d,i)=>{
+      const birth=(d.jumin||'').slice(0,6);
+      const bf=birth.length===6?`${birth.slice(0,2)}.${birth.slice(2,4)}.${birth.slice(4,6)}`:'-';
+      const ci=contractInfo[d.id]||{};
+      const now=new Date().toISOString().slice(0,10);
+      const lExp=ci.labor?ci.labor:null;
+      const aExp=ci.annual?ci.annual:null;
+      const lColor=lExp?(lExp<now?C2.red:C2.green):C2.mute;
+      const aColor=aExp?(aExp<now?C2.red:C2.green):C2.mute;
+      return `
+        <div style="background:${i%2===0?'#fff':'#F8FAFD'};border-bottom:1px solid #F0F4FA;padding:10px 12px;">
+          <div style="display:grid;grid-template-columns:0.5fr 1fr 0.8fr 0.5fr 0.7fr 0.9fr;gap:6px;align-items:center;margin-bottom:6px;">
+            <div>
+              <span id="eno-d-${d.id}" style="font-size:12px;font-weight:700;color:${C2.blue};cursor:pointer;text-decoration:underline;" onclick="rosterEmpNoEdit('${d.id}','${d.empNo||''}')">
+                ${d.empNo||'-'}
+              </span>
+              <div id="eno-e-${d.id}" style="display:none;flex;gap:2px;">
+                <input id="eno-i-${d.id}" value="${d.empNo||''}" style="width:35px;border:1px solid ${C2.blue};border-radius:4px;padding:2px 3px;font-size:10px;text-align:center;"/>
+                <button onclick="rosterEmpNoSave('${d.id}')" style="background:${C2.blue};border:none;border-radius:3px;color:#fff;font-size:9px;padding:2px 4px;cursor:pointer;">✓</button>
+              </div>
+            </div>
+            <div style="font-size:11px;color:${C2.text};">${d.dept||'-'}</div>
+            <div style="font-size:12px;font-weight:600;color:${C2.blue};cursor:pointer;text-decoration:underline;" onclick="rosterDetail('${d.id}')">${d.name||'-'}</div>
+            <div style="font-size:11px;color:${C2.sub};">${d.rank||'-'}</div>
+            <div style="font-size:10px;color:${C2.sub};">${bf}</div>
+            <div style="font-size:10px;color:${C2.sub};">${d.phone||'-'}</div>
+          </div>
+          <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+            <span style="font-size:10px;background:${lExp?'#E8F0FB':'#F8FAFD'};color:${lColor};border:1px solid ${lExp?'#DDE4EF':'#EEE'};padding:2px 8px;border-radius:8px;font-weight:600;">
+              📝 근로계약 ${lExp?fmtD2(lExp)+' 만료':ci.laborCnt?'확인필요':'미작성'}
+            </span>
+            <span style="font-size:10px;background:${aExp?'#E8F0FB':'#F8FAFD'};color:${aColor};border:1px solid ${aExp?'#DDE4EF':'#EEE'};padding:2px 8px;border-radius:8px;font-weight:600;">
+              📋 연봉계약 ${aExp?fmtD2(aExp)+' 만료':ci.annualCnt?'확인필요':'미작성'}
+            </span>
+            <button onclick="rosterDelete('${d.id}','${d.name}')"
+              style="margin-left:auto;font-size:10px;background:${C2.redLt};color:${C2.red};border:1px solid #fca5a5;padding:2px 8px;border-radius:8px;cursor:pointer;font-weight:600;">
+              🗑 삭제
+            </button>
+          </div>
+        </div>`;
+    }).join('');
+
+    document.getElementById('roster-list-wrap').innerHTML=`
+      <div style="background:#fff;border-radius:12px;border:1px solid #DDE4EF;overflow:hidden;box-shadow:${C2.shadow};">
+        <div style="display:grid;grid-template-columns:0.5fr 1fr 0.8fr 0.5fr 0.7fr 0.9fr;background:#E8F0FB;padding:9px 12px;gap:6px;">
+          ${['사원번호','소속','이름','직급','생년월일','휴대폰'].map(h=>`<div style="font-size:10px;font-weight:700;color:${C2.blue};">${h}</div>`).join('')}
+        </div>
+        ${rows}
+      </div>
+      <div style="font-size:11px;color:${C2.mute};margin-top:6px;">💡 사원번호 클릭 수정 / 🔴 만료 🟢 유효</div>`;
+  } catch(e) { document.getElementById('roster-list-loading').innerHTML=`<div style="color:${C2.red};">오류: ${e.message}</div>`; }
+};
+
+
+// 한국 공휴일 (2024~2027 주요 공휴일)
 const KR_HOLIDAYS = new Set([
   '2024-01-01','2024-02-09','2024-02-10','2024-02-11','2024-02-12',
   '2024-03-01','2024-04-10','2024-05-05','2024-05-06','2024-05-15',
@@ -2564,430 +2473,148 @@ function calcWorkDays(startStr, endStr) {
   return { days:workDays, calDays:totalDays, years, months };
 }
 
-
-// 👥 근로자 명부
-// ════════════════════════════════
-let rosterForm = {
-  name:'', jumin:'', phone:'', address:'', dept:'', rank:'',
-  job:'', empType:'', hireDate:'', bankAccount:'', portalUid:'', signData:null
-};
-
-// ── 전역 유틸: 계약서·전자결재에서 언제든 호출 ──
-window.getWorkerData = async (workerId) => {
-  if (!window._db || !workerId) return null;
-  try {
-    const { getDoc, doc } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
-    const snap = await getDoc(doc(window._db, 'workers', workerId));
-    return snap.exists() ? { id: snap.id, ...snap.data() } : null;
-  } catch(e) { return null; }
-};
-
-// ── 근로자 목록 로드 (내부 캐시 갱신) ──
-async function _loadRosterDocs() {
-  if (!window._db) return [];
-  const { getDocs, collection } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
-  const snap = await getDocs(collection(window._db, 'workers'));
-  const docs = []; snap.forEach(d => docs.push({ id:d.id, ...d.data() }));
-  docs.sort((a,b) => (a.empNo||'').localeCompare(b.empNo||''));
-  window._rosterDocs2 = docs;
-  return docs;
-}
-
-// ── 명부 메인: 목록 테이블 직접 표시 ──
-window.renderRosterMain = async () => {
-  const el = document.getElementById('tab-roster');
-  if (!el) return;
-  el.innerHTML = `<div style="padding:20px 24px;max-width:1100px;margin:0 auto;">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;">
-      <div style="font-size:16px;font-weight:800;color:#1A2540;">👥 근로자 명부</div>
-      <button onclick="renderRosterRegister()" style="background:#1D5BA6;border:none;border-radius:9px;padding:8px 18px;color:#fff;font-size:13px;font-weight:700;cursor:pointer;box-shadow:0 2px 8px rgba(29,91,166,0.18);">➕ 신규 등록</button>
-    </div>
-    <div id="roster-list-loading" style="text-align:center;padding:48px;color:#9AAABF;">⏳ 불러오는 중...</div>
-    <div id="roster-list-wrap"></div>
-  </div>`;
-  if (!window._db) { setTimeout(renderRosterMain, 500); return; }
-  try {
-    const docs = await _loadRosterDocs();
-    const { getDocs, collection } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
-    const ci = {};
-    for (const d of docs) {
-      try {
-        const lS = await getDocs(collection(window._db,`labor_contracts/${d.id}/contracts`));
-        let lL=''; lS.forEach(c=>{ const e=c.data().endDate||''; if(e>lL) lL=e; });
-        const aS = await getDocs(collection(window._db,`annual_contracts/${d.id}/contracts`));
-        let aL=''; aS.forEach(c=>{ const e=c.data().endDate||''; if(e>aL) aL=e; });
-        ci[d.id]={ labor:lL, annual:aL, laborCnt:lS.size, annualCnt:aS.size };
-      } catch(e) { ci[d.id]={ labor:'', annual:'', laborCnt:0, annualCnt:0 }; }
-    }
-    document.getElementById('roster-list-loading').style.display='none';
-    if (!docs.length) {
-      document.getElementById('roster-list-wrap').innerHTML =
-        '<div style="text-align:center;padding:48px;color:#9AAABF;">등록된 근로자가 없습니다.</div>';
-      return;
-    }
-    const now = new Date().toISOString().slice(0,10);
-    const rows = docs.map((d,i) => {
-      const birth=(d.jumin||'').slice(0,6);
-      const bf=birth.length===6?birth.slice(0,2)+'.'+birth.slice(2,4)+'.'+birth.slice(4,6):'-';
-      const c=ci[d.id]||{};
-      const lE=c.labor||null, aE=c.annual||null;
-      const lC=lE?(lE<now?'#DC2626':'#16A34A'):'#9AAABF';
-      const aC=aE?(aE<now?'#DC2626':'#16A34A'):'#9AAABF';
-      const etB=d.empType==='field'
-        ?'<span style="font-size:10px;background:#FEF3C7;color:#92400E;padding:1px 7px;border-radius:6px;font-weight:700;">현장</span>'
-        :d.empType==='office'
-        ?'<span style="font-size:10px;background:#E8F0FB;color:#1D5BA6;padding:1px 7px;border-radius:6px;font-weight:700;">사무</span>'
-        :'<span style="font-size:10px;background:#F3F4F6;color:#9AAABF;padding:1px 7px;border-radius:6px;">미지정</span>';
-      const ptB=d.portalUid
-        ?'<span style="font-size:10px;background:#DCFCE7;color:#15803D;padding:1px 7px;border-radius:6px;font-weight:700;" title="포털 연동됨">🔗</span>'
-        :'<span style="font-size:10px;background:#F3F4F6;color:#9AAABF;padding:1px 7px;border-radius:6px;">미연동</span>';
-      const lTxt=lE?(lE<now?'⚠️ 만료':'✅ '+fmtD2(lE)):c.laborCnt?'확인필요':'미작성';
-      const aTxt=aE?(aE<now?'⚠️ 만료':'✅ '+fmtD2(aE)):c.annualCnt?'확인필요':'미작성';
-      return `<tr style="background:${i%2===0?'#fff':'#F8FAFD'};border-bottom:1px solid #F0F4FA;" onmouseover="this.style.background='#EEF4FF'" onmouseout="this.style.background='${i%2===0?'#fff':'#F8FAFD'}'">
-        <td style="padding:10px 12px;font-size:12px;font-weight:700;color:#1D5BA6;">
-          <span id="eno-d-${d.id}" style="cursor:pointer;text-decoration:underline;" onclick="rosterEmpNoEdit('${d.id}','${d.empNo||''}')">${d.empNo||'-'}</span>
-          <span id="eno-e-${d.id}" style="display:none;align-items:center;gap:3px;">
-            <input id="eno-i-${d.id}" value="${d.empNo||''}" style="width:44px;border:1px solid #1D5BA6;border-radius:4px;padding:2px 4px;font-size:11px;text-align:center;"/>
-            <button onclick="rosterEmpNoSave('${d.id}')" style="background:#1D5BA6;border:none;border-radius:3px;color:#fff;font-size:10px;padding:2px 5px;cursor:pointer;">✓</button>
-            <button onclick="rosterEmpNoCancel('${d.id}')" style="background:#9AAABF;border:none;border-radius:3px;color:#fff;font-size:10px;padding:2px 5px;cursor:pointer;">✕</button>
-          </span>
-        </td>
-        <td style="padding:10px 12px;font-size:12px;font-weight:700;color:#1D5BA6;cursor:pointer;text-decoration:underline;" onclick="rosterDetail('${d.id}')">${d.name||'-'}</td>
-        <td style="padding:10px 12px;font-size:11px;color:#1A2540;">${d.dept||'-'}</td>
-        <td style="padding:10px 12px;font-size:11px;color:#5C6F8A;">${d.rank||'-'}</td>
-        <td style="padding:10px 12px;">${etB}</td>
-        <td style="padding:10px 12px;font-size:11px;color:#5C6F8A;">${bf}</td>
-        <td style="padding:10px 12px;font-size:11px;color:#5C6F8A;">${d.phone||'-'}</td>
-        <td style="padding:10px 12px;font-size:10px;"><span style="color:${lC};font-weight:600;">${lTxt}</span></td>
-        <td style="padding:10px 12px;font-size:10px;"><span style="color:${aC};font-weight:600;">${aTxt}</span></td>
-        <td style="padding:10px 12px;">${ptB}</td>
-        <td style="padding:10px 12px;"><button onclick="rosterDelete('${d.id}','${d.name}')" style="font-size:10px;background:#FEE2E2;color:#DC2626;border:1px solid #fca5a5;padding:2px 8px;border-radius:6px;cursor:pointer;font-weight:600;">🗑</button></td>
-      </tr>`;
-    }).join('');
-    document.getElementById('roster-list-wrap').innerHTML = `
-      <div style="background:#fff;border-radius:14px;border:1px solid #DDE4EF;overflow:hidden;box-shadow:0 1px 4px rgba(29,91,166,0.08);">
-        <table style="width:100%;border-collapse:collapse;">
-          <thead><tr style="background:#E8F0FB;">
-            ${['사원번호','이름','소속','직급','구분','생년월일','휴대폰','근로계약','연봉계약','포털',''].map(h=>`<th style="padding:10px 12px;font-size:11px;font-weight:700;color:#1D5BA6;text-align:left;white-space:nowrap;">${h}</th>`).join('')}
-          </tr></thead>
-          <tbody>${rows}</tbody>
-        </table>
-      </div>
-      <div style="font-size:11px;color:#9AAABF;margin-top:8px;padding:0 4px;">
-        💡 사원번호 클릭 → 수정 &nbsp;·&nbsp; 이름 클릭 → 상세/수정
-      </div>`;
-  } catch(e) {
-    const lel=document.getElementById('roster-list-loading');
-    if(lel) lel.innerHTML='<div style="color:#DC2626;padding:24px;text-align:center;">오류: '+e.message+'</div>';
-  }
-};
-
-// ── 사원번호 인라인 수정 ──
-window.rosterEmpNoEdit = (id) => {
-  document.getElementById('eno-d-'+id).style.display='none';
-  document.getElementById('eno-e-'+id).style.display='inline-flex';
-};
-window.rosterEmpNoCancel = (id) => {
-  document.getElementById('eno-d-'+id).style.display='';
-  document.getElementById('eno-e-'+id).style.display='none';
-};
-window.rosterEmpNoSave = async (id) => {
-  const v=(document.getElementById('eno-i-'+id)?.value||'').trim(); if(!v)return;
-  const { doc, updateDoc } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
-  await updateDoc(doc(window._db,'workers',id),{ empNo:v });
-  const w=(window._rosterDocs2||[]).find(x=>x.id===id);
-  if(w?.portalUid){
-    try{ await updateDoc(doc(window._db,'portal_users',w.portalUid),{ empNo:v }); }catch(e){}
-  }
-  renderRosterMain();
-};
-
-// ── 삭제 ──
-window.rosterDelete = async (id, name) => {
-  if(!confirm(name+'님을 명부에서 삭제하시겠습니까?\n(계약서 데이터는 유지됩니다.)')) return;
-  const { doc, deleteDoc } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
-  await deleteDoc(doc(window._db,'workers',id));
-  renderRosterMain();
-};
-
-// ── 상세/수정 모달 ──
 window.rosterDetail = (id) => {
-  const d=(window._rosterDocs2||[]).find(x=>x.id===id); if(!d)return;
-  const w=calcWorkDays?calcWorkDays(d.hireDate):{ years:0, months:0, calDays:0, days:0 };
-  window._editRosterTarget={...d};
-  const DEPTS2=['사업본부','현장관리팀','인력배치팀','경영지원본부','경영총무팀','영업기획팀'];
-  const RANKS2=['대표','부사장','차장','과장','대리','사원'];
-  const etB=d.empType==='field'
-    ?'<span style="font-size:11px;background:#FEF3C7;color:#92400E;padding:2px 8px;border-radius:8px;font-weight:700;">🔧 현장직</span>'
-    :d.empType==='office'
-    ?'<span style="font-size:11px;background:#E8F0FB;color:#1D5BA6;padding:2px 8px;border-radius:8px;font-weight:700;">💼 사무직</span>'
-    :'';
-  const signSec=d.signData
-    ?'<img src="'+d.signData+'" style="width:160px;height:60px;object-fit:contain;border:1px solid #DDE4EF;border-radius:8px;display:block;margin-bottom:6px;"/>'
-     +'<button onclick="window._editRosterTarget.signData=null;document.getElementById(\'rd-sign-preview\').innerHTML=\'<div style=\\\'color:#9AAABF;font-size:12px;\\\'>서명 없음</div>\';" style="font-size:11px;color:#9AAABF;background:none;border:none;cursor:pointer;text-decoration:underline;">지우기</button>'
-    :'<div style="color:#9AAABF;font-size:12px;">서명 없음</div>';
-  const workPeriod = d.hireDate
-    ? (w.years>0?w.years+'년 ':'')+w.months+'개월 ('+w.calDays+'일)'
-    : '-';
-  const ex=document.getElementById('roster-detail-modal'); if(ex)ex.remove();
-  const modal=document.createElement('div');
-  modal.id='roster-detail-modal';
-  modal.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px;';
-  modal.innerHTML=`<div style="background:#fff;border-radius:16px;padding:24px;width:100%;max-width:440px;max-height:92vh;overflow-y:auto;box-shadow:0 8px 32px rgba(0,0,0,0.2);">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
-      <div>
-        <div style="font-size:16px;font-weight:800;color:#1A2540;">${d.name}</div>
-        <div style="font-size:12px;color:#5C6F8A;margin-top:2px;">${d.dept||''} · ${d.rank||''} &nbsp;${etB}</div>
+  const d = (window._rosterDocs2||[]).find(x=>x.id===id);
+  if (!d) return;
+  const w = calcWorkDays(d.hireDate);
+  const empTypeBadge = d.empType==='field'
+    ? `<span style="font-size:11px;background:#FEF3C7;color:#92400E;padding:2px 8px;border-radius:8px;font-weight:700;">🔧 현장직</span>`
+    : d.empType==='office'
+    ? `<span style="font-size:11px;background:#E8F0FB;color:#1D5BA6;padding:2px 8px;border-radius:8px;font-weight:700;">💼 사무직</span>`
+    : '';
+
+  // 모달 표시
+  const existing = document.getElementById('roster-detail-modal');
+  if (existing) existing.remove();
+
+  const modal = document.createElement('div');
+  modal.id = 'roster-detail-modal';
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px;';
+  // 수정 가능한 상세 모달
+  const DEPTS2 = ['사업본부','현장관리팀','인력배치팀','경영지원본부','경영총무팀','영업기획팀'];
+  const RANKS2 = ['과장','대리','사원'];
+  window._editRosterTarget = {...d};
+
+  modal.innerHTML = `
+    <div style="background:#fff;border-radius:16px;padding:24px;width:100%;max-width:400px;max-height:90vh;overflow-y:auto;box-shadow:0 8px 32px rgba(0,0,0,0.2);">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+        <div>
+          <div style="font-size:16px;font-weight:800;color:#1A2540;">${d.name}</div>
+          <div style="font-size:12px;color:#5C6F8A;margin-top:2px;">${d.dept||''} · ${d.rank||''} &nbsp; ${empTypeBadge}</div>
+        </div>
+        <button onclick="document.getElementById('roster-detail-modal').remove()"
+          style="background:#F4F7FB;border:none;border-radius:8px;padding:6px 10px;cursor:pointer;font-size:16px;color:#5C6F8A;">✕</button>
       </div>
-      <button onclick="document.getElementById('roster-detail-modal').remove()" style="background:#F4F7FB;border:none;border-radius:8px;padding:6px 10px;cursor:pointer;font-size:16px;color:#5C6F8A;">✕</button>
-    </div>
-    <div style="background:#F4F7FB;border-radius:12px;padding:14px;margin-bottom:10px;">
-      <div style="font-size:11px;font-weight:700;color:#1D5BA6;margin-bottom:10px;">📅 재직 정보</div>
-      <div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid #DDE4EF;font-size:12px;">
-        <span style="color:#5C6F8A;font-weight:600;min-width:80px;">최초 입사일</span>
-        <input type="date" value="${d.hireDate||''}" onchange="window._editRosterTarget.hireDate=this.value;" style="border:1px solid #DDE4EF;border-radius:6px;padding:3px 6px;font-size:12px;color:#1A2540;"/>
+
+      <!-- 재직 정보 -->
+      <div style="background:#F4F7FB;border-radius:12px;padding:14px;margin-bottom:10px;">
+        <div style="font-size:11px;font-weight:700;color:#1D5BA6;margin-bottom:10px;letter-spacing:1px;">📅 재직 정보</div>
+        <div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid #DDE4EF;font-size:12px;">
+          <span style="color:#5C6F8A;font-weight:600;min-width:80px;">최초 입사일</span>
+          <input type="date" value="${d.hireDate||''}" onchange="window._editRosterTarget.hireDate=this.value;"
+            style="border:1px solid #DDE4EF;border-radius:6px;padding:3px 6px;font-size:12px;color:#1A2540;"/>
+        </div>
+        <div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid #DDE4EF;font-size:12px;">
+          <span style="color:#5C6F8A;font-weight:600;">재직 기간</span>
+          <span style="color:#1A2540;font-weight:600;">${d.hireDate ? `${w.years>0?w.years+'년 ':''}${w.months}개월 (${w.calDays}일)` : '-'}</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid #DDE4EF;font-size:12px;">
+          <span style="color:#5C6F8A;font-weight:600;">실 근무일수</span>
+          <span style="color:#1D5BA6;font-weight:700;">${d.hireDate ? w.days.toLocaleString()+'일' : '-'}</span>
+        </div>
+        <div style="padding:8px 0 2px;">
+          <div style="font-size:10px;font-weight:700;color:#1D5BA6;margin-bottom:6px;letter-spacing:1px;">💰 퇴직금 (예상)</div>
+          <div style="background:#fff;border-radius:8px;padding:10px 12px;border:1px solid #DDE4EF;">
+            <div style="font-size:11px;color:#5C6F8A;margin-bottom:4px;">계산식: 최근 3개월 평균 지급계 × 실 근무일수</div>
+            <div style="font-size:12px;color:#9AAABF;font-style:italic;">
+              ※ 급여명세서 등록 후 자동 계산됩니다
+            </div>
+          </div>
+        </div>
       </div>
-      <div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid #DDE4EF;font-size:12px;">
-        <span style="color:#5C6F8A;font-weight:600;">재직 기간</span>
-        <span style="color:#1A2540;font-weight:600;">${workPeriod}</span>
-      </div>
-      <div style="display:flex;justify-content:space-between;padding:7px 0;font-size:12px;">
-        <span style="color:#5C6F8A;font-weight:600;">실 근무일수</span>
-        <span style="color:#1D5BA6;font-weight:700;">${d.hireDate?w.days.toLocaleString()+'일':'-'}</span>
-      </div>
-    </div>
-    <div style="background:#F4F7FB;border-radius:12px;padding:14px;margin-bottom:10px;">
-      <div style="font-size:11px;font-weight:700;color:#1D5BA6;margin-bottom:10px;">👤 기본 정보</div>
-      ${[
-        {label:'이름',key:'name',val:d.name||''},
-        {label:'주민번호',key:'jumin',val:d.jumin||''},
-        {label:'휴대폰',key:'phone',val:d.phone||''},
-        {label:'주소',key:'address',val:d.address||''},
-        {label:'계좌번호',key:'bankAccount',val:d.bankAccount||''},
-        {label:'담당업무',key:'job',val:d.job||''},
-      ].map(f=>`
+
+      <!-- 수정 가능한 기본 정보 -->
+      <div style="background:#F4F7FB;border-radius:12px;padding:14px;margin-bottom:10px;">
+        <div style="font-size:11px;font-weight:700;color:#1D5BA6;margin-bottom:10px;letter-spacing:1px;">👤 기본 정보 수정</div>
+        ${[
+          {label:'이름', key:'name', type:'text', val:d.name||''},
+          {label:'주민번호', key:'jumin', type:'text', val:d.jumin||''},
+          {label:'휴대폰', key:'phone', type:'text', val:d.phone||''},
+          {label:'주소', key:'address', type:'text', val:d.address||''},
+          {label:'계좌번호', key:'bankAccount', type:'text', val:d.bankAccount||''},
+        ].map(f=>`
+          <div style="display:flex;align-items:center;padding:6px 0;border-bottom:1px solid #DDE4EF;gap:8px;">
+            <span style="color:#5C6F8A;font-weight:600;min-width:68px;font-size:12px;flex-shrink:0;">${f.label}</span>
+            <input type="${f.type}" value="${f.val}" oninput="window._editRosterTarget['${f.key}']=(f.key==='phone'?fmtTel(this.value):this.value);if(f.key==='phone')this.value=fmtTel(this.value);" ${f.key==='phone'?'onblur="fmtTelBlur(this)"':''}
+              style="flex:1;border:1px solid #DDE4EF;border-radius:6px;padding:4px 8px;font-size:12px;color:#1A2540;"/>
+          </div>`).join('')}
         <div style="display:flex;align-items:center;padding:6px 0;border-bottom:1px solid #DDE4EF;gap:8px;">
-          <span style="color:#5C6F8A;font-weight:600;min-width:68px;font-size:12px;flex-shrink:0;">${f.label}</span>
-          <input type="text" value="${f.val.replace(/"/g,'&quot;')}" oninput="window._editRosterTarget['${f.key}']=this.value;" style="flex:1;border:1px solid #DDE4EF;border-radius:6px;padding:4px 8px;font-size:12px;color:#1A2540;"/>
-        </div>`).join('')}
-      <div style="display:flex;align-items:center;padding:6px 0;border-bottom:1px solid #DDE4EF;gap:8px;">
-        <span style="color:#5C6F8A;font-weight:600;min-width:68px;font-size:12px;flex-shrink:0;">소속</span>
-        <select onchange="window._editRosterTarget.dept=this.value;" style="flex:1;border:1px solid #DDE4EF;border-radius:6px;padding:4px 8px;font-size:12px;color:#1A2540;cursor:pointer;">
-          ${DEPTS2.map(dep=>'<option value="'+dep+'" '+(d.dept===dep?'selected':'')+'>'+dep+'</option>').join('')}
-        </select>
-      </div>
-      <div style="display:flex;align-items:center;padding:6px 0;border-bottom:1px solid #DDE4EF;gap:8px;">
-        <span style="color:#5C6F8A;font-weight:600;min-width:68px;font-size:12px;flex-shrink:0;">직급</span>
-        <select onchange="window._editRosterTarget.rank=this.value;" style="flex:1;border:1px solid #DDE4EF;border-radius:6px;padding:4px 8px;font-size:12px;color:#1A2540;cursor:pointer;">
-          ${RANKS2.map(r=>'<option value="'+r+'" '+(d.rank===r?'selected':'')+'>'+r+'</option>').join('')}
-        </select>
-      </div>
-      <div style="display:flex;align-items:center;padding:6px 0;gap:8px;">
-        <span style="color:#5C6F8A;font-weight:600;min-width:68px;font-size:12px;flex-shrink:0;">구분</span>
-        <div style="display:flex;gap:6px;flex:1;">
-          <button id="rd-btn-field" onclick="window._editRosterTarget.empType='field';document.getElementById('rd-btn-field').style.cssText='flex:1;padding:6px;border-radius:7px;border:2px solid #1D5BA6;background:#E8F0FB;color:#1D5BA6;font-size:12px;font-weight:700;cursor:pointer;';document.getElementById('rd-btn-office').style.cssText='flex:1;padding:6px;border-radius:7px;border:2px solid #DDE4EF;background:#F8FAFD;color:#5C6F8A;font-size:12px;font-weight:700;cursor:pointer;';" style="flex:1;padding:6px;border-radius:7px;border:2px solid ${d.empType==='field'?'#1D5BA6':'#DDE4EF'};background:${d.empType==='field'?'#E8F0FB':'#F8FAFD'};color:${d.empType==='field'?'#1D5BA6':'#5C6F8A'};font-size:12px;font-weight:700;cursor:pointer;">🔧 현장직</button>
-          <button id="rd-btn-office" onclick="window._editRosterTarget.empType='office';document.getElementById('rd-btn-office').style.cssText='flex:1;padding:6px;border-radius:7px;border:2px solid #1D5BA6;background:#E8F0FB;color:#1D5BA6;font-size:12px;font-weight:700;cursor:pointer;';document.getElementById('rd-btn-field').style.cssText='flex:1;padding:6px;border-radius:7px;border:2px solid #DDE4EF;background:#F8FAFD;color:#5C6F8A;font-size:12px;font-weight:700;cursor:pointer;';" style="flex:1;padding:6px;border-radius:7px;border:2px solid ${d.empType==='office'?'#1D5BA6':'#DDE4EF'};background:${d.empType==='office'?'#E8F0FB':'#F8FAFD'};color:${d.empType==='office'?'#1D5BA6':'#5C6F8A'};font-size:12px;font-weight:700;cursor:pointer;">💼 사무직</button>
+          <span style="color:#5C6F8A;font-weight:600;min-width:68px;font-size:12px;flex-shrink:0;">소속</span>
+          <select onchange="window._editRosterTarget.dept=this.value;"
+            style="flex:1;border:1px solid #DDE4EF;border-radius:6px;padding:4px 8px;font-size:12px;color:#1A2540;cursor:pointer;">
+            ${DEPTS2.map(dep=>`<option value="${dep}" ${d.dept===dep?'selected':''}>${dep}</option>`).join('')}
+          </select>
+        </div>
+        <div style="display:flex;align-items:center;padding:6px 0;border-bottom:1px solid #DDE4EF;gap:8px;">
+          <span style="color:#5C6F8A;font-weight:600;min-width:68px;font-size:12px;flex-shrink:0;">직급</span>
+          <select onchange="window._editRosterTarget.rank=this.value;"
+            style="flex:1;border:1px solid #DDE4EF;border-radius:6px;padding:4px 8px;font-size:12px;color:#1A2540;cursor:pointer;">
+            ${RANKS2.map(r=>`<option value="${r}" ${d.rank===r?'selected':''}>${r}</option>`).join('')}
+          </select>
+        </div>
+        <div style="display:flex;align-items:center;padding:6px 0;gap:8px;">
+          <span style="color:#5C6F8A;font-weight:600;min-width:68px;font-size:12px;flex-shrink:0;">구분</span>
+          <div style="display:flex;gap:6px;flex:1;">
+            <button onclick="window._editRosterTarget.empType='field';this.parentElement.querySelectorAll('button').forEach(b=>{b.style.background='#F8FAFD';b.style.color='#5C6F8A';b.style.borderColor='#DDE4EF';});this.style.background='#E8F0FB';this.style.color='#1D5BA6';this.style.borderColor='#1D5BA6';"
+              style="flex:1;padding:6px;border-radius:7px;border:2px solid ${d.empType==='field'?'#1D5BA6':'#DDE4EF'};background:${d.empType==='field'?'#E8F0FB':'#F8FAFD'};color:${d.empType==='field'?'#1D5BA6':'#5C6F8A'};font-size:12px;font-weight:700;cursor:pointer;">
+              🔧 현장직
+            </button>
+            <button onclick="window._editRosterTarget.empType='office';this.parentElement.querySelectorAll('button').forEach(b=>{b.style.background='#F8FAFD';b.style.color='#5C6F8A';b.style.borderColor='#DDE4EF';});this.style.background='#E8F0FB';this.style.color='#1D5BA6';this.style.borderColor='#1D5BA6';"
+              style="flex:1;padding:6px;border-radius:7px;border:2px solid ${d.empType==='office'?'#1D5BA6':'#DDE4EF'};background:${d.empType==='office'?'#E8F0FB':'#F8FAFD'};color:${d.empType==='office'?'#1D5BA6':'#5C6F8A'};font-size:12px;font-weight:700;cursor:pointer;">
+              💼 사무직
+            </button>
+          </div>
         </div>
       </div>
-    </div>
-    <div style="background:#F4F7FB;border-radius:12px;padding:14px;margin-bottom:10px;">
-      <div style="font-size:11px;font-weight:700;color:#1D5BA6;margin-bottom:10px;">✍️ 개인 서명 <span style="font-size:10px;font-weight:400;color:#9AAABF;">(전자결재 시 자동 사용)</span></div>
-      <div id="rd-sign-preview" style="margin-bottom:10px;">${signSec}</div>
-      <button onclick="rosterOpenSignPad('${d.id}')" style="width:100%;padding:8px;background:#E8F0FB;border:1px solid #DDE4EF;border-radius:8px;color:#1D5BA6;font-size:12px;font-weight:700;cursor:pointer;">✏️ ${d.signData?'서명 다시 그리기':'서명 등록'}</button>
-      <div id="rd-sign-pad" style="display:none;margin-top:10px;">
-        <canvas id="rd-sign-canvas" width="380" height="120" style="border:2px dashed #1D5BA6;border-radius:8px;background:#fff;touch-action:none;width:100%;display:block;"></canvas>
-        <div style="display:flex;gap:6px;margin-top:8px;">
-          <button onclick="rosterSignClear()" style="flex:1;padding:7px;background:#F4F7FB;border:1px solid #DDE4EF;border-radius:7px;color:#5C6F8A;font-size:12px;font-weight:700;cursor:pointer;">지우기</button>
-          <button onclick="rosterSignSave()" style="flex:1;padding:7px;background:#1D5BA6;border:none;border-radius:7px;color:#fff;font-size:12px;font-weight:700;cursor:pointer;">✅ 서명 저장</button>
-        </div>
-      </div>
-    </div>
-    <button onclick="rosterDetailSave('${d.id}')" style="width:100%;padding:12px;background:#1D5BA6;border:none;border-radius:10px;color:#fff;font-size:14px;font-weight:700;cursor:pointer;">💾 수정 저장</button>
-  </div>`;
+
+      <button onclick="rosterDetailSave('${d.id}')"
+        style="width:100%;padding:12px;background:#1D5BA6;border:none;border-radius:10px;color:#fff;font-size:14px;font-weight:700;cursor:pointer;box-shadow:0 4px 12px rgba(29,91,166,0.25);">
+        💾 수정 저장
+      </button>
+    </div>`;
   document.body.appendChild(modal);
-  modal.addEventListener('click',e=>{if(e.target===modal)modal.remove();});
+  modal.addEventListener('click', e => { if(e.target===modal) modal.remove(); });
 };
 
-// ── 서명 패드 ──
-let _rosterSignCanvas=null, _rosterSignCtx=null, _rosterSignDrawing=false;
-window.rosterOpenSignPad = (id) => {
-  const pad=document.getElementById('rd-sign-pad'); if(!pad)return;
-  pad.style.display='block';
-  const canvas=document.getElementById('rd-sign-canvas');
-  _rosterSignCanvas=canvas; _rosterSignCtx=canvas.getContext('2d');
-  _rosterSignCtx.clearRect(0,0,canvas.width,canvas.height);
-  _rosterSignCtx.strokeStyle='#1A2540'; _rosterSignCtx.lineWidth=2.5; _rosterSignCtx.lineCap='round';
-  const getPos=(e)=>{const r=canvas.getBoundingClientRect(),sx=canvas.width/r.width,sy=canvas.height/r.height,src=e.touches?e.touches[0]:e;return{x:(src.clientX-r.left)*sx,y:(src.clientY-r.top)*sy};};
-  canvas.onmousedown=(e)=>{_rosterSignDrawing=true;const p=getPos(e);_rosterSignCtx.beginPath();_rosterSignCtx.moveTo(p.x,p.y);};
-  canvas.onmousemove=(e)=>{if(!_rosterSignDrawing)return;const p=getPos(e);_rosterSignCtx.lineTo(p.x,p.y);_rosterSignCtx.stroke();};
-  canvas.onmouseup=()=>{_rosterSignDrawing=false;};
-  canvas.ontouchstart=(e)=>{e.preventDefault();_rosterSignDrawing=true;const p=getPos(e);_rosterSignCtx.beginPath();_rosterSignCtx.moveTo(p.x,p.y);};
-  canvas.ontouchmove=(e)=>{e.preventDefault();if(!_rosterSignDrawing)return;const p=getPos(e);_rosterSignCtx.lineTo(p.x,p.y);_rosterSignCtx.stroke();};
-  canvas.ontouchend=()=>{_rosterSignDrawing=false;};
-};
-window.rosterSignClear = () => {
-  if(_rosterSignCtx&&_rosterSignCanvas)_rosterSignCtx.clearRect(0,0,_rosterSignCanvas.width,_rosterSignCanvas.height);
-};
-window.rosterSignSave = () => {
-  if(!_rosterSignCanvas)return;
-  const dataUrl=_rosterSignCanvas.toDataURL();
-  window._editRosterTarget.signData=dataUrl;
-  const preview=document.getElementById('rd-sign-preview');
-  if(preview) preview.innerHTML='<img src="'+dataUrl+'" style="width:160px;height:60px;object-fit:contain;border:1px solid #DDE4EF;border-radius:8px;display:block;margin-bottom:6px;"/>'
-    +'<button onclick="window._editRosterTarget.signData=null;document.getElementById(\'rd-sign-preview\').innerHTML=\'<div>서명 없음</div>\';" style="font-size:11px;color:#9AAABF;background:none;border:none;cursor:pointer;text-decoration:underline;">지우기</button>';
-  document.getElementById('rd-sign-pad').style.display='none';
-};
-
-// ── 수정 저장 + portal_users 역방향 동기화 ──
 window.rosterDetailSave = async (id) => {
-  if(!window._db){alert('Firebase 연결 필요');return;}
-  try{
-    const { doc, updateDoc } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
-    const t=window._editRosterTarget;
-    await updateDoc(doc(window._db,'workers',id),{
-      name:t.name||'', jumin:t.jumin||'', phone:t.phone||'',
-      address:t.address||'', bankAccount:t.bankAccount||'',
-      job:t.job||'', dept:t.dept||'', rank:t.rank||'',
-      empType:t.empType||'', hireDate:t.hireDate||'',
-      signData:t.signData||null,
-    });
-    if(t.portalUid){
-      try{ await updateDoc(doc(window._db,'portal_users',t.portalUid),{name:t.name||'',rank:t.rank||'',dept:t.dept||''}); }catch(e){}
-    }
+  if (!window._db) { alert('Firebase 연결 필요'); return; }
+  try {
+    const { doc, setDoc } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+    await setDoc(doc(window._db,'workers',id), { ...window._editRosterTarget }, { merge:true });
     document.getElementById('roster-detail-modal').remove();
     alert('✅ 수정 완료!');
-    renderRosterMain();
-  }catch(e){alert('저장 오류: '+e.message);}
+    renderRosterList(); // 목록 새로고침
+  } catch(e) { alert('저장 오류: '+e.message); }
+};
+window.rosterEmpNoEdit = (id,cur) => {
+  document.getElementById(`eno-d-${id}`).style.display='none';
+  document.getElementById(`eno-e-${id}`).style.display='flex';
+};
+window.rosterEmpNoSave = async (id) => {
+  const v=document.getElementById(`eno-i-${id}`).value.trim();
+  if(!v)return;
+  const { doc, setDoc } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+  await setDoc(doc(window._db,'workers',id),{empNo:v},{merge:true});
+  renderRosterList();
+};
+window.rosterDelete = async (id, name) => {
+  if(!confirm(`${name}님을 명부에서 삭제하시겠습니까?\n(계약서 데이터는 유지됩니다.)`))return;
+  const { doc, deleteDoc } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+  await deleteDoc(doc(window._db,'workers',id));
+  renderRosterList();
 };
 
-// ── 신규 등록 폼 ──
-window.renderRosterRegister = async () => {
-  const el=document.getElementById('tab-roster');
-  rosterForm={name:'',jumin:'',phone:'',address:'',dept:'',rank:'',job:'',empType:'',hireDate:'',bankAccount:'',portalUid:'',signData:null};
-  el.innerHTML=`<div style="padding:20px 24px;max-width:600px;margin:0 auto;">
-    <div style="display:flex;align-items:center;gap:10px;margin-bottom:18px;">
-      <button onclick="renderRosterMain()" style="background:#E8F0FB;border:1px solid #DDE4EF;border-radius:8px;padding:5px 12px;color:#1D5BA6;font-size:12px;cursor:pointer;font-weight:600;">‹ 목록으로</button>
-      <span style="font-size:15px;font-weight:800;color:#1A2540;">근로자 신규 등록</span>
-    </div>
-    <div id="reg-loading" style="text-align:center;padding:16px;color:#9AAABF;font-size:12px;">⏳ 포털 가입자 목록 로드 중...</div>
-    <div id="reg-form-wrap" style="display:none;"></div>
-  </div>`;
-  if(!window._db){document.getElementById('reg-loading').textContent='Firebase 연결 대기 중...';setTimeout(renderRosterRegister,600);return;}
-  const {getDocs,collection}=await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
-  const pSnap=await getDocs(collection(window._db,'portal_users'));
-  const pUsers=[]; pSnap.forEach(u=>pUsers.push({uid:u.id,...u.data()}));
-  pUsers.sort((a,b)=>(a.empNo||'').localeCompare(b.empNo||''));
-  const linked=new Set((window._rosterDocs2||[]).filter(w=>w.portalUid).map(w=>w.portalUid));
-  const avail=pUsers.filter(u=>!linked.has(u.uid));
-  document.getElementById('reg-loading').style.display='none';
-  const fw=document.getElementById('reg-form-wrap'); fw.style.display='block';
-  fw.innerHTML=`
-    <div style="background:#fff;border-radius:14px;border:1px solid #DDE4EF;padding:20px;margin-bottom:12px;box-shadow:0 1px 4px rgba(29,91,166,0.08);">
-      <div style="font-size:12px;font-weight:700;color:#1D5BA6;margin-bottom:12px;">🔗 포털 가입자 연동 <span style="font-size:11px;font-weight:400;color:#9AAABF;">(선택)</span></div>
-      <div style="font-size:11px;font-weight:700;color:#5C6F8A;margin-bottom:5px;">포털 계정 선택</div>
-      <select id="reg-portal-select" onchange="rosterRegPortalSelect(this.value)" style="width:100%;border:1px solid #DDE4EF;border-radius:8px;padding:9px 12px;font-size:13px;color:#1A2540;background:#FAFCFF;cursor:pointer;">
-        <option value="">-- 직접 입력 (포털 미연동) --</option>
-        ${avail.map(u=>'<option value="'+u.uid+'">'+(u.empNo?u.empNo+' · ':'')+''+(u.name||'(이름없음)')+' ('+(u.rank||'')+' / '+(u.email||u.dept||'미지정')+')</option>').join('')}
-      </select>
-      <div id="reg-portal-feedback" style="margin-top:6px;"></div>
-      <div style="font-size:10px;color:#9AAABF;margin-top:5px;">선택 시 이름·직급·부서 자동 채움. 이미 연동된 계정은 제외됩니다.</div>
-    </div>
-    <div style="background:#fff;border-radius:14px;border:1px solid #DDE4EF;padding:20px;margin-bottom:12px;box-shadow:0 1px 4px rgba(29,91,166,0.08);">
-      <div style="font-size:12px;font-weight:700;color:#1D5BA6;margin-bottom:12px;">👤 기본 정보</div>
-      ${[{id:'rf-name',label:'이름',req:true,ph:'성명 입력',key:'name'},{id:'rf-jumin',label:'주민등록번호',req:true,ph:'000000-0000000',key:'jumin'},{id:'rf-phone',label:'휴대폰번호',req:false,ph:'010-0000-0000',key:'phone'},{id:'rf-address',label:'주소',req:false,ph:'주소 입력',key:'address'},{id:'rf-bank',label:'계좌번호',req:false,ph:'예: 국민은행 123-456-7890',key:'bankAccount'}].map(f=>`
-        <div style="margin-bottom:10px;">
-          <div style="font-size:11px;font-weight:700;color:#5C6F8A;margin-bottom:5px;">${f.label}${f.req?'<span style="color:#DC2626;"> *</span>':''}</div>
-          <input id="${f.id}" type="text" placeholder="${f.ph}" oninput="rosterForm['${f.key}']=this.value;" ${f.key==='jumin'?'maxlength="14"':''} style="width:100%;border:1px solid #DDE4EF;border-radius:8px;padding:9px 12px;font-size:13px;color:#1A2540;background:#FAFCFF;box-sizing:border-box;">
-        </div>`).join('')}
-    </div>
-    <div style="background:#fff;border-radius:14px;border:1px solid #DDE4EF;padding:20px;margin-bottom:12px;box-shadow:0 1px 4px rgba(29,91,166,0.08);">
-      <div style="font-size:12px;font-weight:700;color:#1D5BA6;margin-bottom:12px;">💼 소속 및 업무</div>
-      <div style="margin-bottom:10px;">
-        <div style="font-size:11px;font-weight:700;color:#5C6F8A;margin-bottom:5px;">직원 구분</div>
-        <div style="display:flex;gap:8px;">
-          <button id="reg-btn-field" onclick="rosterForm.empType='field';document.getElementById('reg-btn-field').style.cssText='flex:1;padding:9px;border-radius:8px;border:2px solid #1D5BA6;background:#E8F0FB;color:#1D5BA6;font-weight:700;font-size:13px;cursor:pointer;';document.getElementById('reg-btn-office').style.cssText='flex:1;padding:9px;border-radius:8px;border:2px solid #DDE4EF;background:#F8FAFD;color:#5C6F8A;font-weight:700;font-size:13px;cursor:pointer;';" style="flex:1;padding:9px;border-radius:8px;border:2px solid #DDE4EF;background:#F8FAFD;color:#5C6F8A;font-weight:700;font-size:13px;cursor:pointer;">🔧 현장직</button>
-          <button id="reg-btn-office" onclick="rosterForm.empType='office';document.getElementById('reg-btn-office').style.cssText='flex:1;padding:9px;border-radius:8px;border:2px solid #1D5BA6;background:#E8F0FB;color:#1D5BA6;font-weight:700;font-size:13px;cursor:pointer;';document.getElementById('reg-btn-field').style.cssText='flex:1;padding:9px;border-radius:8px;border:2px solid #DDE4EF;background:#F8FAFD;color:#5C6F8A;font-weight:700;font-size:13px;cursor:pointer;';" style="flex:1;padding:9px;border-radius:8px;border:2px solid #DDE4EF;background:#F8FAFD;color:#5C6F8A;font-weight:700;font-size:13px;cursor:pointer;">💼 사무직</button>
-        </div>
-      </div>
-      <div style="margin-bottom:10px;">
-        <div style="font-size:11px;font-weight:700;color:#5C6F8A;margin-bottom:5px;">소속</div>
-        <select id="rf-dept" onchange="rosterForm.dept=this.value;" style="width:100%;border:1px solid #DDE4EF;border-radius:8px;padding:9px 12px;font-size:13px;color:#1A2540;background:#FAFCFF;cursor:pointer;">
-          <option value="">선택하세요</option>
-          ${['사업본부','현장관리팀','인력배치팀','경영지원본부','경영총무팀','영업기획팀'].map(d=>'<option value="'+d+'">'+d+'</option>').join('')}
-        </select>
-      </div>
-      <div style="margin-bottom:10px;">
-        <div style="font-size:11px;font-weight:700;color:#5C6F8A;margin-bottom:5px;">직급</div>
-        <select id="rf-rank" onchange="rosterForm.rank=this.value;" style="width:100%;border:1px solid #DDE4EF;border-radius:8px;padding:9px 12px;font-size:13px;color:#1A2540;background:#FAFCFF;cursor:pointer;">
-          <option value="">선택하세요</option>
-          ${['대표','부사장','차장','과장','대리','사원'].map(r=>'<option value="'+r+'">'+r+'</option>').join('')}
-        </select>
-      </div>
-      <div style="margin-bottom:10px;">
-        <div style="font-size:11px;font-weight:700;color:#5C6F8A;margin-bottom:5px;">최초 입사일</div>
-        <input id="rf-hiredate" type="date" onchange="rosterForm.hireDate=this.value;" style="width:100%;border:1px solid #DDE4EF;border-radius:8px;padding:9px 12px;font-size:13px;color:#1A2540;background:#FAFCFF;box-sizing:border-box;">
-      </div>
-      <div>
-        <div style="font-size:11px;font-weight:700;color:#5C6F8A;margin-bottom:5px;">담당업무</div>
-        <input id="rf-job" type="text" placeholder="담당 업무 입력" oninput="rosterForm.job=this.value;" style="width:100%;border:1px solid #DDE4EF;border-radius:8px;padding:9px 12px;font-size:13px;color:#1A2540;background:#FAFCFF;box-sizing:border-box;">
-      </div>
-    </div>
-    <button onclick="rosterSave()" style="width:100%;padding:13px;background:#16A34A;border:none;border-radius:12px;color:#fff;font-size:14px;font-weight:700;cursor:pointer;">✅ 등록 완료</button>`;
-};
-
-// 신규 등록 폼 — 포털 계정 선택 시 자동 채움
-window.rosterRegPortalSelect = (uid) => {
-  if(!uid){rosterForm.portalUid='';return;}
-  rosterForm.portalUid=uid;
-  import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js').then(({getDoc,doc})=>{
-    getDoc(doc(window._db,'portal_users',uid)).then(snap=>{
-      if(!snap.exists())return;
-      const u=snap.data();
-      if(u.name){rosterForm.name=u.name;const e=document.getElementById('rf-name');if(e)e.value=u.name;}
-      if(u.rank){rosterForm.rank=u.rank;const e=document.getElementById('rf-rank');if(e)e.value=u.rank;}
-      if(u.dept){rosterForm.dept=u.dept;const e=document.getElementById('rf-dept');if(e)e.value=u.dept;}
-      const fb=document.getElementById('reg-portal-feedback');
-      if(fb)fb.innerHTML='<div style="background:#DCFCE7;border:1px solid #86EFAC;border-radius:8px;padding:7px 12px;font-size:12px;color:#15803D;margin-top:6px;">✅ <strong>'+(u.name||'')+'</strong>님의 정보가 자동으로 채워졌습니다.</div>';
-    });
-  });
-};
-
-window.fmtJumin2 = v=>{const d=v.replace(/-/g,'').replace(/\D/g,'');return d.length<=6?d:d.slice(0,6)+'-'+d.slice(6,13);};
-window.fmtPhone2 = v=>{var d=v.replace(/\D/g,'');if(d.length<=3)return d;if(d.length<=6)return d.slice(0,3)+'-'+d.slice(3);if(d.length<=10)return d.slice(0,3)+'-'+d.slice(3,6)+'-'+d.slice(6);return d.slice(0,3)+'-'+d.slice(3,7)+'-'+d.slice(7,11);};
-
-// ── 신규 저장 + portal_users empNo 역방향 동기화 ──
-window.rosterSave = async () => {
-  if(!rosterForm.name||!rosterForm.jumin){alert('이름과 주민등록번호는 필수입니다.');return;}
-  if(!window._db){alert('Firebase 연결 필요');return;}
-  try{
-    const {getDocs,collection,setDoc,doc,updateDoc}=await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
-    const wid=rosterForm.name+'_'+rosterForm.jumin.replace(/-/g,'');
-    const hireDate=rosterForm.hireDate||new Date().toISOString().slice(0,10);
-    const yy=hireDate.slice(2,4);
-    const snap=await getDocs(collection(window._db,'workers'));
-    let maxSeq=0;
-    snap.forEach(d=>{const no=d.data().empNo||'';if(no.length===5&&no.slice(0,2)===yy){const s=parseInt(no.slice(2),10);if(s>maxSeq)maxSeq=s;}});
-    const nextNo=yy+String(maxSeq+1).padStart(3,'0');
-    await setDoc(doc(window._db,'workers',wid),{
-      name:rosterForm.name||'', jumin:rosterForm.jumin||'',
-      phone:rosterForm.phone||'', address:rosterForm.address||'',
-      dept:rosterForm.dept||'', rank:rosterForm.rank||'',
-      job:rosterForm.job||'', empType:rosterForm.empType||'',
-      hireDate:rosterForm.hireDate||'', bankAccount:rosterForm.bankAccount||'',
-      portalUid:rosterForm.portalUid||'', signData:null,
-      empNo:nextNo, registeredAt:new Date().toISOString(),
-    });
-    if(rosterForm.portalUid){
-      try{await updateDoc(doc(window._db,'portal_users',rosterForm.portalUid),{empNo:nextNo});}catch(e){}
-    }
-    alert('✅ 등록 완료! 사원번호: '+nextNo);
-    renderRosterMain();
-  }catch(e){alert('오류: '+e.message);}
-};
-
-window.renderRosterList = () => renderRosterMain();
-
-
+// ════════════════════════════════
 // 📝 근로계약서 (재구성)
 // ════════════════════════════════
 let laborView2 = 'main';
@@ -3042,93 +2669,17 @@ let laborSignCanvas2 = null, laborSignDrawing2 = false;
 
 
 
-window.renderLaborMain = async () => {
+window.renderLaborMain = () => {
   const el = document.getElementById('tab-labor');
   if(!el)return;
   laborView2='main';
-
-  el.innerHTML = `<div style="padding:20px 24px;max-width:1100px;margin:0 auto;">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;">
-      <div style="font-size:16px;font-weight:800;color:#1A2540;">📝 근로계약서</div>
-      <button onclick="renderLaborRegister()" style="background:#1D5BA6;border:none;border-radius:9px;padding:8px 18px;color:#fff;font-size:13px;font-weight:700;cursor:pointer;box-shadow:0 2px 8px rgba(29,91,166,0.18);">➕ 신규 작성</button>
-    </div>
-    <div id="labor-list-loading" style="text-align:center;padding:48px;color:#9AAABF;">⏳ 불러오는 중...</div>
-    <div id="labor-list-wrap"></div>
-  </div>`;
-
-  if(!window._db){ setTimeout(renderLaborMain,500); return; }
-  try {
-    const workers = await getWorkersList();
-    const { getDocs, collection } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
-
-    const ci = {};
-    for(const d of workers){
-      try {
-        const lS = await getDocs(collection(window._db,`labor_contracts/${d.id}/contracts`));
-        let lL=''; lS.forEach(c=>{ const e=c.data().endDate||''; if(e>lL) lL=e; });
-        let lDate=''; lS.forEach(c=>{ const cd=c.data().contractDate||''; if(cd>lDate) lDate=cd; });
-        ci[d.id]={ endDate:lL, contractDate:lDate, cnt:lS.size };
-      } catch(e){ ci[d.id]={ endDate:'', contractDate:'', cnt:0 }; }
-    }
-
-    document.getElementById('labor-list-loading').style.display='none';
-    if(!workers.length){
-      document.getElementById('labor-list-wrap').innerHTML=
-        '<div style="text-align:center;padding:48px;color:#9AAABF;">등록된 근로자가 없습니다.<br><small>근로자 명부에 먼저 등록하세요.</small></div>';
-      return;
-    }
-
-    const now = new Date().toISOString().slice(0,10);
-    const rows = workers.map((d,i)=>{
-      const c = ci[d.id]||{};
-      const lE = c.endDate||null;
-      const lC = lE?(lE<now?'#DC2626':'#16A34A'):'#9AAABF';
-      const statusTxt = lE
-        ?(lE<now?'⚠️ 만료':'✅ '+fmtD2(lE))
-        :(c.cnt?'확인필요':'미작성');
-      const cntTxt = c.cnt?c.cnt+'건':'-';
-      const latestDate = c.contractDate ? fmtD2(c.contractDate) : '-';
-      const etBadge = d.empType==='field'
-        ?`<span style="font-size:10px;background:#FEF3C7;color:#92400E;padding:1px 7px;border-radius:6px;font-weight:700;">현장</span>`
-        :d.empType==='office'
-        ?`<span style="font-size:10px;background:#E8F0FB;color:#1D5BA6;padding:1px 7px;border-radius:6px;font-weight:700;">사무</span>`
-        :`<span style="font-size:10px;background:#F3F4F6;color:#9AAABF;padding:1px 7px;border-radius:6px;">미지정</span>`;
-      return `
-        <tr style="background:${i%2===0?'#fff':'#F8FAFD'};border-bottom:1px solid #F0F4FA;" onmouseover="this.style.background='#EEF4FF'" onmouseout="this.style.background='${i%2===0?'#fff':'#F8FAFD'}'">
-          <td style="padding:10px 12px;font-size:12px;font-weight:700;color:#1D5BA6;">${d.empNo||'-'}</td>
-          <td style="padding:10px 12px;font-size:12px;font-weight:700;color:#1D5BA6;cursor:pointer;text-decoration:underline;" onclick="laborViewWorker2('${d.id}','${d.name}')">${d.name||'-'}</td>
-          <td style="padding:10px 12px;font-size:11px;color:#1A2540;">${d.dept||'-'}</td>
-          <td style="padding:10px 12px;font-size:11px;color:#5C6F8A;">${d.rank||'-'}</td>
-          <td style="padding:10px 12px;">${etBadge}</td>
-          <td style="padding:10px 12px;font-size:11px;color:#5C6F8A;">${latestDate}</td>
-          <td style="padding:10px 12px;font-size:11px;color:#5C6F8A;text-align:center;">${cntTxt}</td>
-          <td style="padding:10px 12px;font-size:10px;"><span style="color:${lC};font-weight:600;">${statusTxt}</span></td>
-          <td style="padding:10px 12px;">
-            <button onclick="laborViewWorker2('${d.id}','${d.name}')" style="font-size:11px;background:#E8F0FB;color:#1D5BA6;border:1px solid #DDE4EF;padding:3px 10px;border-radius:6px;cursor:pointer;font-weight:600;">조회</button>
-          </td>
-        </tr>`;
-    }).join('');
-
-    document.getElementById('labor-list-wrap').innerHTML = `
-      <div style="background:#fff;border-radius:14px;border:1px solid #DDE4EF;overflow:hidden;box-shadow:0 1px 4px rgba(29,91,166,0.08);">
-        <table style="width:100%;border-collapse:collapse;">
-          <thead>
-            <tr style="background:#E8F0FB;">
-              ${['사원번호','이름','소속','직급','구분','최신 계약일','계약 수','상태',''].map(h=>
-                `<th style="padding:10px 12px;font-size:11px;font-weight:700;color:#1D5BA6;text-align:left;white-space:nowrap;">${h}</th>`
-              ).join('')}
-            </tr>
-          </thead>
-          <tbody>${rows}</tbody>
-        </table>
-      </div>
-      <div style="font-size:11px;color:#9AAABF;margin-top:8px;padding:0 4px;">
-        💡 이름 클릭 → 계약서 조회/출력 &nbsp;·&nbsp; ➕ 신규 작성으로 계약서 추가
-      </div>`;
-  } catch(e){
-    const lel = document.getElementById('labor-list-loading');
-    if(lel) lel.innerHTML=`<div style="color:#DC2626;padding:24px;text-align:center;">오류: ${e.message}</div>`;
-  }
+  el.innerHTML = wrap2(`
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;">${homeBtn()}</div>
+    <div style="font-size:13px;color:${C2.sub};margin-bottom:16px;font-weight:600;">작업을 선택해 주세요</div>
+    <div style="display:flex;flex-direction:column;gap:10px;">
+      ${selectMain('✏️','등록','renderLaborRegister()','근로자 명부에서 선택하여 근로계약서 작성')}
+      ${selectMain('📂','조회','renderLaborList2()','저장된 근로계약서 조회 및 관리')}
+    </div>`);
 };
 
 window.renderLaborRegister = async () => {
@@ -3428,12 +2979,9 @@ window.renderLaborList2 = async () => {
 window.laborViewWorker2 = async (wid, wname) => {
   const el=document.getElementById('tab-labor');
   el.innerHTML=wrap2(`
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
-      <div style="display:flex;align-items:center;gap:8px;">
-        ${backBtn2('renderLaborMain()','목록')}
-        <span style="font-size:13px;font-weight:700;color:${C2.text};">${wname} · 근로계약서</span>
-      </div>
-      <button onclick="laborRegisterForWorker('${wid}')" style="background:#1D5BA6;border:none;border-radius:8px;padding:7px 14px;color:#fff;font-size:12px;font-weight:700;cursor:pointer;">➕ 신규 작성</button>
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">
+      ${backBtn2('renderLaborList2()','목록')}
+      <span style="font-size:13px;font-weight:700;color:${C2.text};">${wname} · 근로계약서</span>
     </div>
     <div id="labor-contracts-loading" style="text-align:center;padding:32px;color:${C2.mute};">⏳ 불러오는 중...</div>
     <div id="labor-contracts-wrap"></div>
@@ -3471,14 +3019,6 @@ window.laborDeleteContract2 = async (wid, cid, wname) => {
   laborViewWorker2(wid, wname);
 };
 
-window.laborRegisterForWorker = async (wid) => {
-  await renderLaborRegister();
-  setTimeout(()=>{
-    const sel = document.querySelector('#tab-labor select');
-    if(sel){ sel.value=wid; laborWorkerSelect2(wid); }
-  }, 300);
-};
-
 window.laborPreviewSaved2 = (d) => {
   laborForm2 = {...d};
   laborPreview2();
@@ -3491,101 +3031,17 @@ let annualView2='main';
 let annualForm2={workerId:'',name:'',jumin:'',address:'',dept:'',rank:'',empType:'field',startDate:'2026-06-02',endDate:'2027-05-31',contractDate:'',hourly:'',salary:'',signData:null};
 let annualSignCanvas2=null, annualSignDrawing2=false;
 
-window.renderAnnualMain = async () => {
-  const el = document.getElementById('tab-annual');
-  if(!el) return;
-  annualView2 = 'main';
-
-  el.innerHTML = `<div style="padding:20px 24px;max-width:1100px;margin:0 auto;">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;">
-      <div style="font-size:16px;font-weight:800;color:#1A2540;">📋 연봉계약서</div>
-      <button onclick="renderAnnualRegister()" style="background:#1D5BA6;border:none;border-radius:9px;padding:8px 18px;color:#fff;font-size:13px;font-weight:700;cursor:pointer;box-shadow:0 2px 8px rgba(29,91,166,0.18);">➕ 신규 작성</button>
-    </div>
-    <div id="annual-list-loading" style="text-align:center;padding:48px;color:#9AAABF;">⏳ 불러오는 중...</div>
-    <div id="annual-list-wrap"></div>
-  </div>`;
-
-  if(!window._db){ setTimeout(renderAnnualMain, 500); return; }
-  try {
-    const workers = await getWorkersList();
-    const { getDocs, collection } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
-
-    const ci = {};
-    for(const d of workers){
-      try {
-        const aS = await getDocs(collection(window._db, `annual_contracts/${d.id}/contracts`));
-        let lE='', lC='';
-        aS.forEach(c => {
-          const e = c.data().endDate||'';
-          const cd = c.data().contractDate||'';
-          if(e > lE) lE = e;
-          if(cd > lC) lC = cd;
-        });
-        ci[d.id] = { endDate:lE, contractDate:lC, cnt:aS.size };
-      } catch(e){ ci[d.id] = { endDate:'', contractDate:'', cnt:0 }; }
-    }
-
-    document.getElementById('annual-list-loading').style.display = 'none';
-    if(!workers.length){
-      document.getElementById('annual-list-wrap').innerHTML =
-        '<div style="text-align:center;padding:48px;color:#9AAABF;">등록된 근로자가 없습니다.<br><small>근로자 명부에 먼저 등록하세요.</small></div>';
-      return;
-    }
-
-    // 사원번호 순 정렬
-    const sorted = [...workers].sort((a,b)=>(a.empNo||'').localeCompare(b.empNo||''));
-    const now = new Date().toISOString().slice(0,10);
-
-    const rows = sorted.map((d,i) => {
-      const c = ci[d.id]||{};
-      const lE = c.endDate||null;
-      const lC = lE ? (lE < now ? '#DC2626' : '#16A34A') : '#9AAABF';
-      const statusTxt = lE
-        ? (lE < now ? '⚠️ 만료' : '✅ ' + fmtD2(lE))
-        : (c.cnt ? '확인필요' : '미작성');
-      const cntTxt = c.cnt ? c.cnt+'건' : '-';
-      const latestDate = c.contractDate ? fmtD2(c.contractDate) : '-';
-      const etBadge = d.empType==='field'
-        ?`<span style="font-size:10px;background:#FEF3C7;color:#92400E;padding:1px 7px;border-radius:6px;font-weight:700;">현장</span>`
-        :d.empType==='office'
-        ?`<span style="font-size:10px;background:#E8F0FB;color:#1D5BA6;padding:1px 7px;border-radius:6px;font-weight:700;">사무</span>`
-        :`<span style="font-size:10px;background:#F3F4F6;color:#9AAABF;padding:1px 7px;border-radius:6px;">미지정</span>`;
-      return `
-        <tr style="background:${i%2===0?'#fff':'#F8FAFD'};border-bottom:1px solid #F0F4FA;" onmouseover="this.style.background='#EEF4FF'" onmouseout="this.style.background='${i%2===0?'#fff':'#F8FAFD'}'">
-          <td style="padding:10px 12px;font-size:12px;font-weight:700;color:#1D5BA6;">${d.empNo||'-'}</td>
-          <td style="padding:10px 12px;font-size:12px;font-weight:700;color:#1D5BA6;cursor:pointer;text-decoration:underline;" onclick="annualViewWorker2('${d.id}','${d.name}')">${d.name||'-'}</td>
-          <td style="padding:10px 12px;font-size:11px;color:#1A2540;">${d.dept||'-'}</td>
-          <td style="padding:10px 12px;font-size:11px;color:#5C6F8A;">${d.rank||'-'}</td>
-          <td style="padding:10px 12px;">${etBadge}</td>
-          <td style="padding:10px 12px;font-size:11px;color:#5C6F8A;">${latestDate}</td>
-          <td style="padding:10px 12px;font-size:11px;color:#5C6F8A;text-align:center;">${cntTxt}</td>
-          <td style="padding:10px 12px;font-size:10px;"><span style="color:${lC};font-weight:600;">${statusTxt}</span></td>
-          <td style="padding:10px 12px;">
-            <button onclick="annualViewWorker2('${d.id}','${d.name}')" style="font-size:11px;background:#E8F0FB;color:#1D5BA6;border:1px solid #DDE4EF;padding:3px 10px;border-radius:6px;cursor:pointer;font-weight:600;">조회</button>
-          </td>
-        </tr>`;
-    }).join('');
-
-    document.getElementById('annual-list-wrap').innerHTML = `
-      <div style="background:#fff;border-radius:14px;border:1px solid #DDE4EF;overflow:hidden;box-shadow:0 1px 4px rgba(29,91,166,0.08);">
-        <table style="width:100%;border-collapse:collapse;">
-          <thead>
-            <tr style="background:#E8F0FB;">
-              ${['사원번호','이름','소속','직급','구분','최신 계약일','계약 수','상태',''].map(h=>
-                `<th style="padding:10px 12px;font-size:11px;font-weight:700;color:#1D5BA6;text-align:left;white-space:nowrap;">${h}</th>`
-              ).join('')}
-            </tr>
-          </thead>
-          <tbody>${rows}</tbody>
-        </table>
-      </div>
-      <div style="font-size:11px;color:#9AAABF;margin-top:8px;padding:0 4px;">
-        💡 이름 클릭 → 계약서 조회/출력 &nbsp;·&nbsp; ➕ 신규 작성으로 계약서 추가
-      </div>`;
-  } catch(e){
-    const lel = document.getElementById('annual-list-loading');
-    if(lel) lel.innerHTML=`<div style="color:#DC2626;padding:24px;text-align:center;">오류: ${e.message}</div>`;
-  }
+window.renderAnnualMain = () => {
+  const el=document.getElementById('tab-annual');
+  if(!el)return;
+  annualView2='main';
+  el.innerHTML=wrap2(`
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;">${homeBtn()}</div>
+    <div style="font-size:13px;color:${C2.sub};margin-bottom:16px;font-weight:600;">작업을 선택해 주세요</div>
+    <div style="display:flex;flex-direction:column;gap:10px;">
+      ${selectMain('✏️','등록','renderAnnualRegister()','근로자 명부에서 선택하여 연봉계약서 작성')}
+      ${selectMain('📂','조회','renderAnnualList2()','저장된 연봉계약서 조회 및 관리')}
+    </div>`);
 };
 
 window.renderAnnualRegister = async () => {
@@ -3827,8 +3283,35 @@ window.annualPreview2=()=>{
   win.document.close();
 };
 
-// renderAnnualList2 → PC 테이블 통합으로 renderAnnualMain 래퍼
-window.renderAnnualList2 = () => renderAnnualMain();
+window.renderAnnualList2=async()=>{
+  const el=document.getElementById('tab-annual');
+  el.innerHTML=wrap2(`
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">
+      ${backBtn2('renderAnnualMain()','뒤로')}
+      <span style="font-size:12px;color:${C2.sub};font-weight:600;">연봉계약서 조회</span>
+    </div>
+    <div id="annual-list2-loading" style="text-align:center;padding:32px;color:${C2.mute};">⏳ 불러오는 중...</div>
+    <div id="annual-list2-wrap"></div>
+  `);
+  const workers=await getWorkersList();
+  document.getElementById('annual-list2-loading').style.display='none';
+  if(!workers.length){document.getElementById('annual-list2-wrap').innerHTML='<div style="text-align:center;padding:40px;color:'+C2.mute+';">등록된 근로자가 없습니다.</div>';return;}
+  document.getElementById('annual-list2-wrap').innerHTML=`
+    <div style="background:#fff;border-radius:12px;border:1px solid #DDE4EF;overflow:hidden;box-shadow:${C2.shadow};">
+      <div style="display:grid;grid-template-columns:0.6fr 1fr 0.7fr 0.6fr;background:#E8F0FB;padding:9px 12px;gap:6px;">
+        ${['사원번호','이름','소속','직급'].map(h=>`<div style="font-size:10px;font-weight:700;color:${C2.blue};">${h}</div>`).join('')}
+      </div>
+      ${workers.map((w,i)=>`
+        <button onclick="annualViewWorker2('${w.id}','${w.name}')"
+          style="width:100%;display:grid;grid-template-columns:0.6fr 1fr 0.7fr 0.6fr;padding:11px 12px;gap:6px;
+            background:${i%2===0?'#fff':'#F8FAFD'};border:none;border-bottom:1px solid #F0F4FA;cursor:pointer;text-align:left;align-items:center;">
+          <div style="font-size:12px;font-weight:700;color:${C2.blue};">${w.empNo||'-'}</div>
+          <div style="font-size:13px;font-weight:600;color:${C2.text};">${w.name}</div>
+          <div style="font-size:11px;color:${C2.sub};">${w.dept||'-'}</div>
+          <div style="font-size:11px;color:${C2.sub};">${w.rank||'-'}</div>
+        </button>`).join('')}
+    </div>`;
+};
 
 window.annualViewWorker2=async(wid,wname)=>{
   const el=document.getElementById('tab-annual');
@@ -3943,6 +3426,7 @@ window.renderOvertimePC = async () => {
   const el = document.getElementById('tab-overtime');
   el.innerHTML = `
     <div style="max-width:1100px;margin:0 auto;padding:16px;">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">${homeBtn()}</div>
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
         <div style="font-size:16px;font-weight:700;color:#1A2540;">⏱ 초과근로</div>
         <div style="display:flex;align-items:center;gap:8px;">
@@ -4883,6 +4367,7 @@ window.showLeaveDetail = window.showLeaveDetail;
 window.renderLeaveStatusMain = async () => {
   const el = document.getElementById('tab-leave'); if(!el) return;
   el.innerHTML = `<div style="padding:20px 24px;max-width:1000px;margin:0 auto;">
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">${homeBtn()}</div>
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
       <div style="font-size:20px;font-weight:800;color:#13335C;">🌴 전체 직원 연차 현황</div>
       ${window._isAdmin?`<button onclick="openLeaveAdminForm()" style="background:#1D5BA6;color:#fff;border:none;border-radius:8px;padding:8px 16px;font-size:13px;font-weight:600;cursor:pointer;">+ 연차 등록</button>`:''}
@@ -4969,83 +4454,13 @@ window.renderLeaveStatusMain = async () => {
 };
 
 window.renderRetireMain = () => {
-  if (window.innerWidth >= 900) {
-    renderRetirePC();
-  } else {
-    renderRetireMobile();
-  }
-};
-
-// ── PC 뷰 ──
-window.renderRetirePC = async () => {
-  const el = document.getElementById('tab-retire'); if(!el) return;
-  el.innerHTML = `<div style="max-width:1100px;margin:0 auto;padding:16px;"><div style="text-align:center;padding:32px;color:#9AAABF;">⏳ 근로자 불러오는 중...</div></div>`;
-  _rtWorkers = await getWorkersList();
-  const today = new Date().toISOString().slice(0,10);
-  const opts = ['<option value="">근로자 선택</option>'].concat(
-    _rtWorkers.map(w=>`<option value="${w.id}">${w.empNo?('['+w.empNo+'] '):''}${w.name||'-'}${w.dept?(' · '+w.dept):''}${w.rank?(' '+w.rank):''}</option>`)
-  ).join('');
-
-  el.innerHTML = `
-    <div style="max-width:1100px;margin:0 auto;padding:16px;">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
-        <div style="font-size:16px;font-weight:700;color:#1A2540;">🧾 퇴직금 정산</div>
-        <div style="font-size:12px;color:#9AAABF;">재직기간 × 평균임금 기준 자동 산정</div>
-      </div>
-      <div style="display:flex;gap:14px;align-items:flex-start;">
-
-        <!-- 좌측 패널: 입력 + 정산 내역 목록 -->
-        <div style="width:280px;flex:0 0 auto;display:flex;flex-direction:column;gap:10px;">
-          <div style="background:#fff;border-radius:12px;padding:16px;border:1px solid #DDE4EF;">
-            <div style="font-size:13px;font-weight:700;color:#1A2540;margin-bottom:12px;">산정 조건</div>
-            <div style="display:flex;flex-direction:column;gap:10px;">
-              <div>
-                <label style="font-size:11px;font-weight:600;color:#5C6F8A;display:block;margin-bottom:4px;">근로자</label>
-                <select id="rt-worker" onchange="retireCompute()" style="width:100%;border:1px solid #DDE4EF;border-radius:8px;padding:8px 10px;font-size:13px;color:#1A2540;background:#FAFCFF;box-sizing:border-box;">${opts}</select>
-              </div>
-              <div>
-                <label style="font-size:11px;font-weight:600;color:#5C6F8A;display:block;margin-bottom:4px;">퇴직일</label>
-                <input type="date" id="rt-date" value="${today}" onchange="retireCompute()" style="width:100%;border:1px solid #DDE4EF;border-radius:8px;padding:8px 10px;font-size:13px;color:#1A2540;box-sizing:border-box;">
-              </div>
-            </div>
-          </div>
-
-          <!-- 정산 내역 목록 -->
-          <div style="background:#fff;border-radius:12px;padding:16px;border:1px solid #DDE4EF;">
-            <div style="font-size:13px;font-weight:700;color:#1A2540;margin-bottom:10px;">📂 정산 내역</div>
-            <div id="rt-list-panel" style="display:flex;flex-direction:column;gap:6px;">
-              <div style="font-size:12px;color:#9AAABF;text-align:center;padding:12px 0;">근로자를 선택하면<br>저장 내역을 확인할 수 있습니다.</div>
-            </div>
-          </div>
-
-          <div style="background:#FFF4E5;border:1px solid #F4D9AD;border-radius:10px;padding:10px 12px;font-size:11px;color:#9A5B00;line-height:1.5;">
-            ⚠️ 자동 산정 결과는 참고용입니다. 실제 지급 전 노무사 또는 관할 고용센터에 확인하시기 바랍니다.
-          </div>
-        </div>
-
-        <!-- 우측 패널: 계산 결과 -->
-        <div style="flex:1;min-width:0;">
-          <div id="rt-result" style="background:#fff;border-radius:12px;padding:20px;border:1px solid #DDE4EF;min-height:300px;">
-            <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:60px 0;color:#9AAABF;">
-              <div style="font-size:32px;margin-bottom:12px;">🧾</div>
-              <div style="font-size:14px;font-weight:600;margin-bottom:4px;">퇴직금 자동 산정</div>
-              <div style="font-size:12px;">좌측에서 근로자와 퇴직일을 선택하세요</div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  `;
-};
-
-// ── 모바일 뷰 ──
-window.renderRetireMobile = () => {
   const el = document.getElementById('tab-retire'); if(!el) return;
   el.innerHTML = wrap2(`
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;">${homeBtn()}</div>
     <div style="font-size:18px;font-weight:800;color:${C2.text};margin-bottom:4px;">퇴직금 정산</div>
     <div style="font-size:12px;color:${C2.sub};margin-bottom:16px;">재직기간 × 평균임금 기준 자동 산정</div>
     <div style="display:flex;flex-direction:column;gap:10px;">
-      ${selectMain('🧾','퇴직금 산정','renderRetireCalcMobile()','근로자·퇴직일 선택 → 자동 계산')}
+      ${selectMain('🧾','퇴직금 산정','renderRetireCalc()','근로자·퇴직일 선택 → 자동 계산')}
       ${selectMain('📂','정산 내역 조회','renderRetireList()','저장된 퇴직금 정산 보기')}
     </div>
     <div style="margin-top:16px;background:#FFF4E5;border:1px solid #F4D9AD;border-radius:10px;padding:11px 13px;font-size:11.5px;color:#9A5B00;line-height:1.5;">
@@ -5054,16 +4469,16 @@ window.renderRetireMobile = () => {
   `);
 };
 
-window.renderRetireCalcMobile = async () => {
+window.renderRetireCalc = async () => {
   const el = document.getElementById('tab-retire'); if(!el) return;
-  el.innerHTML = wrap2(`${backBtn2('renderRetireMobile()')}<div style="text-align:center;padding:32px;color:${C2.mute};">⏳ 근로자 불러오는 중...</div>`);
+  el.innerHTML = wrap2(`${backBtn2('renderRetireMain()')}<div style="text-align:center;padding:32px;color:${C2.mute};">⏳ 근로자 불러오는 중...</div>`);
   _rtWorkers = await getWorkersList();
   const today = new Date().toISOString().slice(0,10);
   const opts = ['<option value="">근로자 선택</option>'].concat(
     _rtWorkers.map(w=>`<option value="${w.id}">${w.name||'-'}${w.dept?(' · '+w.dept):''}${w.rank?(' '+w.rank):''}</option>`)
   ).join('');
   el.innerHTML = wrap2(`
-    ${backBtn2('renderRetireMobile()')}
+    ${backBtn2('renderRetireMain()')}
     ${card2('퇴직금 산정', `
       ${field2('근로자', `<select id="rt-worker" onchange="retireCompute()" style="width:100%;border:1px solid #DDE4EF;border-radius:8px;padding:9px 12px;font-size:13px;color:#1A2540;background:#FAFCFF;box-sizing:border-box;">${opts}</select>`)}
       ${field2('퇴직일', `<input type="date" id="rt-date" value="${today}" onchange="retireCompute()" ${inp2Style}>`)}
@@ -5071,9 +4486,6 @@ window.renderRetireCalcMobile = async () => {
     <div id="rt-result"></div>
   `);
 };
-
-// 구버전 alias (모바일 백버튼용)
-window.renderRetireCalc = window.renderRetireCalcMobile;
 
 function rtRow(label, val, sub){
   return `<div style="display:flex;align-items:center;justify-content:space-between;padding:7px 0;border-bottom:1px solid #F4F7FB;">
@@ -5085,28 +4497,12 @@ function rtWarn(msg){
   return `<div style="background:#FEE2E2;border:1px solid #FCA5A5;border-radius:10px;padding:13px 15px;font-size:12px;color:#B91C1C;line-height:1.5;">${msg}</div>`;
 }
 
-// ── 계산 로직 (PC/모바일 공용) ──
 window.retireCompute = async () => {
   const res = document.getElementById('rt-result'); if(!res) return;
   const wid = (document.getElementById('rt-worker')||{}).value || '';
   const retireDate = (document.getElementById('rt-date')||{}).value || '';
-
-  // PC: 정산 내역 목록 패널 업데이트
-  const isPC = window.innerWidth >= 900;
-  if (isPC) {
-    const listPanel = document.getElementById('rt-list-panel');
-    if (listPanel) {
-      if (wid) {
-        listPanel.innerHTML = '<div style="font-size:12px;color:#9AAABF;text-align:center;padding:8px;">불러오는 중...</div>';
-        rtLoadListPanel(wid, listPanel);
-      } else {
-        listPanel.innerHTML = '<div style="font-size:12px;color:#9AAABF;text-align:center;padding:12px 0;">근로자를 선택하면<br>저장 내역을 확인할 수 있습니다.</div>';
-      }
-    }
-  }
-
-  if (!wid || !retireDate) { res.innerHTML = isPC ? `<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:60px 0;color:#9AAABF;"><div style="font-size:32px;margin-bottom:12px;">🧾</div><div style="font-size:14px;font-weight:600;margin-bottom:4px;">퇴직금 자동 산정</div><div style="font-size:12px;">좌측에서 근로자와 퇴직일을 선택하세요</div></div>` : ''; return; }
-  res.innerHTML = `<div style="text-align:center;padding:${isPC?'60px':'24px'};color:${C2.mute};">계산 중...</div>`;
+  if (!wid || !retireDate) { res.innerHTML=''; return; }
+  res.innerHTML = `<div style="text-align:center;padding:24px;color:${C2.mute};">계산 중...</div>`;
   try {
     const { getDocs, collection } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
     const w = _rtWorkers.find(x=>x.id===wid) || {};
@@ -5158,157 +4554,55 @@ window.retireCompute = async () => {
 
     const rowHtml = rows.length ? rows.map(r=>`
       <tr>
-        <td style="padding:7px 8px;border-bottom:1px solid #F0F4FA;color:#5C6F8A;">${r.month}</td>
-        <td style="padding:7px 8px;border-bottom:1px solid #F0F4FA;text-align:right;">${rtWon(r.base)}</td>
-        <td style="padding:7px 8px;border-bottom:1px solid #F0F4FA;text-align:right;">${rtWon(r.bonus)}</td>
-        <td style="padding:7px 8px;border-bottom:1px solid #F0F4FA;text-align:right;font-weight:700;color:#1A2540;">${rtWon(r.inc)}</td>
-        <td style="padding:7px 8px;border-bottom:1px solid #F0F4FA;text-align:center;color:#9AAABF;">${r.dim}일</td>
+        <td style="padding:7px 6px;border-bottom:1px solid #F0F4FA;color:#5C6F8A;">${r.month}</td>
+        <td style="padding:7px 6px;border-bottom:1px solid #F0F4FA;text-align:right;">${rtWon(r.base)}</td>
+        <td style="padding:7px 6px;border-bottom:1px solid #F0F4FA;text-align:right;">${rtWon(r.bonus)}</td>
+        <td style="padding:7px 6px;border-bottom:1px solid #F0F4FA;text-align:right;font-weight:700;color:#1A2540;">${rtWon(r.inc)}</td>
+        <td style="padding:7px 6px;border-bottom:1px solid #F0F4FA;text-align:center;color:#9AAABF;">${r.dim}일</td>
       </tr>`).join('') : `<tr><td colspan="5" style="padding:14px;text-align:center;color:#9AAABF;">퇴직 전 급여명세서가 없습니다.</td></tr>`;
 
-    if (isPC) {
-      // PC: 좌우 분리된 섹션 레이아웃
-      res.innerHTML = `
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;padding-bottom:12px;border-bottom:1px solid #EEF2F7;">
-          <div>
-            <div style="font-size:15px;font-weight:700;color:#1A2540;">${w.name||'-'} <span style="font-size:12px;color:#9AAABF;font-weight:400;">${w.dept||''} ${w.rank||''}</span></div>
-            <div style="font-size:11px;color:#9AAABF;margin-top:2px;">입사 ${fmtD2(hireDate)} → 퇴직 ${fmtD2(retireDate)} · ${serviceDays}일 (${yLabel})</div>
-          </div>
-          <div style="text-align:right;">
-            <div style="font-size:11px;color:#9AAABF;margin-bottom:2px;">예상 퇴직금</div>
-            <div style="font-size:24px;font-weight:800;color:${under1y?'#DC2626':'#1D5BA6'};">${rtWon(severance)} 원</div>
-          </div>
+    res.innerHTML = `
+      ${card2('① 평균임금 산정 (퇴직 전 3개월)', `
+        <table style="width:100%;border-collapse:collapse;font-size:12px;">
+          <tr style="background:#E8F0FB;">
+            <th style="padding:7px 6px;text-align:left;color:#1D5BA6;font-size:10.5px;">기준월</th>
+            <th style="padding:7px 6px;text-align:right;color:#1D5BA6;font-size:10.5px;">기본+고정+주휴</th>
+            <th style="padding:7px 6px;text-align:right;color:#1D5BA6;font-size:10.5px;">상여금</th>
+            <th style="padding:7px 6px;text-align:right;color:#1D5BA6;font-size:10.5px;">소계</th>
+            <th style="padding:7px 6px;text-align:center;color:#1D5BA6;font-size:10.5px;">일수</th>
+          </tr>
+          ${rowHtml}
+          <tr style="background:#F8FAFD;font-weight:700;">
+            <td style="padding:8px 6px;color:#1A2540;">합계</td>
+            <td colspan="2" style="padding:8px 6px;text-align:right;color:#9AAABF;font-weight:400;font-size:10.5px;">임금 총액 →</td>
+            <td style="padding:8px 6px;text-align:right;color:#1D5BA6;">${rtWon(includedTotal)}</td>
+            <td style="padding:8px 6px;text-align:center;color:#5C6F8A;">${periodDays}일</td>
+          </tr>
+        </table>
+        ${rtRow('1일 평균임금', rtWon(avgDaily)+' 원', '임금 총액 ÷ 기간 일수')}
+        ${hasAnnual ? rtRow('1일 통상임금', rtWon(ordDaily)+' 원', '통상시급 × 8h (비교용)') : ''}
+        ${substituted ? `<div style="margin-top:8px;background:#E8F0FB;border-radius:8px;padding:8px 10px;font-size:11px;color:#1D5BA6;">평균임금이 통상임금보다 낮아 통상임금을 적용했습니다.</div>` : ''}
+      `)}
+      ${card2('② 재직기간', `
+        ${rtRow('입사일', fmtD2(hireDate), '')}
+        ${rtRow('퇴직일', fmtD2(retireDate), '')}
+        ${rtRow('계속근로기간', `${serviceDays}일`, yLabel)}
+      `)}
+      ${card2('③ 퇴직금', `
+        <div style="font-size:11px;color:#9AAABF;margin-bottom:8px;">적용 1일 평균임금 ${rtWon(appliedDaily)}원 × 30일 × (${serviceDays}일 ÷ 365)</div>
+        <div style="display:flex;align-items:baseline;justify-content:space-between;background:#1D5BA6;border-radius:12px;padding:14px 16px;">
+          <span style="font-size:13px;color:rgba(255,255,255,0.85);font-weight:600;">예상 퇴직금</span>
+          <span style="font-size:22px;font-weight:800;color:#fff;">${rtWon(severance)} 원</span>
         </div>
-
-        ${warns.length ? `<div style="background:#FFF4E5;border:1px solid #F4D9AD;border-radius:10px;padding:10px 14px;font-size:12px;color:#9A5B00;line-height:1.6;margin-bottom:14px;">${warns.map(x=>'• '+x).join('<br>')}</div>` : ''}
-
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px;">
-          <!-- ① 평균임금 산정 -->
-          <div>
-            <div style="font-size:12px;font-weight:700;color:#5C6F8A;margin-bottom:8px;">① 평균임금 산정 (퇴직 전 3개월)</div>
-            <table style="width:100%;border-collapse:collapse;font-size:12px;background:#fff;border-radius:8px;overflow:hidden;border:1px solid #EEF2F7;">
-              <tr style="background:#E8F0FB;">
-                <th style="padding:7px 8px;text-align:left;color:#1D5BA6;font-size:11px;font-weight:600;">기준월</th>
-                <th style="padding:7px 8px;text-align:right;color:#1D5BA6;font-size:11px;font-weight:600;">기본+고정</th>
-                <th style="padding:7px 8px;text-align:right;color:#1D5BA6;font-size:11px;font-weight:600;">상여</th>
-                <th style="padding:7px 8px;text-align:right;color:#1D5BA6;font-size:11px;font-weight:600;">소계</th>
-                <th style="padding:7px 8px;text-align:center;color:#1D5BA6;font-size:11px;font-weight:600;">일수</th>
-              </tr>
-              ${rowHtml}
-              <tr style="background:#F8FAFD;font-weight:700;">
-                <td style="padding:8px 8px;color:#1A2540;">합계</td>
-                <td colspan="2" style="padding:8px 8px;text-align:right;color:#9AAABF;font-weight:400;font-size:10.5px;">임금 총액 →</td>
-                <td style="padding:8px 8px;text-align:right;color:#1D5BA6;">${rtWon(includedTotal)}</td>
-                <td style="padding:8px 8px;text-align:center;color:#5C6F8A;">${periodDays}일</td>
-              </tr>
-            </table>
-            <div style="margin-top:8px;display:flex;flex-direction:column;gap:2px;">
-              ${rtRow('1일 평균임금', rtWon(avgDaily)+' 원', '임금 총액 ÷ 기간 일수')}
-              ${hasAnnual ? rtRow('1일 통상임금', rtWon(ordDaily)+' 원', '통상시급 × 8h (비교용)') : ''}
-              ${substituted ? `<div style="background:#E8F0FB;border-radius:8px;padding:7px 10px;font-size:11px;color:#1D5BA6;margin-top:4px;">평균임금 &lt; 통상임금 → 통상임금 적용</div>` : ''}
-            </div>
-          </div>
-
-          <!-- ② 재직기간 + ③ 퇴직금 -->
-          <div style="display:flex;flex-direction:column;gap:10px;">
-            <div>
-              <div style="font-size:12px;font-weight:700;color:#5C6F8A;margin-bottom:8px;">② 재직기간</div>
-              <div style="background:#F7F9FC;border-radius:8px;padding:10px 12px;border:1px solid #EEF2F7;">
-                ${rtRow('입사일', fmtD2(hireDate), '')}
-                ${rtRow('퇴직일', fmtD2(retireDate), '')}
-                ${rtRow('계속근로기간', `${serviceDays}일`, yLabel)}
-              </div>
-            </div>
-            <div>
-              <div style="font-size:12px;font-weight:700;color:#5C6F8A;margin-bottom:8px;">③ 퇴직금 산식</div>
-              <div style="background:#F7F9FC;border-radius:8px;padding:10px 12px;border:1px solid #EEF2F7;font-size:12px;color:#5C6F8A;line-height:1.7;">
-                <div>적용 1일 평균임금</div>
-                <div style="font-weight:700;color:#1A2540;font-size:13px;">${rtWon(appliedDaily)} 원</div>
-                <div style="margin-top:6px;">× 30일 × (${serviceDays}일 ÷ 365)</div>
-              </div>
-            </div>
-            <div style="background:#1D5BA6;border-radius:12px;padding:14px 16px;display:flex;align-items:baseline;justify-content:space-between;">
-              <span style="font-size:13px;color:rgba(255,255,255,0.85);font-weight:600;">예상 퇴직금</span>
-              <span style="font-size:22px;font-weight:800;color:#fff;">${rtWon(severance)} 원</span>
-            </div>
-            <button onclick="retireSave()" style="width:100%;padding:11px;background:${C2.green};border:none;border-radius:10px;color:#fff;font-size:13px;font-weight:700;cursor:pointer;">✅ 정산 내역 저장</button>
-          </div>
-        </div>
-      `;
-    } else {
-      // 모바일: 기존 카드 레이아웃
-      res.innerHTML = `
-        ${card2('① 평균임금 산정 (퇴직 전 3개월)', `
-          <table style="width:100%;border-collapse:collapse;font-size:12px;">
-            <tr style="background:#E8F0FB;">
-              <th style="padding:7px 6px;text-align:left;color:#1D5BA6;font-size:10.5px;">기준월</th>
-              <th style="padding:7px 6px;text-align:right;color:#1D5BA6;font-size:10.5px;">기본+고정+주휴</th>
-              <th style="padding:7px 6px;text-align:right;color:#1D5BA6;font-size:10.5px;">상여금</th>
-              <th style="padding:7px 6px;text-align:right;color:#1D5BA6;font-size:10.5px;">소계</th>
-              <th style="padding:7px 6px;text-align:center;color:#1D5BA6;font-size:10.5px;">일수</th>
-            </tr>
-            ${rowHtml}
-            <tr style="background:#F8FAFD;font-weight:700;">
-              <td style="padding:8px 6px;color:#1A2540;">합계</td>
-              <td colspan="2" style="padding:8px 6px;text-align:right;color:#9AAABF;font-weight:400;font-size:10.5px;">임금 총액 →</td>
-              <td style="padding:8px 6px;text-align:right;color:#1D5BA6;">${rtWon(includedTotal)}</td>
-              <td style="padding:8px 6px;text-align:center;color:#5C6F8A;">${periodDays}일</td>
-            </tr>
-          </table>
-          ${rtRow('1일 평균임금', rtWon(avgDaily)+' 원', '임금 총액 ÷ 기간 일수')}
-          ${hasAnnual ? rtRow('1일 통상임금', rtWon(ordDaily)+' 원', '통상시급 × 8h (비교용)') : ''}
-          ${substituted ? `<div style="margin-top:8px;background:#E8F0FB;border-radius:8px;padding:8px 10px;font-size:11px;color:#1D5BA6;">평균임금이 통상임금보다 낮아 통상임금을 적용했습니다.</div>` : ''}
-        `)}
-        ${card2('② 재직기간', `
-          ${rtRow('입사일', fmtD2(hireDate), '')}
-          ${rtRow('퇴직일', fmtD2(retireDate), '')}
-          ${rtRow('계속근로기간', `${serviceDays}일`, yLabel)}
-        `)}
-        ${card2('③ 퇴직금', `
-          <div style="font-size:11px;color:#9AAABF;margin-bottom:8px;">적용 1일 평균임금 ${rtWon(appliedDaily)}원 × 30일 × (${serviceDays}일 ÷ 365)</div>
-          <div style="display:flex;align-items:baseline;justify-content:space-between;background:#1D5BA6;border-radius:12px;padding:14px 16px;">
-            <span style="font-size:13px;color:rgba(255,255,255,0.85);font-weight:600;">예상 퇴직금</span>
-            <span style="font-size:22px;font-weight:800;color:#fff;">${rtWon(severance)} 원</span>
-          </div>
-        `)}
-        ${warns.length ? `<div style="background:#FFF4E5;border:1px solid #F4D9AD;border-radius:10px;padding:11px 13px;font-size:11.5px;color:#9A5B00;line-height:1.6;margin-bottom:10px;">${warns.map(x=>'• '+x).join('<br>')}</div>` : ''}
-        <button onclick="retireSave()" style="width:100%;padding:13px;background:${C2.green};border:none;border-radius:12px;color:#fff;font-size:13px;font-weight:700;cursor:pointer;">✅ 정산 내역 저장</button>
-      `;
-    }
+      `)}
+      ${warns.length ? `<div style="background:#FFF4E5;border:1px solid #F4D9AD;border-radius:10px;padding:11px 13px;font-size:11.5px;color:#9A5B00;line-height:1.6;margin-bottom:10px;">${warns.map(x=>'• '+x).join('<br>')}</div>` : ''}
+      <button onclick="retireSave()" style="width:100%;padding:13px;background:${C2.green};border:none;border-radius:12px;color:#fff;font-size:13px;font-weight:700;cursor:pointer;">✅ 정산 내역 저장</button>
+    `;
 
     window._rtCurrent = { wid, name:w.name||'', dept:w.dept||'', rank:w.rank||'', hireDate, retireDate, serviceDays, includedTotal, periodDays, avgDaily, ordDaily, appliedDaily, substituted, under1y, severance, months: rows.map(r=>r.month) };
   } catch(e) {
     res.innerHTML = rtWarn('계산 중 오류가 발생했습니다: '+e.message);
   }
-};
-
-// PC 좌측 정산 내역 패널 로드
-async function rtLoadListPanel(wid, panel) {
-  try {
-    const { getDocs, collection } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
-    const snap = await getDocs(collection(window._db, `severance/${wid}/records`));
-    let recs=[]; snap.forEach(d=>recs.push({id:d.id, ...d.data()}));
-    recs.sort((a,b)=>String(b.id).localeCompare(String(a.id)));
-    panel.innerHTML = recs.length ? recs.map(r=>`
-      <div style="background:#F7F9FC;border:1px solid #EEF2F7;border-radius:8px;padding:10px 12px;">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
-          <span style="font-size:11px;color:#5C6F8A;">퇴직일 ${fmtD2(r.retireDate)}</span>
-          <button onclick="rtDeleteFromPanel('${wid}','${r.id}')" style="background:none;border:none;color:#DC2626;font-size:11px;cursor:pointer;padding:0;">삭제</button>
-        </div>
-        <div style="font-size:14px;font-weight:800;color:#1D5BA6;">${rtWon(r.severance)} 원</div>
-        <div style="font-size:10px;color:#9AAABF;margin-top:2px;">${r.serviceDays}일 · 1일 ${rtWon(r.appliedDaily)}원</div>
-      </div>`).join('')
-    : '<div style="font-size:12px;color:#9AAABF;text-align:center;padding:12px 0;">저장된 정산 내역이 없습니다.</div>';
-  } catch(e) {
-    panel.innerHTML = '<div style="font-size:12px;color:#DC2626;padding:8px;">로드 오류</div>';
-  }
-}
-
-window.rtDeleteFromPanel = async (wid, rid) => {
-  if (!confirm('이 정산 내역을 삭제하시겠습니까?')) return;
-  const { doc, deleteDoc } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
-  await deleteDoc(doc(window._db, `severance/${wid}/records`, rid));
-  const panel = document.getElementById('rt-list-panel');
-  if (panel) rtLoadListPanel(wid, panel);
 };
 
 window.retireSave = async () => {
@@ -5320,27 +4614,20 @@ window.retireSave = async () => {
     const { doc, setDoc } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
     await setDoc(doc(window._db, `severance/${c.wid}/records`, c.retireDate), { ...c, savedAt:new Date().toISOString() });
     alert('✅ 퇴직금 정산 저장 완료!');
-    // PC: 내역 패널 새로고침 / 모바일: 메인으로
-    if (window.innerWidth >= 900) {
-      const panel = document.getElementById('rt-list-panel');
-      if (panel) rtLoadListPanel(c.wid, panel);
-    } else {
-      renderRetireMobile();
-    }
+    renderRetireMain();
   } catch(e) { alert('오류: '+e.message); }
 };
 
-// ── 모바일 전용: 정산 내역 조회 ──
 window.renderRetireList = async () => {
   const el = document.getElementById('tab-retire'); if(!el) return;
-  el.innerHTML = wrap2(`${backBtn2('renderRetireMobile()')}<div style="text-align:center;padding:32px;color:${C2.mute};">⏳ 불러오는 중...</div>`);
+  el.innerHTML = wrap2(`${backBtn2('renderRetireMain()')}<div style="text-align:center;padding:32px;color:${C2.mute};">⏳ 불러오는 중...</div>`);
   const workers = await getWorkersList();
   const items = workers.map(w=>`
     <button onclick="retireViewWorker('${w.id}','${(w.name||'').replace(/'/g,'')}')" style="width:100%;background:#fff;border:1px solid #DDE4EF;border-radius:10px;padding:12px 14px;text-align:left;cursor:pointer;display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
       <span style="font-size:13px;font-weight:600;color:#1A2540;">${w.name||'-'} <span style="font-size:11px;color:#9AAABF;font-weight:400;">${w.dept||''} ${w.rank||''}</span></span>
       <span style="color:#C2CCD9;">›</span>
     </button>`).join('');
-  el.innerHTML = wrap2(`${backBtn2('renderRetireMobile()')}<div style="font-size:14px;font-weight:700;color:${C2.text};margin:8px 0 12px;">정산 내역 조회</div>${items||'<div style="text-align:center;padding:40px;color:#9AAABF;">근로자가 없습니다.</div>'}`);
+  el.innerHTML = wrap2(`${backBtn2('renderRetireMain()')}<div style="font-size:14px;font-weight:700;color:${C2.text};margin:8px 0 12px;">정산 내역 조회</div>${items||'<div style="text-align:center;padding:40px;color:#9AAABF;">근로자가 없습니다.</div>'}`);
 };
 
 window.retireViewWorker = async (wid, wname) => {
