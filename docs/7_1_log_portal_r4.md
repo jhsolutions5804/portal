@@ -1,7 +1,7 @@
 # 7.1. 개발 로그 — 포털 홈
 
 > `portal/index.html` 변경 이력
-> 최초 작성: 2026-06-26 · 최종 수정: 2026-06-29(r3) · 작성: 춘식이(Claude)
+> 최초 작성: 2026-06-26 · 최종 수정: 2026-06-29(r4)(r3) · 작성: 춘식이(Claude)
 
 ---
 
@@ -165,23 +165,13 @@ Tenant ID:  548fcb48-1ab8-4c47-8242-bc098ea80416
 
 ## MODULES url 중복 ?via=portal 제거 (D4, `bdcf8637`, 2026-06-29)
 
-### 원인
-`MODULES` 배열의 plan·hr·edoc url에 `?via=portal`이 이미 포함된 상태에서
-`openModule`이 `?via=portal`을 한 번 더 추가:
+MODULES 배열 url에 `?via=portal`이 포함된 상태에서 `openModule`이 한 번 더 추가
+→ `?via=portal?via=portal` 이중 파라미터로 hr 앱이 차단 화면 표시.
 
-```js
-// 문제 상황
-url: '.../portal/hr/?via=portal'         // MODULES 정의
-const fullUrl = (overrideUrl||m.url) + '?via=portal'  // openModule
-// 결과: .../portal/hr/?via=portal?via=portal  ← 파라미터 파싱 실패
-```
-
-### 해결 (A안)
-MODULES url에서 `?via=portal` 제거 → `openModule`이 단일 추가하도록 통일.
+**해결**: MODULES url에서 `?via=portal` 제거, `openModule`이 단일 추가하도록 통일.
 
 | 모듈 | 수정 전 | 수정 후 |
 |------|---------|---------|
 | plan | `.../gihoek/?via=portal` | `.../gihoek/` |
 | hr   | `.../hr/?via=portal`     | `.../hr/`     |
 | edoc | `.../edoc/?via=portal`   | `.../edoc/`   |
-| pjt  | `.../pjt/` (변경 없음)   | `.../pjt/`    |
