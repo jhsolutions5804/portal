@@ -1,15 +1,7 @@
 # 1.0. 기획 홈
 
 > `portal/gihoek/index.html` · URL: `.../portal/gihoek/?via=portal`
-> 최초 작성: 2026-06-26 · 최종 수정: 2026-06-29 · 작성: 춘식이(Claude)
-
----
-
-## UI 구조
-
-- **헤더**: 탭 메뉴만 표시 (`.head > .tabs`)
-  - 앱 자체 타이틀(📊 기획) 헤더 제거 — 포털 상단에 이미 표시되므로 중복
-- **탭**: 홈 / 프로젝트 / 거래처 / 견적 / 정산 / 회계
+> 최초 작성: 2026-06-26 · 최종 수정: 2026-06-29(r2) · 작성: 춘식이(Claude)
 
 ---
 
@@ -20,14 +12,12 @@
 | 진행 프로젝트 수 | `gihoek_projects` (status=run) | `planShowList('projects')` |
 | 유효 견적 합계 | `gihoek_estimates` (status=active) | `planShowList('estimates')` |
 | 대금 청구 누계 | `gihoek_settlements` (invoice, !void) | `planShowList('invoices')` |
-| 미수 잔금 | 청구 누계 − **완결된 청구** 합계 | `planShowList('dues')` |
+| 미수 잔금 | 청구 누계 − 완결된 청구 합계 | `planShowList('dues')` |
 
-### 미수금 정의 (2026-06-26 재정의)
+### 미수금 정의
 ```
 미수금 = pjtBilled(전체) − pjtDone(완결된 invoice 합계)
 ```
-- 헬퍼: `pjtDone(pid)` — 완결(done) 청구서 합계
-- 헬퍼: `pjtDue(pid)` — 프로젝트별 미수금
 
 ---
 
@@ -50,11 +40,25 @@
 | 💳 정산 | `settle` | `tab('settle')` |
 | 📊 회계 | `acct` | `tab('acct')` |
 
-### 뒤로가기 (2026-06-26 추가)
-- 바로가기로 진입한 각 탭 최상단에 `← 기획 홈` 버튼 표시
-- 클릭 시 `tab('home')` 호출 → 기획 홈으로 복귀
-- 적용 탭: 프로젝트·거래처·견적·정산·회계 (5개 전체)
-- 사용 스타일: 기존 `.back` CSS 클래스 그대로 활용
+---
+
+## 기획 홈 버튼 스타일 통일 (H1, 2026-06-29)
+
+각 탭 최상단 "← 기획 홈" 버튼을 인사 섹션과 동일한 박스 스타일로 통일.
+
+- **변경 전**: `.back` CSS 클래스 (배경 없는 텍스트 버튼, `← 기획 홈`)
+- **변경 후**: `.home-back` CSS 클래스 (회색 박스 버튼, `🏠 기획 홈`)
+- **적용 탭**: 프로젝트·거래처·견적·정산·회계 (5개 전체)
+- **`.back` 클래스**: 탭 내 뒤로가기(← 목록, ← 뒤로)에는 그대로 유지
+
+```css
+.home-back {
+  font-size:12px; color:#5C6F8A; background:#F0F4F9;
+  border:1px solid #DDE4EF; border-radius:8px;
+  padding:5px 12px; cursor:pointer; font-weight:600;
+  margin-bottom:10px; display:inline-block;
+}
+```
 
 ---
 
