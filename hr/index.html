@@ -1669,7 +1669,7 @@ window.renderPayslipPC = () => {
     window._psWorkers = workers;
     const sel = document.getElementById('ps-pc-worker');
     if (sel) sel.innerHTML = '<option value="">근로자 선택</option>' +
-      workers.map(w=>`<option value="${w.id}">${w.name} ${w.rank||''}</option>`).join('');
+      workers.map(w=>`<option value="${w.id}">${w.empNo?'['+w.empNo+'] ':''}${w.name} (${w.rank||''})</option>`).join('');
   });
 };
 
@@ -1761,7 +1761,7 @@ window.renderPayslipPCRight = () => {
           </div>
           <div style="display:flex;justify-content:space-between;padding:7px 0;border-top:2px solid #DDE3EE;margin-top:4px;">
             <span style="font-weight:700;color:#1A2540;">지급계</span>
-            <span style="font-weight:700;color:#1D5BA6;">${won(c.gross)}</span>
+            <span style="font-weight:700;color:#1D5BA6;">${won(c.totalPay)}</span>
           </div>
         </div>
       </div>
@@ -1786,7 +1786,7 @@ window.renderPayslipPCRight = () => {
     </div>
     <div style="background:linear-gradient(135deg,#1D5BA6,#2E7DD1);border-radius:12px;padding:16px;text-align:center;color:#fff;margin-bottom:12px;">
       <div style="font-size:12px;opacity:.8;margin-bottom:4px;">실 지급액</div>
-      <div style="font-size:28px;font-weight:800;">${won(c.net)}</div>
+      <div style="font-size:28px;font-weight:800;">${won(c.netPay)}</div>
     </div>
     <div style="display:flex;gap:8px;">
       <button onclick="psPreview()" style="flex:1;padding:10px;background:#F0F4F9;border:1px solid #DDE4EF;border-radius:8px;color:#1A2540;font-size:13px;font-weight:600;cursor:pointer;">📄 미리보기</button>
@@ -2493,8 +2493,7 @@ async function getWorkersList() {
     const snap = await getDocs(collection(window._db, 'workers'));
     const docs = [];
     snap.forEach(d => docs.push({id:d.id, ...d.data()}));
-    docs.sort((a,b)=>(a.empNo||'').localeCompare(b.empNo||''));
-    return docs.sort((a,b)=>(a.name||'').localeCompare(b.name||'','ko'));
+    return docs.sort((a,b)=>(a.empNo||'zzz').localeCompare(b.empNo||'zzz'));
   } catch(e) { return []; }
 }
 
@@ -4051,7 +4050,7 @@ async function otGetWorkerList() {
       const w = d.data();
       list.push({ id: d.id, name: w.name, rank: w.rank || '', empNo: w.empNo || '' });
     });
-    list.sort((a,b) => (a.empNo||'').localeCompare(b.empNo||''));
+    list.sort((a,b) => (a.empNo||'zzz').localeCompare(b.empNo||'zzz'));
     return list;
   } catch(e) { return []; }
 }
@@ -5199,7 +5198,7 @@ window.renderRetireCalc = async () => {
   _rtWorkers = await getWorkersList();
   const today = new Date().toISOString().slice(0,10);
   const opts = ['<option value="">근로자 선택</option>'].concat(
-    _rtWorkers.map(w=>`<option value="${w.id}">${w.name||'-'}${w.dept?(' · '+w.dept):''}${w.rank?(' '+w.rank):''}</option>`)
+    _rtWorkers.map(w=>`<option value="${w.id}">${w.empNo?'['+w.empNo+'] ':''}${w.name||'-'}${w.dept?(' · '+w.dept):''}${w.rank?(' '+w.rank):''}</option>`)
   ).join('');
   el.innerHTML = wrap2(`
     ${backBtn2('renderRetireMain()')}
