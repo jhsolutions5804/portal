@@ -692,7 +692,6 @@
 
 <div class="toast" id="toast"></div>
 
-<script src="https://unpkg.com/@azure/msal-browser@2.38.4/dist/msal-browser.min.js"></script>
 <script type="module">
 import { initializeApp, initializeApp as initApp2 } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
 import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged,
@@ -1879,225 +1878,48 @@ window._goEdocApprove = function(){
   if(m) openModule(m,'approve',null);
 };
 
-// ── Outlook 카드 (MSAL ESM import 방식) ──────────────────────
-const MSAL_AUTH = {
-  clientId: '97f0a368-a746-42f9-8782-38ac8cc0962c',
-  authority: 'https://login.microsoftonline.com/548fcb48-1ab8-4c47-8242-bc098ea80416',
-  redirectUri: 'https://jhsolutions5804.github.io/portal/outlook-auth.html'
+// ── Outlook 카드 (OAuth2 PKCE 직접 구현) ──────────────────────
+const OA2 = {
+  clientId:    '97f0a368-a746-42f9-8782-38ac8cc0962c',
+  tenantId:    '548fcb48-1ab8-4c47-8242-bc098ea80416',
+  redirectUri: 'https://jhsolutions5804.github.io/portal/outlook-auth.html',
+  scopes:      'Mail.Read User.Read offline_access',
 };
-const MSAL_SCOPES = ['Mail.Read', 'User.Read'];
-// MSAL UMD: window.msal 로드 후 사용 (script 태그로 로드)
-// uid별 MSAL 인스턴스 캐시 (공용PC 포함 계정 격리)
-const _msalApps = {};
-let _msalAccount = null;
-
-async function getMsalApp(){
-  const uid = me?.uid || 'guest';
-  if(_msalApps[uid]) return _msalApps[uid];
-  // window.msal 로드 대기 (최대 5초)
-  let waited = 0;
-  while (!window.msal && waited < 5000) {
-    await new Promise(r => setTimeout(r, 100));
-    waited += 100;
-  }
-  if (!window.msal) throw new Error('MSAL 라이브러리 로드 실패 (timeout)');
-  const { PublicClientApplication } = window.msal;
-  // uid를 캐시 키에 포함시켜 sessionStorage 격리
-  const config = {
-    auth: MSAL_AUTH,
-    cache: {
-      cacheLocation: 'sessionStorage',
-      storeAuthStateInCookie: false,
-      // uid별 고유 prefix로 토큰 캐시 완전 분리
-      cacheMigrationEnabled: false
-    },
-    system: {
-      // 인스턴스 식별자로 uid 사용 → sessionStorage key 분리
-      loggerOptions: { logLevel: 0 }
-    }
-  };
-  const app = new PublicClientApplication(config);
-  // uid별로 다른 계정만 필터
-  const accounts = app.getAllAccounts().filter(a =>
-    sessionStorage.getItem('msal_portal_uid_' + a.homeAccountId) === uid
-  );
-  if(accounts.length === 0){
-    // 다른 uid의 캐시가 남아있으면 무시 (계정 전환 보호)
-    app.getAllAccounts().forEach(a => {
-      const savedUid = sessionStorage.getItem('msal_portal_uid_' + a.homeAccountId);
-      if(savedUid && savedUid !== uid) app.clearCache();
-    });
-  }
-  _msalApps[uid] = app;
-  return app;
+OA2.authUrl  = `https://login.microsoftonline.com/${OA2.tenantId}/oauth2/v2.0/authorize`;
+OA2.tokenUrl = `https://login.microsoftonline.com/${OA2.tenantId}/oauth2/v2.0/token`;
+// ── OAuth2 PKCE 헬퍼 ──
+async function _oa2PKCE() {
+  const arr = new Uint8Array(32);
+  crypto.getRandomValues(arr);
+  const ver = btoa(String.fromCharCode(...arr)).replace(/\+/g,'-').replace(/\//g,'_').replace(/=/g,'');
+  const dig = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(ver));
+  const cha = btoa(String.fromCharCode(...new Uint8Array(dig))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=/g,'');
+  return { ver, cha };
 }
-
-// 포털 로그아웃 시 해당 uid의 MSAL 캐시 삭제
-function clearMsalCache(){
-  const uid = me?.uid || 'guest';
-  const app = _msalApps[uid];
-  if(app){
-    try{
-      app.getAllAccounts().forEach(a => {
-        sessionStorage.removeItem('msal_portal_uid_' + a.homeAccountId);
-      });
-      app.clearCache();
-    } catch(e){}
-    delete _msalApps[uid];
-  }
-  _msalAccount = null;
+async function oa2GetToken() {
+  const t = sessionStorage.getItem('oa2_token');
+  const e = Number(sessionStorage.getItem('oa2_expiry') || 0);
+  return (t && Date.now() < e) ? t : null;
 }
-
-async function msalGetToken(){
-  // outlook-auth.html에서 저장한 토큰 우선 사용
-  const stored   = sessionStorage.getItem('msal_access_token');
-  const expiry   = Number(sessionStorage.getItem('msal_token_expiry') || 0);
-  const storedId = sessionStorage.getItem('msal_account_id') || '';
-
-  if(stored && Date.now() < expiry){
-    // 계정 정보 복원
-    if(!_msalAccount && storedId){
-      _msalAccount = { homeAccountId: storedId, name: sessionStorage.getItem('msal_account_name') || '' };
-    }
-    return stored;
-  }
-
-  // 토큰 없거나 만료 → silent 시도 후 outlook-auth로 이동
-  try{
-    const app = await getMsalApp();
-    const accounts = app.getAllAccounts();
-    if(accounts.length > 0){
-      _msalAccount = accounts[0];
-      try{
-        const res = await app.acquireTokenSilent({ scopes: MSAL_SCOPES, account: _msalAccount });
-        sessionStorage.setItem('msal_access_token', res.accessToken);
-        sessionStorage.setItem('msal_token_expiry', String(Date.now() + 55 * 60 * 1000));
-        return res.accessToken;
-      } catch(e){ /* silent 실패 */ }
-    }
-  } catch(e){}
-
-  // outlook-auth.html로 이동하여 인증
-  sessionStorage.setItem('msal_redirect_uid', me?.uid || 'guest');
-  window.location.href = 'https://jhsolutions5804.github.io/portal/outlook-auth.html';
-  return null;
+async function oa2Login() {
+  const { ver, cha } = await _oa2PKCE();
+  sessionStorage.setItem('oa2_verifier', ver);
+  sessionStorage.setItem('oa2_uid', me?.uid || 'guest');
+  const p = new URLSearchParams({
+    client_id: OA2.clientId, response_type:'code',
+    redirect_uri: OA2.redirectUri, scope: OA2.scopes,
+    code_challenge: cha, code_challenge_method:'S256', response_mode:'query'
+  });
+  window.location.href = OA2.authUrl + '?' + p;
 }
-
-async function msalLogout(){
-  // sessionStorage 토큰 삭제
-  ['msal_access_token','msal_token_expiry','msal_account_name','msal_account_id','msal_pending_uid']
+async function oa2Logout() {
+  ['oa2_token','oa2_expiry','oa2_name','oa2_verifier','oa2_uid']
     .forEach(k => sessionStorage.removeItem(k));
-  try{
-    const app = await getMsalApp();
-    const accounts = app.getAllAccounts();
-    if(accounts.length > 0){
-      app.clearCache();
-    }
-  } catch(e){}
-  clearMsalCache();
   renderOutlookCard();
 }
-
-async function renderOutlookCard(){
-  const container = document.getElementById('outlook-card-wrap');
-  if(!container) return;
-  container.style.display = '';
-  container.innerHTML = '<div class="oc-loading">📬 Outlook 연결 중...</div>';
-
-  let app, accounts, isLinked;
-  try{
-    app = await getMsalApp();
-    accounts = app.getAllAccounts();
-    isLinked = accounts.length > 0;
-  } catch(e){
-    container.innerHTML =
-      '<div class="outlook-card-header"><div class="oc-icon">📧</div><div class="oc-title">Outlook 메일</div></div>'
-      +'<div style="font-size:12px;color:#DC2626;margin-bottom:10px;">MSAL 초기화 실패: '+e.message+'</div>'
-      +'<a href="https://outlook.office.com/mail/" target="_blank" class="outlook-open-btn">📬 Outlook Web 열기</a>';
-    return;
-  }
-
-  if(!isLinked){
-    container.innerHTML = `
-      <div class="outlook-card-header">
-        <div class="oc-icon">📧</div>
-        <div class="oc-title">Outlook 메일</div>
-      </div>
-      <div style="font-size:12px;color:#9AAABF;margin-bottom:10px;">Microsoft 계정과 연결하면<br>읽지 않은 메일을 확인할 수 있습니다.</div>
-      <button class="oc-login-btn" onclick="outlookConnect()">🔗 Microsoft 계정 연결</button>
-      <a href="https://outlook.office.com/mail/" target="_blank" class="outlook-open-btn">📬 Outlook Web 열기</a>`;
-    return;
-  }
-
-  // 토큰 취득 & 메일 조회
-  try{
-    const token = await msalGetToken();
-    if(!token) throw new Error('token_fail');
-
-    // 읽지 않은 메일 수
-    const [countRes, mailRes] = await Promise.all([
-      fetch('https://graph.microsoft.com/v1.0/me/mailFolders/inbox/messages/$count?$filter=isRead eq false', {
-        headers:{ Authorization:'Bearer '+token, ConsistencyLevel:'eventual' }
-      }),
-      fetch('https://graph.microsoft.com/v1.0/me/mailFolders/inbox/messages?$top=5&$select=subject,from,isRead,receivedDateTime&$orderby=receivedDateTime desc', {
-        headers:{ Authorization:'Bearer '+token }
-      })
-    ]);
-
-    const unreadCount = countRes.ok ? parseInt(await countRes.text()||'0') : 0;
-    const mailData = mailRes.ok ? await mailRes.json() : { value:[] };
-    const mails = mailData.value || [];
-
-    const badgeClass = unreadCount === 0 ? 'zero' : '';
-    const badgeText = unreadCount > 99 ? '99+' : String(unreadCount);
-
-    let mailListHtml = '';
-    if(mails.length === 0){
-      mailListHtml = '<div style="font-size:12px;color:#9AAABF;text-align:center;padding:8px 0;">최근 메일이 없습니다.</div>';
-    } else {
-      mailListHtml = mails.map(m => {
-        const from = m.from?.emailAddress?.name || m.from?.emailAddress?.address || '(알 수 없음)';
-        const subj = m.subject || '(제목 없음)';
-        const unread = !m.isRead ? 'unread' : '';
-        return `<div class="outlook-mail-item ${unread}" onclick="window.open('https://outlook.office.com/mail/','_blank')">
-          <div class="om-from">${from}${!m.isRead?' 🔵':''}</div>
-          <div class="om-subject">${subj}</div>
-        </div>`;
-      }).join('');
-    }
-
-    const acctName = _msalAccount?.name || _msalAccount?.username || '';
-
-    container.innerHTML = `
-      <div class="outlook-card-header">
-        <div class="oc-icon">📧</div>
-        <div class="oc-title">Outlook 메일<br><span style="font-size:11px;font-weight:400;color:#9AAABF;">${acctName}</span></div>
-        <div class="oc-badge ${badgeClass}">${unreadCount === 0 ? '✓' : badgeText}</div>
-      </div>
-      <div class="outlook-mail-list">${mailListHtml}</div>
-      <a href="https://outlook.office.com/mail/" target="_blank" class="outlook-open-btn">📬 Outlook Web 열기</a>
-      <div style="text-align:right;margin-top:8px;">
-        <button onclick="msalLogout()" style="font-size:11px;color:#9AAABF;background:none;border:none;cursor:pointer;font-family:inherit;">연결 해제</button>
-        <button onclick="renderOutlookCard()" style="font-size:11px;color:#9AAABF;background:none;border:none;cursor:pointer;font-family:inherit;margin-left:8px;">↻ 새로고침</button>
-      </div>`;
-  } catch(e){
-    container.innerHTML = `
-      <div class="outlook-card-header">
-        <div class="oc-icon">📧</div>
-        <div class="oc-title">Outlook 메일</div>
-      </div>
-      <div style="font-size:12px;color:#DC2626;margin-bottom:10px;">메일 로드 실패. 다시 시도해 주세요.</div>
-      <button class="oc-login-btn" onclick="outlookConnect()">🔄 다시 연결</button>
-      <a href="https://outlook.office.com/mail/" target="_blank" class="outlook-open-btn">📬 Outlook Web 열기</a>`;
-  }
-}
-
-async function outlookConnect(){
-  const token = await msalGetToken();
-  if(token) renderOutlookCard();
-}
-window.outlookConnect = outlookConnect;
-window.msalLogout = msalLogout;
+function clearMsalCache() { oa2Logout(); }
+window.oa2Login  = oa2Login;
+window.oa2Logout = oa2Logout;
 window.renderOutlookCard = renderOutlookCard;
 
 function openModule(m, tab, overrideUrl){
