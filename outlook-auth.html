@@ -18,6 +18,7 @@
            border:none; border-radius:8px; font-size:14px; font-weight:600;
            cursor:pointer; }
   </style>
+  <script src="https://unpkg.com/@azure/msal-browser@2.38.4/dist/msal-browser.min.js"></script>
 </head>
 <body>
 <div class="card">
@@ -29,7 +30,7 @@
 </div>
 
 <script type="module">
-const MSAL_ESM_URL  = 'https://unpkg.com/@azure/msal-browser@2.38.4/dist/msal-browser.esm.js';
+// MSAL UMD: window.msal 로드 후 사용
 const MSAL_AUTH     = {
   clientId:    '97f0a368-a746-42f9-8782-38ac8cc0962c',
   authority:   'https://login.microsoftonline.com/548fcb48-1ab8-4c47-8242-bc098ea80416',
@@ -44,7 +45,8 @@ function goPortal() {
 
 async function handleAuth() {
   try {
-    const { PublicClientApplication } = await import(MSAL_ESM_URL);
+    if (!window.msal) throw new Error('MSAL 라이브러리 로드 실패');
+    const { PublicClientApplication } = window.msal;
     const app = new PublicClientApplication({
       auth: MSAL_AUTH,
       cache: { cacheLocation: 'sessionStorage', storeAuthStateInCookie: false }
