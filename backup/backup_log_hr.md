@@ -1,3 +1,30 @@
+# Backup Log
+
+## v1.0.4 — 2026-06-29
+
+### 백업 파일
+| 파일 | SHA |
+|------|-----|
+| portal/index.html    | 15000739 |
+| hr/index.html        | 67dcd9e9 |
+| gihoek/index.html    | cc0b9ce5 |
+| outlook-auth.html    | 03b04c26 |
+
+### 주요 변경 내용 (v1.0.3 → v1.0.4)
+- J3: 연차현황 `_isAdmin` 파라미터 수신
+- J4: 퇴직금 드롭박스 `empNo` 정렬
+- J5: 퇴직금 `rt-list-panel` 저장 내역 연동
+- J6: 기획/인사 좌우 여백 `1100px` 통일
+- J2: gihoek 홈 버튼 `.home-back` 통일
+- J1: 루트 md 파일 `docs/` 정리
+- K1: 급여명세서 지급계·실지급액 오류 수정
+- K2: 전체 드롭박스 `empNo` 정렬 통일
+- K3: Outlook MSAL → OAuth2 PKCE 직접 구현
+- L2: 근로자 명부 → portal_users 역방향 연동
+- L3: 근로자 명부 수정 저장 `oninput` 오류 수정
+- hotfix: renderOutlookCard 함수 복구
+
+---
 # Backup Log — hr/index.html
 
 > 백업 대상: `portal/hr/index.html`
