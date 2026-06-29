@@ -692,6 +692,7 @@
 
 <div class="toast" id="toast"></div>
 
+<script src="https://unpkg.com/@azure/msal-browser@2.38.4/dist/msal-browser.min.js"></script>
 <script type="module">
 import { initializeApp, initializeApp as initApp2 } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
 import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged,
@@ -1885,7 +1886,7 @@ const MSAL_AUTH = {
   redirectUri: 'https://jhsolutions5804.github.io/portal/outlook-auth.html'
 };
 const MSAL_SCOPES = ['Mail.Read', 'User.Read'];
-const MSAL_ESM_URL = 'https://unpkg.com/@azure/msal-browser@2.38.4/dist/msal-browser.esm.js';
+// MSAL UMD: window.msal 로드 후 사용 (script 태그로 로드)
 // uid별 MSAL 인스턴스 캐시 (공용PC 포함 계정 격리)
 const _msalApps = {};
 let _msalAccount = null;
@@ -1893,7 +1894,8 @@ let _msalAccount = null;
 async function getMsalApp(){
   const uid = me?.uid || 'guest';
   if(_msalApps[uid]) return _msalApps[uid];
-  const { PublicClientApplication } = await import(MSAL_ESM_URL);
+  if (!window.msal) throw new Error('MSAL 라이브러리 로드 실패');
+  const { PublicClientApplication } = window.msal;
   // uid를 캐시 키에 포함시켜 sessionStorage 격리
   const config = {
     auth: MSAL_AUTH,
