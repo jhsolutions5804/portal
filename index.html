@@ -1920,6 +1920,98 @@ async function oa2Logout() {
 function clearMsalCache() { oa2Logout(); }
 window.oa2Login  = oa2Login;
 window.oa2Logout = oa2Logout;
+async function renderOutlookCard(){
+  const container = document.getElementById('outlook-card-wrap');
+  if(!container) return;
+  container.style.display = '';
+  container.innerHTML = '<div class="oc-loading">📬 Outlook 연결 중...</div>';
+
+  let isLinked;
+  try{
+    isLinked = !!(await oa2GetToken());
+  } catch(e){
+    container.innerHTML =
+      '<div class="outlook-card-header"><div class="oc-icon">📧</div><div class="oc-title">Outlook 메일</div></div>'
+      +'<div style="font-size:12px;color:#DC2626;margin-bottom:10px;">Outlook 연결 오류: '+e.message+'</div>'
+      +'<a href="https://outlook.office.com/mail/" target="_blank" class="outlook-open-btn">📬 Outlook Web 열기</a>';
+    return;
+  }
+
+  if(!isLinked){
+    container.innerHTML = `
+      <div class="outlook-card-header">
+        <div class="oc-icon">📧</div>
+        <div class="oc-title">Outlook 메일</div>
+      </div>
+      <div style="font-size:12px;color:#9AAABF;margin-bottom:10px;">Microsoft 계정과 연결하면<br>읽지 않은 메일을 확인할 수 있습니다.</div>
+      <button class="oc-login-btn" onclick="oa2Login()">🔗 Microsoft 계정 연결</button>
+      <a href="https://outlook.office.com/mail/" target="_blank" class="outlook-open-btn">📬 Outlook Web 열기</a>`;
+    return;
+  }
+
+  // 토큰 취득 & 메일 조회
+  try{
+    const token = await oa2GetToken();
+    if(!token) throw new Error('token_fail');
+
+    // 읽지 않은 메일 수
+    const [countRes, mailRes] = await Promise.all([
+      fetch('https://graph.microsoft.com/v1.0/me/mailFolders/inbox/messages/$count?$filter=isRead eq false', {
+        headers:{ Authorization:'Bearer '+token, ConsistencyLevel:'eventual' }
+      }),
+      fetch('https://graph.microsoft.com/v1.0/me/mailFolders/inbox/messages?$top=5&$select=subject,from,isRead,receivedDateTime&$orderby=receivedDateTime desc', {
+        headers:{ Authorization:'Bearer '+token }
+      })
+    ]);
+
+    const unreadCount = countRes.ok ? parseInt(await countRes.text()||'0') : 0;
+    const mailData = mailRes.ok ? await mailRes.json() : { value:[] };
+    const mails = mailData.value || [];
+
+    const badgeClass = unreadCount === 0 ? 'zero' : '';
+    const badgeText = unreadCount > 99 ? '99+' : String(unreadCount);
+
+    let mailListHtml = '';
+    if(mails.length === 0){
+      mailListHtml = '<div style="font-size:12px;color:#9AAABF;text-align:center;padding:8px 0;">최근 메일이 없습니다.</div>';
+    } else {
+      mailListHtml = mails.map(m => {
+        const from = m.from?.emailAddress?.name || m.from?.emailAddress?.address || '(알 수 없음)';
+        const subj = m.subject || '(제목 없음)';
+        const unread = !m.isRead ? 'unread' : '';
+        return `<div class="outlook-mail-item ${unread}" onclick="window.open('https://outlook.office.com/mail/','_blank')">
+          <div class="om-from">${from}${!m.isRead?' 🔵':''}</div>
+          <div class="om-subject">${subj}</div>
+        </div>`;
+      }).join('');
+    }
+
+    const acctName = sessionStorage.getItem('oa2_name') || '';
+
+    container.innerHTML = `
+      <div class="outlook-card-header">
+        <div class="oc-icon">📧</div>
+        <div class="oc-title">Outlook 메일<br><span style="font-size:11px;font-weight:400;color:#9AAABF;">${acctName}</span></div>
+        <div class="oc-badge ${badgeClass}">${unreadCount === 0 ? '✓' : badgeText}</div>
+      </div>
+      <div class="outlook-mail-list">${mailListHtml}</div>
+      <a href="https://outlook.office.com/mail/" target="_blank" class="outlook-open-btn">📬 Outlook Web 열기</a>
+      <div style="text-align:right;margin-top:8px;">
+        <button onclick="oa2Logout()" style="font-size:11px;color:#9AAABF;background:none;border:none;cursor:pointer;font-family:inherit;">연결 해제</button>
+        <button onclick="renderOutlookCard()" style="font-size:11px;color:#9AAABF;background:none;border:none;cursor:pointer;font-family:inherit;margin-left:8px;">↻ 새로고침</button>
+      </div>`;
+  } catch(e){
+    container.innerHTML = `
+      <div class="outlook-card-header">
+        <div class="oc-icon">📧</div>
+        <div class="oc-title">Outlook 메일</div>
+      </div>
+      <div style="font-size:12px;color:#DC2626;margin-bottom:10px;">메일 로드 실패. 다시 시도해 주세요.</div>
+      <button class="oc-login-btn" onclick="oa2Login()">🔄 다시 연결</button>
+      <a href="https://outlook.office.com/mail/" target="_blank" class="outlook-open-btn">📬 Outlook Web 열기</a>`;
+  }
+}
+
 window.renderOutlookCard = renderOutlookCard;
 
 function openModule(m, tab, overrideUrl){
