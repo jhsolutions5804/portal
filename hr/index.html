@@ -3106,9 +3106,21 @@ window.rosterDetailSave = async (id) => {
   try {
     const { doc, setDoc } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
     await setDoc(doc(window._db,'workers',id), { ...window._editRosterTarget }, { merge:true });
+
+    // portal_users 동기화 (portalUid 있을 때만)
+    const puUid = window._editRosterTarget.portalUid;
+    if (puUid) {
+      const { name, rank, dept } = window._editRosterTarget;
+      window.parent.postMessage({
+        source: 'jh-hr',
+        action: 'syncWorkerToPortal',
+        payload: { puUid, fields: { name, rank, dept } }
+      }, '*');
+    }
+
     document.getElementById('roster-detail-modal').remove();
     alert('✅ 수정 완료!');
-    renderRosterList(); // 목록 새로고침
+    renderRosterList();
   } catch(e) { alert('저장 오류: '+e.message); }
 };
 window.rosterLinkPortal = async (workerId, workerName) => {
