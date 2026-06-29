@@ -214,3 +214,12 @@ MSAL 라이브러리(`@azure/msal-browser`)가 CDN 동적 import 방식에서 `p
 ## hotfix: renderOutlookCard 복구 (`9f30a783`, 2026-06-29)
 MSAL→OAuth2 교체 중 `renderOutlookCard` 함수 본체(98줄) 삭제 → 포털 접속 불가.
 정상 커밋(`8115c528`)에서 복원 후 `oa2GetToken` 참조로 교체.
+
+## gihoek 무한 로딩 수정 (`63a82b89`, 2026-06-29)
+### 원인
+- 이전 세션에서 삽입된 "자동장부 등록" 블록이 `document.write()` 백틱 리터럴 안에 끼어들어 SyntaxError 발생
+- `?via=portal` 시 `startApp()` 내 Firestore 쿼리가 미인증 상태에서 블로킹
+
+### 수정
+- 오염 블록(49줄) 완전 제거
+- `?via=portal`이면 splash 즉시 제거 → `onAuthStateChanged` 안에서 인증 후 onSnapshot 등록
