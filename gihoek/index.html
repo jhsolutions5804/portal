@@ -213,15 +213,38 @@ const SEED_COMPANIES=[
   {id:'sj',    company:'에스제이',   ceo:'서민우', bizno:'', tel:'010-8456-1098', email:'seoyo20@naver.com', address:'', roleSupplier:false, roleClient:true},
 ];
 
-onAuthStateChanged(auth, async user=>{
-  if(!user){ showDenied('로그인이 필요합니다','포털에서 로그인 후 기획 메뉴로 접속해 주세요.'); return; }
-  try{
-    const ps=await getDoc(doc(db,'portal_users',user.uid));
-    if(ps.exists()){ const d=ps.data();
-      if(d.status==='approved' && (d.admin===true || (d.perms&&d.perms.plan===true))){ me={uid:user.uid,...d}; await startApp(); return; } }
-  }catch(e){}
-  showDenied('접근 권한이 없습니다','기획 메뉴 접근 권한이 없습니다. 관리자에게 요청해 주세요.');
-});
+// via=portal이면 Firebase Auth 대기 없이 즉시 앱 표시 (hr 방식과 동일)
+const _viaPortal = new URLSearchParams(location.search).get('via') === 'portal';
+if (_viaPortal) {
+  // 즉시 splash 제거 → 앱 표시
+  $('splash').style.display = 'none';
+  $('app').style.display = 'block';
+  document.documentElement.classList.add('portal-embed');
+  // 백그라운드에서 권한 확인 (실패해도 앱은 이미 표시됨)
+  onAuthStateChanged(auth, async user => {
+    if (!user) return; // 포털 경유이므로 로그인 화면 불필요
+    try {
+      const ps = await getDoc(doc(db,'portal_users',user.uid));
+      if (ps.exists()) { me = { uid:user.uid, ...ps.data() }; }
+    } catch(e) {}
+    // tab 초기화 (startApp의 onSnapshot 없이 tab만 재실행)
+    const t0 = new URLSearchParams(location.search).get('tab');
+    if (t0 && ['home','pjt','comp','est','settle','acct'].includes(t0)) tab(t0);
+    else renderPlanHome();
+  });
+  await startApp();
+} else {
+  // 직접 접근 시 기존 Firebase Auth 방식
+  onAuthStateChanged(auth, async user=>{
+    if(!user){ showDenied('로그인이 필요합니다','포털에서 로그인 후 기획 메뉴로 접속해 주세요.'); return; }
+    try{
+      const ps=await getDoc(doc(db,'portal_users',user.uid));
+      if(ps.exists()){ const d=ps.data();
+        if(d.status==='approved' && (d.admin===true || (d.perms&&d.perms.plan===true))){ me={uid:user.uid,...d}; await startApp(); return; } }
+    }catch(e){}
+    showDenied('접근 권한이 없습니다','기획 메뉴 접근 권한이 없습니다. 관리자에게 요청해 주세요.');
+  });
+}
 function showDenied(t,s){ $('splash').style.display='none'; $('app').style.display='none'; $('denied-t').textContent=t; $('denied-s').textContent=s; $('denied').style.display='block'; }
 
 async function startApp(){
