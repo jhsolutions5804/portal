@@ -1882,7 +1882,7 @@ window._goEdocApprove = function(){
 const MSAL_AUTH = {
   clientId: '97f0a368-a746-42f9-8782-38ac8cc0962c',
   authority: 'https://login.microsoftonline.com/548fcb48-1ab8-4c47-8242-bc098ea80416',
-  redirectUri: 'https://jhsolutions5804.github.io/portal/'
+  redirectUri: 'https://jhsolutions5804.github.io/portal/outlook-auth.html'
 };
 const MSAL_SCOPES = ['Mail.Read', 'User.Read'];
 const MSAL_ESM_URL = 'https://esm.sh/@azure/msal-browser@2.38.4';
@@ -1920,16 +1920,6 @@ async function getMsalApp(){
       if(savedUid && savedUid !== uid) app.clearCache();
     });
   }
-  // redirect 복귀 시 토큰 처리
-  try{
-    const res = await app.handleRedirectPromise();
-    if(res && res.account){
-      _msalAccount = res.account;
-      const pendingUid = sessionStorage.getItem('msal_redirect_pending') || 'guest';
-      sessionStorage.setItem('msal_portal_uid_' + res.account.homeAccountId, pendingUid);
-      sessionStorage.removeItem('msal_redirect_pending');
-    }
-  } catch(e){}
   _msalApps[uid] = app;
   return app;
 }
@@ -1951,6 +1941,20 @@ function clearMsalCache(){
 }
 
 async function msalGetToken(){
+  // outlook-auth.html에서 저장한 토큰 우선 사용
+  const stored   = sessionStorage.getItem('msal_access_token');
+  const expiry   = Number(sessionStorage.getItem('msal_token_expiry') || 0);
+  const storedId = sessionStorage.getItem('msal_account_id') || '';
+
+  if(stored && Date.now() < expiry){
+    // 계정 정보 복원
+    if(!_msalAccount && storedId){
+      _msalAccount = { homeAccountId: storedId, name: sessionStorage.getItem('msal_account_name') || '' };
+    }
+    return stored;
+  }
+
+  // 토큰 없거나 만료 → silent 시도 후 outlook-auth로 이동
   try{
     const app = await getMsalApp();
     const accounts = app.getAllAccounts();
@@ -1958,21 +1962,29 @@ async function msalGetToken(){
       _msalAccount = accounts[0];
       try{
         const res = await app.acquireTokenSilent({ scopes: MSAL_SCOPES, account: _msalAccount });
+        sessionStorage.setItem('msal_access_token', res.accessToken);
+        sessionStorage.setItem('msal_token_expiry', String(Date.now() + 55 * 60 * 1000));
         return res.accessToken;
-      } catch(e){ /* silent 실패 → redirect로 진행 */ }
+      } catch(e){ /* silent 실패 */ }
     }
-    // redirect 방식 — 페이지 이동 후 handleRedirectPromise에서 처리
-    sessionStorage.setItem('msal_redirect_pending', me?.uid || 'guest');
-    await app.acquireTokenRedirect({ scopes: MSAL_SCOPES });
-    return null; // redirect 후 페이지가 새로 로드됨
-  } catch(e){ return null; }
+  } catch(e){}
+
+  // outlook-auth.html로 이동하여 인증
+  sessionStorage.setItem('msal_redirect_uid', me?.uid || 'guest');
+  window.location.href = 'https://jhsolutions5804.github.io/portal/outlook-auth.html';
+  return null;
 }
 
 async function msalLogout(){
+  // sessionStorage 토큰 삭제
+  ['msal_access_token','msal_token_expiry','msal_account_name','msal_account_id','msal_pending_uid']
+    .forEach(k => sessionStorage.removeItem(k));
   try{
     const app = await getMsalApp();
     const accounts = app.getAllAccounts();
-    if(accounts.length > 0) await app.logoutRedirect({ account: accounts[0], postLogoutRedirectUri: window.location.href });
+    if(accounts.length > 0){
+      app.clearCache();
+    }
   } catch(e){}
   clearMsalCache();
   renderOutlookCard();
