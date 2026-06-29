@@ -2371,7 +2371,14 @@ window.psViewDetail = (d, wid) => {
   ps.month = d.month||''; ps.payDate = d.payDate||''; ps.bankAccount = d.bankAccount||'';
   ps.bonus=d.bonus||0; ps.specialBonus=d.specialBonus||0; ps.extraPay=d.extraPay||0;
   ps.dormitory=d.dormitory||0;
-  ps.annualData = { hourly:d.hourly||0 };
+  ps.annualData = { hourly:d.hourly||0, _savedGrossPay:d.grossPay||0 };
+  // 저장된 공제값 오버라이드로 세팅 (직접 수정값 보존)
+  ps._pension   = d.pension||0;
+  ps._health    = d.health||0;
+  ps._ltcare    = d.ltcare||0;
+  ps._employ    = d.employ||0;
+  ps._incomeTax = d.incomeTax||0;
+  ps._localTax  = d.localTax||0;
   psPreview();
   Object.assign(ps, origPs);
 };
@@ -2459,7 +2466,14 @@ window.psViewDetail = (d, wid) => {
   ps.month = d.month||''; ps.payDate = d.payDate||''; ps.bankAccount = d.bankAccount||'';
   ps.bonus=d.bonus||0; ps.specialBonus=d.specialBonus||0; ps.extraPay=d.extraPay||0;
   ps.dormitory=d.dormitory||0;
-  ps.annualData = { hourly:d.hourly||0 };
+  ps.annualData = { hourly:d.hourly||0, _savedGrossPay:d.grossPay||0 };
+  // 저장된 공제값 오버라이드로 세팅 (직접 수정값 보존)
+  ps._pension   = d.pension||0;
+  ps._health    = d.health||0;
+  ps._ltcare    = d.ltcare||0;
+  ps._employ    = d.employ||0;
+  ps._incomeTax = d.incomeTax||0;
+  ps._localTax  = d.localTax||0;
   psPreview();
   Object.assign(ps, origPs);
 };
