@@ -1,3 +1,22 @@
+## v1.0.5 — 2026-06-29
+
+### 백업 파일
+| 파일 | SHA |
+|------|-----|
+| portal/index.html    | 2621fe19 |
+| hr/index.html        | e6ad3969 |
+| gihoek/index.html    | 000011fc |
+| outlook-auth.html    | 86891d93 |
+
+### 주요 변경 내용 (v1.0.4 → v1.0.5)
+- gihoek 무한 로딩 수정 (오염 코드 제거 + via=portal 즉시 앱 표시)
+- 급여명세서 공제내역 직접 수정 기능 추가
+- 급여명세서 조회/출력 시 저장된 공제값 보존
+- 근로자 명부 수정 → portal_users 동기화 (postMessage)
+- Outlook OAuth2 PKCE 직접 구현
+
+---
+
 # Backup Log
 
 ## v1.0.4 — 2026-06-29
