@@ -1567,14 +1567,20 @@ function psCalcAll() {
   const extraPay    = Number(ps.extraPay||0);
   const totalPay    = sal.total + bonus + specialBonus + extraPay;
 
-  // 공제
-  const pension     = Math.round(totalPay * 0.045);      // 국민연금 4.5%
-  const health      = Math.round(totalPay * 0.03545);    // 건강보험 3.545%
-  const ltcare      = Math.round(health   * 0.1281);     // 장기요양 12.81%
-  const employ      = Math.round(totalPay * 0.009);      // 고용보험 0.9%
-  const dormitory   = Number(ps.dormitory||0);
-  const incomeTax   = calcIncomeTax(totalPay);
-  const localTax    = Math.round(incomeTax * 0.1);
+  // 공제 (자동계산 후 직접 수정값 있으면 오버라이드)
+  const _pension   = Math.round(totalPay * 0.045);
+  const _health    = Math.round(totalPay * 0.03545);
+  const _ltcare    = Math.round(_health  * 0.1281);
+  const _employ    = Math.round(totalPay * 0.009);
+  const _incomeTax = calcIncomeTax(totalPay);
+  const _localTax  = Math.round(_incomeTax * 0.1);
+  const pension    = ps._pension   !== undefined ? Number(ps._pension)   : _pension;
+  const health     = ps._health    !== undefined ? Number(ps._health)    : _health;
+  const ltcare     = ps._ltcare    !== undefined ? Number(ps._ltcare)    : _ltcare;
+  const employ     = ps._employ    !== undefined ? Number(ps._employ)    : _employ;
+  const incomeTax  = ps._incomeTax !== undefined ? Number(ps._incomeTax) : _incomeTax;
+  const localTax   = ps._localTax  !== undefined ? Number(ps._localTax)  : _localTax;
+  const dormitory  = Number(ps.dormitory||0);
   const totalDeduct = pension + health + ltcare + employ + dormitory + incomeTax + localTax;
   const netPay      = totalPay - totalDeduct;
 
@@ -1612,6 +1618,7 @@ window.renderPayslipPC = () => {
   ps.view = 'pc';
   ps.workerData = null; ps.annualData = null;
   ps.bonus=''; ps.specialBonus=''; ps.extraPay=''; ps.dormitory=''; ps.bankAccount='';
+  ps._pension=undefined; ps._health=undefined; ps._ltcare=undefined; ps._employ=undefined; ps._incomeTax=undefined; ps._localTax=undefined;
 
   // 최근 13개월
   const months = [];
@@ -1768,9 +1775,13 @@ window.renderPayslipPCRight = () => {
       <div style="background:#fff;border-radius:12px;padding:14px;">
         <div style="font-size:12px;font-weight:700;color:#1A2540;margin-bottom:10px;">➖ 공제 내역</div>
         <div style="display:flex;flex-direction:column;gap:6px;font-size:12px;">
-          ${[['국민연금','pension'],['건강보험','health'],['장기요양','ltcare'],['고용보험','employ'],['소득세','incomeTax'],['지방소득세','localTax']]
-            .map(([l,k])=>`<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid #F0F4F9;">
-              <span style="color:#5C6F8A;">${l}</span><span style="font-weight:600;">${won(c[k])}</span></div>`).join('')}
+          ${[['국민연금','pension','_pension'],['건강보험','health','_health'],['장기요양','ltcare','_ltcare'],['고용보험','employ','_employ'],['소득세','incomeTax','_incomeTax'],['지방소득세','localTax','_localTax']]
+            .map(([l,k,pk])=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;border-bottom:1px solid #F0F4F9;">
+              <span style="color:#5C6F8A;font-size:12px;min-width:64px;">${l}</span>
+              <input type="number" value="${c[k]}"
+                onchange="ps['${pk}']=this.value===''?undefined:Number(this.value);renderPayslipPCRight()"
+                style="width:120px;text-align:right;padding:3px 8px;border:1px solid #DDE3EE;border-radius:6px;font-size:12px;font-weight:600;color:#1A2540;box-sizing:border-box;">
+            </div>`).join('')}
           <div style="margin-top:4px;">
             <div style="color:#5C6F8A;margin-bottom:3px;">기숙사</div>
             <input type="number" id="ps-dormitory" value="${ps.dormitory||''}" placeholder="0"
@@ -1882,6 +1893,7 @@ window.renderPayslipWrite = async () => {
   ps.view = 'write';
   ps.workerData = null; ps.annualData = null;
   ps.bonus=''; ps.specialBonus=''; ps.extraPay=''; ps.dormitory=''; ps.bankAccount='';
+  ps._pension=undefined; ps._health=undefined; ps._ltcare=undefined; ps._employ=undefined; ps._incomeTax=undefined; ps._localTax=undefined;
 
   const workers = await getWorkersList();
   window._psWorkers = workers;
