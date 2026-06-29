@@ -114,3 +114,35 @@ oninput="window._editRosterTarget['${f.key}']=(('${f.key}')==='phone'?...)"
 - 미연동 상태: 연동 버튼 표시
 - 연동 완료 상태: ✅ 포털 계정 연동됨 표시
 - 동작: `rosterLinkPortal(workerId, workerName)` 호출 → `postMessage` 방식
+
+---
+
+## 급여명세서 공제내역 직접 수정 기능 (`14276a84`, `a744f808`, 2026-06-29)
+
+### 배경
+공제내역(국민연금·건강보험·장기요양·고용보험·소득세·지방소득세)이 공식으로만 자동계산되어 직접 수정 불가.
+
+### 수정 내용
+
+**`psCalcAll()` 오버라이드 로직 추가**
+```js
+const _pension = Math.round(totalPay * 0.045);  // 자동계산
+const pension  = ps._pension !== undefined ? Number(ps._pension) : _pension; // 오버라이드
+```
+
+**공제내역 렌더 → input 필드로 교체**
+- 기존: 텍스트 표시 (수정 불가)
+- 수정: `<input type="number">` — 자동계산값 기본 채움, 수정 즉시 공제계·실지급액 재계산
+
+**조회/출력 시 저장값 보존 (`psViewDetail`)**
+```js
+ps._pension = d.pension || 0;  // 저장된 값을 오버라이드로 세팅
+ps._health  = d.health  || 0;
+// ... 6개 항목 모두
+```
+→ `psPreview()`(출력) 시에도 저장된 수정값 그대로 표시
+
+**근로자/기준월 변경 시 오버라이드 초기화**
+```js
+ps._pension=undefined; ps._health=undefined; // 새 근로자 선택 시 자동계산으로 리셋
+```
