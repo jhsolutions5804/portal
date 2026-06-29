@@ -1894,7 +1894,13 @@ let _msalAccount = null;
 async function getMsalApp(){
   const uid = me?.uid || 'guest';
   if(_msalApps[uid]) return _msalApps[uid];
-  if (!window.msal) throw new Error('MSAL 라이브러리 로드 실패');
+  // window.msal 로드 대기 (최대 5초)
+  let waited = 0;
+  while (!window.msal && waited < 5000) {
+    await new Promise(r => setTimeout(r, 100));
+    waited += 100;
+  }
+  if (!window.msal) throw new Error('MSAL 라이브러리 로드 실패 (timeout)');
   const { PublicClientApplication } = window.msal;
   // uid를 캐시 키에 포함시켜 sessionStorage 격리
   const config = {
