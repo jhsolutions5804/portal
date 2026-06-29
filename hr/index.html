@@ -3084,6 +3084,14 @@ window.rosterDetail = (id) => {
         </div>
       </div>
 
+      ${!d.portalUid ? `
+      <button onclick="rosterLinkPortal('${d.id}','${d.name}')"
+        style="width:100%;padding:10px;background:#F0F4F9;border:1px solid #DDE4EF;border-radius:10px;color:#1D5BA6;font-size:13px;font-weight:700;cursor:pointer;margin-bottom:8px;">
+        🔗 포털 계정 연동
+      </button>` : `
+      <div style="width:100%;padding:8px 12px;background:#E8F7EE;border-radius:10px;font-size:12px;color:#15803D;font-weight:600;text-align:center;margin-bottom:8px;">
+        ✅ 포털 계정 연동됨
+      </div>`}
       <button onclick="rosterDetailSave('${d.id}')"
         style="width:100%;padding:12px;background:#1D5BA6;border:none;border-radius:10px;color:#fff;font-size:14px;font-weight:700;cursor:pointer;box-shadow:0 4px 12px rgba(29,91,166,0.25);">
         💾 수정 저장
@@ -3103,6 +3111,37 @@ window.rosterDetailSave = async (id) => {
     renderRosterList(); // 목록 새로고침
   } catch(e) { alert('저장 오류: '+e.message); }
 };
+window.rosterLinkPortal = async (workerId, workerName) => {
+  if (!window._db) { alert('Firebase 연결 필요'); return; }
+  try {
+    const { getDocs, collection, updateDoc, doc, query, where } =
+      await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+    // portal_users에서 이름 매칭
+    const puSnap = await getDocs(query(collection(window._db,'portal_users'), where('name','==',workerName)));
+    if (puSnap.size === 0) {
+      alert(`❌ 포털에 "${workerName}" 계정이 없습니다.\n포털 관리에서 먼저 계정을 생성해 주세요.`);
+      return;
+    }
+    if (puSnap.size > 1) {
+      alert(`⚠️ "${workerName}" 이름의 포털 계정이 ${puSnap.size}개입니다.\n관리자에게 문의해 주세요.`);
+      return;
+    }
+    const puDoc = puSnap.docs[0];
+    const puUid = puDoc.id;
+    const puData = puDoc.data();
+    // workers에 portalUid 추가
+    await updateDoc(doc(window._db,'workers',workerId), { portalUid: puUid });
+    // portal_users에 workerId 추가 (empNo는 workers 기준으로 동기화)
+    const wSnap = await getDocs(query(collection(window._db,'workers')));
+    let empNo = '';
+    wSnap.forEach(d => { if(d.id === workerId) empNo = d.data().empNo || ''; });
+    await updateDoc(doc(window._db,'portal_users',puUid), { workerId, empNo: empNo || puData.empNo || '' });
+    document.getElementById('roster-detail-modal')?.remove();
+    alert(`✅ "${workerName}" 포털 계정 연동 완료!`);
+    renderRosterList();
+  } catch(e) { alert('연동 오류: ' + e.message); }
+};
+
 window.rosterEmpNoEdit = (id,cur) => {
   document.getElementById(`eno-d-${id}`).style.display='none';
   document.getElementById(`eno-e-${id}`).style.display='flex';
