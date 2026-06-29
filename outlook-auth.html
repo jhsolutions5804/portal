@@ -5,20 +5,17 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Microsoft 인증 처리 중...</title>
   <style>
-    body { margin:0; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
-           background:#F4F7FB; display:flex; align-items:center; justify-content:center;
-           height:100vh; }
-    .card { background:#fff; border-radius:16px; padding:40px 48px; text-align:center;
-            box-shadow:0 4px 24px rgba(0,0,0,.08); max-width:360px; width:100%; }
-    .icon { font-size:48px; margin-bottom:16px; }
-    .title { font-size:17px; font-weight:700; color:#1a2535; margin-bottom:8px; }
-    .sub { font-size:13px; color:#9AAABF; }
-    .err { font-size:13px; color:#DC2626; margin-top:12px; }
-    .btn { margin-top:20px; padding:10px 24px; background:#1D5BA6; color:#fff;
-           border:none; border-radius:8px; font-size:14px; font-weight:600;
-           cursor:pointer; }
+    body{margin:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+         background:#F4F7FB;display:flex;align-items:center;justify-content:center;height:100vh;}
+    .card{background:#fff;border-radius:16px;padding:40px 48px;text-align:center;
+          box-shadow:0 4px 24px rgba(0,0,0,.08);max-width:360px;width:100%;}
+    .icon{font-size:48px;margin-bottom:16px;}
+    .title{font-size:17px;font-weight:700;color:#1a2535;margin-bottom:8px;}
+    .sub{font-size:13px;color:#9AAABF;}
+    .err{font-size:13px;color:#DC2626;margin-top:12px;}
+    .btn{margin-top:20px;padding:10px 24px;background:#1D5BA6;color:#fff;
+         border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;}
   </style>
-  <script src="https://unpkg.com/@azure/msal-browser@2.38.4/dist/msal-browser.min.js"></script>
 </head>
 <body>
 <div class="card">
@@ -29,77 +26,88 @@
   <button class="btn" id="btn" style="display:none;" onclick="goPortal()">포털로 돌아가기</button>
 </div>
 
-<script type="module">
-// MSAL UMD: window.msal 로드 후 사용
-const MSAL_AUTH     = {
+<script>
+const OA2 = {
   clientId:    '97f0a368-a746-42f9-8782-38ac8cc0962c',
-  authority:   'https://login.microsoftonline.com/548fcb48-1ab8-4c47-8242-bc098ea80416',
-  redirectUri: 'https://jhsolutions5804.github.io/portal/outlook-auth.html'
+  tenantId:    '548fcb48-1ab8-4c47-8242-bc098ea80416',
+  redirectUri: 'https://jhsolutions5804.github.io/portal/outlook-auth.html',
+  scopes:      'Mail.Read User.Read offline_access',
 };
-const MSAL_SCOPES   = ['Mail.Read', 'User.Read'];
-const PORTAL_URL    = 'https://jhsolutions5804.github.io/portal/';
+OA2.tokenUrl = `https://login.microsoftonline.com/${OA2.tenantId}/oauth2/v2.0/token`;
+const PORTAL = 'https://jhsolutions5804.github.io/portal/';
 
-function goPortal() {
-  window.location.href = PORTAL_URL;
-}
+function goPortal() { window.location.href = PORTAL; }
 
 async function handleAuth() {
-  try {
-    if (!window.msal) throw new Error('MSAL 라이브러리 로드 실패');
-    const { PublicClientApplication } = window.msal;
-    const app = new PublicClientApplication({
-      auth: MSAL_AUTH,
-      cache: { cacheLocation: 'sessionStorage', storeAuthStateInCookie: false }
-    });
+  const params   = new URLSearchParams(window.location.search);
+  const code     = params.get('code');
+  const error    = params.get('error');
+  const errorDesc= params.get('error_description');
 
-    // redirect 응답 처리
-    const res = await app.handleRedirectPromise();
+  if (error) {
+    document.getElementById('title').textContent = '인증 오류';
+    document.getElementById('sub').textContent   = '';
+    document.getElementById('err').textContent   = errorDesc || error;
+    document.getElementById('err').style.display = '';
+    document.getElementById('btn').style.display = '';
+    return;
+  }
 
-    if (res && res.accessToken) {
-      // 토큰 sessionStorage에 저장 → 포털에서 읽음
-      sessionStorage.setItem('msal_access_token',  res.accessToken);
-      sessionStorage.setItem('msal_account_name',  res.account?.name || '');
-      sessionStorage.setItem('msal_account_id',    res.account?.homeAccountId || '');
-      sessionStorage.setItem('msal_token_expiry',  String(Date.now() + 55 * 60 * 1000)); // 55분
-      sessionStorage.setItem('msal_pending_uid',   sessionStorage.getItem('msal_redirect_uid') || '');
-      sessionStorage.removeItem('msal_redirect_uid');
+  if (code) {
+    // Authorization code → Token 교환
+    document.getElementById('sub').textContent = '토큰 교환 중...';
+    const verifier = sessionStorage.getItem('oa2_verifier');
+    if (!verifier) {
+      document.getElementById('title').textContent = '오류';
+      document.getElementById('err').textContent   = 'PKCE verifier 없음. 다시 시도해 주세요.';
+      document.getElementById('err').style.display = '';
+      document.getElementById('btn').style.display = '';
+      return;
+    }
+    try {
+      const body = new URLSearchParams({
+        client_id:     OA2.clientId,
+        grant_type:    'authorization_code',
+        code,
+        redirect_uri:  OA2.redirectUri,
+        code_verifier: verifier,
+      });
+      const res  = await fetch(OA2.tokenUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body
+      });
+      const data = await res.json();
+      if (data.error) throw new Error(data.error_description || data.error);
+
+      // 토큰 저장
+      sessionStorage.setItem('oa2_token',    data.access_token);
+      sessionStorage.setItem('oa2_expiry',   String(Date.now() + (data.expires_in - 60) * 1000));
+      sessionStorage.removeItem('oa2_verifier');
+
+      // 사용자 이름 조회
+      try {
+        const me = await fetch('https://graph.microsoft.com/v1.0/me?$select=displayName',
+          { headers: { Authorization: 'Bearer ' + data.access_token } });
+        const u  = await me.json();
+        sessionStorage.setItem('oa2_name', u.displayName || '');
+      } catch(_) {}
 
       document.getElementById('title').textContent = '✅ 인증 완료!';
       document.getElementById('sub').textContent   = '포털로 이동합니다...';
-
-      // 1초 후 포털로 자동 이동
       setTimeout(goPortal, 1000);
 
-    } else {
-      // handleRedirectPromise 결과 없음 → 직접 접근한 경우
-      // 로그인 시작
-      const accounts = app.getAllAccounts();
-      if (accounts.length > 0) {
-        // 이미 계정 있으면 silent 시도
-        try {
-          const silent = await app.acquireTokenSilent({ scopes: MSAL_SCOPES, account: accounts[0] });
-          sessionStorage.setItem('msal_access_token', silent.accessToken);
-          sessionStorage.setItem('msal_account_name', accounts[0].name || '');
-          sessionStorage.setItem('msal_account_id',   accounts[0].homeAccountId || '');
-          sessionStorage.setItem('msal_token_expiry', String(Date.now() + 55 * 60 * 1000));
-          document.getElementById('title').textContent = '✅ 인증 완료!';
-          document.getElementById('sub').textContent   = '포털로 이동합니다...';
-          setTimeout(goPortal, 1000);
-          return;
-        } catch(e) { /* silent 실패 → redirect 진행 */ }
-      }
-      // redirect 로그인 시작
-      document.getElementById('sub').textContent = 'Microsoft 로그인 페이지로 이동합니다...';
-      await app.acquireTokenRedirect({ scopes: MSAL_SCOPES });
+    } catch(e) {
+      document.getElementById('title').textContent = '토큰 오류';
+      document.getElementById('err').textContent   = e.message;
+      document.getElementById('err').style.display = '';
+      document.getElementById('btn').style.display = '';
     }
-
-  } catch(e) {
-    document.getElementById('title').textContent      = '인증 오류';
-    document.getElementById('sub').textContent        = '아래 오류를 확인해 주세요.';
-    document.getElementById('err').textContent        = e.message;
-    document.getElementById('err').style.display      = '';
-    document.getElementById('btn').style.display      = '';
+    return;
   }
+
+  // 파라미터 없음 → 직접 접근 → 포털로 이동
+  goPortal();
 }
 
 handleAuth();
