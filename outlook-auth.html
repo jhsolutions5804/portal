@@ -58,10 +58,13 @@ async function handleAuth() {
     document.getElementById('sub').textContent = '토큰 교환 중...';
     const verifier = sessionStorage.getItem('oa2_verifier');
     if (!verifier) {
-      document.getElementById('title').textContent = '오류';
-      document.getElementById('err').textContent   = 'PKCE verifier 없음. 다시 시도해 주세요.';
+      // verifier 없음 → 세션 만료 가능성 → 3초 후 포털로 복귀
+      document.getElementById('title').textContent = '세션 만료';
+      document.getElementById('sub').textContent   = '포털에서 다시 연결해 주세요.';
+      document.getElementById('err').textContent   = 'PKCE verifier가 없습니다. 세션이 만료됐거나 다른 탭에서 접근했을 수 있습니다.';
       document.getElementById('err').style.display = '';
       document.getElementById('btn').style.display = '';
+      setTimeout(goPortal, 3000);
       return;
     }
     try {
@@ -99,9 +102,20 @@ async function handleAuth() {
 
     } catch(e) {
       document.getElementById('title').textContent = '토큰 오류';
-      document.getElementById('err').textContent   = e.message;
+      let errMsg = e.message;
+      if (errMsg.includes('Failed to fetch') || errMsg.includes('NetworkError')) {
+        errMsg = 'CORS 오류: Azure AD 앱에서 SPA 플랫폼으로 등록했는지 확인해 주세요.\n' + errMsg;
+      }
+      document.getElementById('err').textContent   = errMsg;
       document.getElementById('err').style.display = '';
       document.getElementById('btn').style.display = '';
+      // 재시도 버튼 추가
+      const retryBtn = document.createElement('button');
+      retryBtn.className = 'btn';
+      retryBtn.style.marginLeft = '8px';
+      retryBtn.textContent = '다시 시도';
+      retryBtn.onclick = () => { window.location.href = PORTAL; };
+      document.getElementById('btn').after(retryBtn);
     }
     return;
   }
