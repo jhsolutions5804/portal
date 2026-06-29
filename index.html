@@ -2071,6 +2071,32 @@ function resetAutoLogout(){
   document.addEventListener(evt, resetAutoLogout, { passive:true });
 });
 
+// ── hr → portal_users 연동 수신기 ──
+window.addEventListener('message', async (e) => {
+  if (!e.data || e.data.source !== 'jh-hr') return;
+
+  // 포털 계정 연동 (rosterLinkPortal)
+  if (e.data.action === 'linkWorkerToPortal') {
+    const { puUid, workerId, empNo } = e.data.payload || {};
+    if (!puUid || !workerId) return;
+    try {
+      const { doc, updateDoc } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+      await updateDoc(doc(db,'portal_users',puUid), { workerId, empNo: empNo||'' });
+    } catch(e) { console.warn('[portal] linkWorkerToPortal 실패:', e.message); }
+  }
+
+  // 근로자 명부 수정 → portal_users 동기화 (rosterDetailSave)
+  if (e.data.action === 'syncWorkerToPortal') {
+    const { puUid, fields } = e.data.payload || {};
+    if (!puUid || !fields) return;
+    try {
+      const { doc, updateDoc } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+      await updateDoc(doc(db,'portal_users',puUid), fields);
+      console.log('[portal] portal_users 동기화 완료:', puUid, fields);
+    } catch(e) { console.warn('[portal] syncWorkerToPortal 실패:', e.message); }
+  }
+});
+
 function doLogout(){ clearTimeout(_autoLogoutTimer); clearMsalCache(); signOut(auth).then(()=>{ me=null; $('login-pw').value=''; if(window.mbnHideNav) mbnHideNav(); showAuth('s-login'); }); }
 // D+ 시작일 입력 토글
 function pjtToggleStartInput(key){
