@@ -71,6 +71,8 @@ EXPENSES = [
     {"date":"2026-06-11","cat":"공구·자재비","vendor":"넘바원상사(주)","supply":55000,"vat":5500,"total":60500,"pay":"외상","pjt":"p4ph2","note":"벨트슬링(라운드)아이타입 1톤×10M x2"},
     {"date":"2026-06-15","cat":"공구·자재비","vendor":"거상주식회사(평택지점)","supply":45000,"vat":4500,"total":49500,"pay":"외상","pjt":"p4ph2","note":"직각자(400×600/USA)스텐리 x2, 진동방치장갑(GS-709N) x1"},
     {"date":"2026-06-01","cat":"공구·자재비","vendor":"넘바원상사(주)","supply":570000,"vat":57000,"total":627000,"pay":"외상","pjt":"p4ph2","note":"스마트휀스 S1/SD 오렌지/L1350×W40×H884 x15"},
+    {"date":"2026-06-11","cat":"사무용품","vendor":"아모란나 디지털(네이버)","supply":108182,"vat":10818,"total":119000,"pay":"개인카드","pjt":"p4ph2","note":"15in1 USB4 C타입 멀티 허브 독 노트북 도킹스테이션 썬더볼트 호환"},
+    {"date":"2026-06-29","cat":"식대","vendor":"농심 브랜드스토어(네이버)","supply":20900,"vat":2090,"total":22990,"pay":"개인카드","pjt":"p4ph2","note":"농심 육사김사세트(육개장사발면12입+김치사발면12입)"},
 ]
 
 ok = 0
@@ -89,4 +91,4 @@ for e in EXPENSES:
     except Exception as ex:
         print(f"❌ {e['vendor']} 실패: {ex}")
 
-print(f"\n완료: {ok}/25건")
+print(f"\n완료: {ok}/27건")
