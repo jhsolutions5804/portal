@@ -53,3 +53,50 @@ MSAL→OAuth2 교체 중 `renderOutlookCard` 함수 본체(98줄) 삭제 → 포
 - 변경: local test → test server 검증 → main 배포
 - 상세: `docs/0_ground_rule_r8.md` 참조
 - 알고리즘 문서: `docs/0_update_algorithm.md`
+
+---
+
+## Outlook OAuth2 PKCE 연동 현황 (2026-06-29)
+
+### 구현 완료
+- MSAL 라이브러리 완전 제거 (CDN 의존성 0)
+- `crypto.subtle.digest('SHA-256')` 직접 사용
+- `outlook-auth.html` — Microsoft OAuth2 redirect 수신 전용 페이지
+- Azure AD 앱: Redirect URI `outlook-auth.html` 등록 완료
+
+### 현재 상태
+Azure AD 앱 등록 및 코드 구현 완료. 실제 메일 로드 여부 미확인.
+
+---
+
+## 업데이트 절차 변경 (2026-06-29 확정)
+
+| 구분 | 변경 전 | 변경 후 |
+|------|--------|--------|
+| 배포 흐름 | local test → main 직접 배포 | local test → test server → main 배포 |
+| test server | 없음 | `portal-test` (v1.0.5 기반) |
+| 긴급 hotfix | 자유 배포 | 사용자 명시 승인 필요 |
+
+### 문서
+- `docs/0_update_algorithm.md` — 9단계 알고리즘 + 체크리스트
+- `docs/0_ground_rule_r8.md` — 서버 정보 + 절차 반영
+
+---
+
+## 오늘(2026-06-29) 전체 작업 요약
+
+### 완료 항목
+| 코드 | 작업 | 파일 |
+|------|------|------|
+| J1~J6 | MD 정리, gihoek 홈버튼, _isAdmin, 퇴직금, 여백 | hr, gihoek |
+| K1~K3 | 급여명세서 오류, empNo 정렬, Outlook OAuth2 | hr, portal |
+| L1~L3 | CDN 교체, 역방향 연동, oninput 수정 | hr, portal |
+| M1 | 근로자 명부 수정 → portal 동기화 | hr, portal |
+| M2 | gihoek 무한 로딩 수정 | gihoek |
+| M3 | 급여명세서 공제내역 직접 수정 + 조회 보존 | hr |
+| — | Test server 구축 (portal-test) | — |
+| — | Ground Rule r8 + 알고리즘 문서 | docs |
+
+### 백업
+- `backup/v1.0.4` — 오전 작업분
+- `backup/v1.0.5` — 오후 작업분 (최종)
