@@ -134,6 +134,13 @@ const EDOC_TABS = {
   expense: { id:'tab-expense', title:'지출결의서',    fn:()=>renderDocMain('expense') },
 };
 
+// 각 탭 콘텐츠 상단에 공통으로 들어가는 "전자결재 홈" 이동 버튼
+// portal-embed 상태에서는 app-header/사이드바가 숨겨지므로, 콘텐츠 내부에 항상 노출
+function edocHomeBtnHtml() {
+  return `<button class="edoc-home-btn" onclick="goTab('home')">🏠 전자결재 홈</button>`;
+}
+window.edocHomeBtnHtml = edocHomeBtnHtml;
+
 window.goTab = function(key, afterFn) {
   const t = EDOC_TABS[key]; if (!t) return;
   document.querySelectorAll('.tab-content').forEach(c=>c.classList.remove('active'));
@@ -272,23 +279,73 @@ async function loadPjts() {
 }
 
 // 업무일지 메인 화면
-window.renderDailyMain = async function() {
+// 업무일지 메인 = 조회(테이블) 화면. 우측 상단에 작성/권한관리 버튼 배치
+window.renderDailyMain = function() { renderDailyList(); };
+
+// 업무일지 권한관리 화면 (관리자 전용)
+window.renderDailyPerms = async function() {
   const el = document.getElementById('tab-daily'); if(!el) return;
+  if (!_isAdmin) { renderDailyMain(); return; }
   el.innerHTML = `<div class="wrap2">
-    <div class="sec-title">📝 업무일지</div>
-    <div style="display:flex;flex-direction:column;gap:10px;margin-top:4px;">
-      <button class="sel-btn" onclick="renderDailyWrite()">
-        <div class="sel-icon" style="background:#E8F0FB;">✏️</div>
-        <div class="sel-tx"><div class="sel-name">작성</div><div class="sel-desc">업무일지 신규 작성 및 상신</div></div>
-        <div class="sel-chev">›</div>
-      </button>
-      <button class="sel-btn" onclick="renderDailyList()">
-        <div class="sel-icon" style="background:#DCFCE7;">📂</div>
-        <div class="sel-tx"><div class="sel-name">조회</div><div class="sel-desc">제출된 업무일지 목록 조회</div></div>
-        <div class="sel-chev">›</div>
-      </button>
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;">
+      <button onclick="renderDailyMain()" class="back-btn">‹ 뒤로</button>
+      <span style="font-size:13px;font-weight:800;color:#1A2540;">🔑 업무일지 열람 권한관리</span>
     </div>
+    <div style="background:#EEF4FB;border-radius:10px;padding:11px 13px;font-size:11.5px;color:#1D5BA6;margin-bottom:14px;line-height:1.6;">
+      💡 직원별로 "이 사람이 열람할 수 있는 다른 직원"을 지정합니다. 대표(관리자)는 항상 전체 열람 가능합니다.
+    </div>
+    <div id="daily-perms-wrap">⏳ 불러오는 중…</div>
   </div>`;
+
+  try {
+    await loadPortalUsers();
+    const wrap = document.getElementById('daily-perms-wrap');
+    const users = _portalUsers.filter(u => !u.admin);
+    if (!users.length) { wrap.innerHTML = '<div class="panel-empty" style="padding:40px;">등록된 직원이 없습니다.</div>'; return; }
+
+    wrap.innerHTML = users.map(u => {
+      const targets = u.dailyViewTargets || [];
+      const others = _portalUsers.filter(o => o.uid !== u.uid);
+      const chips = others.map(o => `
+        <span class="dvt-chip ${targets.includes(o.uid)?'on':''}" data-owner="${u.uid}" data-target="${o.uid}" onclick="toggleDailyViewTarget(this)">${o.name}</span>
+      `).join('');
+      return `<div class="form-card" style="margin-bottom:10px;">
+        <div style="font-size:13px;font-weight:700;color:#1A2540;margin-bottom:8px;">${u.name||'-'} <span style="font-size:11px;color:#9AAABF;font-weight:400;">(${u.rank||''})</span></div>
+        <div style="font-size:11px;color:#5C6F8A;margin-bottom:8px;">이 직원의 업무일지를 열람할 수 있는 사람:</div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;">${chips || '<span style="font-size:11px;color:#9AAABF;">다른 직원이 없습니다</span>'}</div>
+      </div>`;
+    }).join('');
+  } catch(e) {
+    document.getElementById('daily-perms-wrap').innerHTML = `<div style="color:#DC2626;padding:20px;">오류: ${e.message}</div>`;
+  }
+};
+
+// 권한 칩 토글 → 즉시 Firestore 저장
+window.toggleDailyViewTarget = async function(el) {
+  const ownerUid = el.dataset.owner;
+  const targetUid = el.dataset.target;
+  const isOn = el.classList.contains('on');
+  el.style.opacity = '0.5';
+  try {
+    const { doc, updateDoc, getDoc, setDoc } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+    const ownerRef = doc(window._db, 'portal_users', ownerUid);
+    const ownerSnap = await getDoc(ownerRef);
+    let targets = ownerSnap.exists() ? (ownerSnap.data().dailyViewTargets || []) : [];
+    if (isOn) {
+      targets = targets.filter(t => t !== targetUid);
+    } else {
+      if (!targets.includes(targetUid)) targets.push(targetUid);
+    }
+    await updateDoc(ownerRef, { dailyViewTargets: targets });
+    // 로컬 캐시 동기화
+    const u = _portalUsers.find(x => x.uid === ownerUid);
+    if (u) u.dailyViewTargets = targets;
+    el.classList.toggle('on');
+    el.style.opacity = '1';
+  } catch(e) {
+    el.style.opacity = '1';
+    alert('권한 저장 실패: ' + e.message);
+  }
 };
 
 // 업무일지 작성 화면
@@ -473,17 +530,35 @@ window.dailySave = async function(status) {
 window.renderDailyList = async function() {
   const el = document.getElementById('tab-daily'); if(!el) return;
   el.innerHTML = `<div class="wrap2">
-    <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;">
-      <button onclick="renderDailyMain()" class="back-btn">‹ 뒤로</button>
-      <span style="font-size:13px;font-weight:800;color:#1A2540;">📝 업무일지 목록</span>
+    <div class="sec-toolbar">
+      <div class="sec-title" style="margin-bottom:0;">📝 업무일지</div>
+      <div style="display:flex;gap:8px;">
+        ${edocHomeBtnHtml()}
+        ${_isAdmin ? `<button class="toolbar-btn" onclick="renderDailyPerms()">🔑 권한관리</button>` : ''}
+        <button class="toolbar-btn primary" onclick="renderDailyWrite()">✏️ 작성</button>
+      </div>
     </div>
-    <div id="daily-list-wrap">⏳ 불러오는 중…</div>
+    <div id="daily-list-wrap"></div>
   </div>`;
 
   try {
     const { getDocs, collection } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+    await loadPortalUsers();
     const snap = await getDocs(collection(window._db, 'edoc_daily'));
-    const docs = []; snap.forEach(d=>docs.push({id:d.id,...d.data()}));
+    let docs = []; snap.forEach(d=>docs.push({id:d.id,...d.data()}));
+
+    // 권한 필터: 관리자는 전체, 그 외는 본인 글 + 권한받은 대상자 글만
+    // dailyViewTargets는 "이 사람의 글을 볼 수 있는 대상자 uid 목록"으로 저장됨
+    // (권한관리 화면에서 [작성자 카드] → [열람 가능 대상자 칩]으로 지정)
+    if (!_isAdmin) {
+      const myUid = _user?.uid;
+      const allowedAuthors = new Set([myUid]);
+      _portalUsers.forEach(u => {
+        if ((u.dailyViewTargets || []).includes(myUid)) allowedAuthors.add(u.uid);
+      });
+      docs = docs.filter(d => allowedAuthors.has(d.authorUid));
+    }
+
     docs.sort((a,b)=>(b.createdAt?.seconds||0)-(a.createdAt?.seconds||0));
 
     const STATUS_LABEL = { draft:'임시저장', pending:'결재대기', reviewing:'검토중', approved:'승인', rejected:'반려', posted:'게시' };
@@ -493,15 +568,19 @@ window.renderDailyList = async function() {
     const wrap = document.getElementById('daily-list-wrap');
     if (!docs.length) { wrap.innerHTML='<div class="panel-empty" style="padding:40px;">작성된 업무일지가 없습니다.</div>'; return; }
 
-    wrap.innerHTML = docs.map(d=>`
-      <div class="doc-row" onclick='renderDailyDetail(${JSON.stringify(d).replace(/'/g,"&#39;")})'>
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px;">
-          <span style="font-size:13px;font-weight:700;color:#1A2540;">${d.title||'(제목없음)'}</span>
-          <span style="font-size:10px;font-weight:700;padding:2px 9px;border-radius:10px;background:${STATUS_COLOR[d.status]||'#9AAABF'}22;color:${STATUS_COLOR[d.status]||'#9AAABF'};">${STATUS_LABEL[d.status]||d.status}</span>
-        </div>
-        <div style="font-size:11px;color:#5C6F8A;">${d.authorName||'-'} · ${d.authorDept||''} · ${fmtD(d.createdAt)}</div>
-        ${d.pjtName?`<div style="font-size:10px;color:#9AAABF;margin-top:2px;">📌 ${d.pjtCode||''} ${d.pjtName}</div>`:''}
-      </div>`).join('');
+    wrap.innerHTML = `<table class="ptable">
+      <thead><tr><th style="text-align:left;">제목</th><th>작성자</th><th>소속</th><th>작성일</th><th>상태</th></tr></thead>
+      <tbody>
+        ${docs.map(d=>`
+          <tr onclick='renderDailyDetail(${JSON.stringify(d).replace(/'/g,"&#39;")})'>
+            <td style="text-align:left;font-weight:600;">${d.title||'(제목없음)'}${d.pjtName?` <span style="font-size:10px;color:#9AAABF;font-weight:400;">· ${d.pjtCode||''} ${d.pjtName}</span>`:''}</td>
+            <td>${d.authorName||'-'}</td>
+            <td style="color:#5C6F8A;">${d.authorDept||'-'}</td>
+            <td style="color:#5C6F8A;">${fmtD(d.createdAt)}</td>
+            <td><span class="status-pill" style="background:${STATUS_COLOR[d.status]||'#9AAABF'}22;color:${STATUS_COLOR[d.status]||'#9AAABF'};">${STATUS_LABEL[d.status]||d.status}</span></td>
+          </tr>`).join('')}
+      </tbody>
+    </table>`;
   } catch(e) {
     document.getElementById('daily-list-wrap').innerHTML = `<div style="color:#DC2626;padding:20px;">오류: ${e.message}</div>`;
   }
@@ -539,7 +618,7 @@ window.renderDailyDetail = function(d) {
 
   el.innerHTML = `<div class="wrap2">
     <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;">
-      <button onclick="renderDailyList()" class="back-btn">‹ 목록</button>
+      <button onclick="${_detailBackFn ? 'docDetailBack()' : 'renderDailyList()'}" class="back-btn">‹ 목록</button>
       <span style="font-size:13px;font-weight:800;color:#1A2540;">📝 업무일지</span>
     </div>
 
@@ -818,25 +897,44 @@ async function renderEdocHome() {
 // 결재함에서 빠른 결재 처리
 // 홈에서 문서 클릭 → 탭 전환 후 상세 열기
 // ── 결재함: 내가 결재해야 할 문서 전체 목록 ──
+let _approveSubTab = 'pending';
 async function renderApproveBox() {
   const el = document.getElementById('tab-approve'); if(!el) return;
   el.innerHTML = `<div class="wrap2">
-    <div class="sec-title">📥 결재함</div>
-    <div class="sec-sub">결재 요청된 문서 목록</div>
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+      <div><div class="sec-title">📥 결재함</div>
+      <div class="sec-sub">결재 요청된 문서 목록</div></div>
+      ${edocHomeBtnHtml()}
+    </div>
+    <div style="display:flex;gap:8px;margin:12px 0 14px;">
+      <button id="appr-subtab-pending" class="appr-subtab" onclick="switchApproveSubTab('pending')">결재대기</button>
+      <button id="appr-subtab-done" class="appr-subtab" onclick="switchApproveSubTab('done')">결재완료</button>
+    </div>
     <div id="approve-list">⏳ 불러오는 중…</div>
   </div>`;
+  await loadApproveData();
+  switchApproveSubTab(_approveSubTab);
+}
+window.renderApproveBox = renderApproveBox;
 
+window.switchApproveSubTab = function(which) {
+  _approveSubTab = which;
+  const pendEl = document.getElementById('appr-subtab-pending');
+  const doneEl = document.getElementById('appr-subtab-done');
+  if (pendEl) pendEl.className = 'appr-subtab' + (which==='pending' ? ' active' : '');
+  if (doneEl) doneEl.className = 'appr-subtab' + (which==='done' ? ' active' : '');
+  renderApproveListUI();
+};
+
+let _approvePending = [], _approveDone = [];
+async function loadApproveData() {
   if (!window._db || !_user) return;
+  _approvePending = []; _approveDone = [];
   try {
     const { getDocs, collection } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
     const DOC_TYPES = ['daily','leave','resign','cert','purchase','expense'];
-    const TYPE_LABEL = { daily:'업무일지', leave:'연차신청서', resign:'퇴직원서', cert:'재직증명서', purchase:'구매품의서', expense:'지출결의서' };
-    const STATUS_COLOR = { pending:'#F59E0B', reviewing:'#3B82F6', approved:'#16A34A', rejected:'#DC2626', posted:'#1D5BA6', draft:'#9AAABF' };
-    const STATUS_LABEL = { pending:'결재대기', reviewing:'검토중', approved:'승인', rejected:'반려', posted:'게시', draft:'임시저장' };
-    const fmtD = ts => ts?.seconds ? new Date(ts.seconds*1000).toLocaleDateString('ko-KR',{month:'short',day:'numeric'}) : '-';
     const myName = _myInfo?.name || '';
 
-    let myApprove = [];
     for (const dtype of DOC_TYPES) {
       const snap = await getDocs(collection(db, `edoc_${dtype}`));
       snap.forEach(doc => {
@@ -845,43 +943,72 @@ async function renderApproveBox() {
         line.forEach((step, idx) => {
           if (step.role === '회람' || step.role === '수신' || step.role === '작성') return;
           const uidMatch = step.uid === _user.uid || (!step.uid && step.name === myName);
-          if (!uidMatch || step.status !== 'pending') return;
+          if (!uidMatch) return;
           const prevDone = line.slice(0,idx).every(p => p.role==='작성' || p.status==='approved' || p.status==='done');
-          if (prevDone && (data.status==='pending' || data.status==='reviewing')) {
-            myApprove.push(data);
+          if (prevDone && step.status === 'pending' && (data.status==='pending' || data.status==='reviewing')) {
+            _approvePending.push(data);
+          } else if (['approved','rejected','posted'].includes(data.status)) {
+            _approveDone.push(data);
           }
         });
       });
     }
-    // 중복 제거 및 최신순 정렬
-    myApprove = myApprove.filter((d,i,a)=>a.findIndex(x=>x.id===d.id)===i);
-    myApprove.sort((a,b)=>(b.createdAt?.seconds||0)-(a.createdAt?.seconds||0));
-
+    _approvePending = _approvePending.filter((d,i,a)=>a.findIndex(x=>x.id===d.id)===i);
+    _approveDone = _approveDone.filter((d,i,a)=>a.findIndex(x=>x.id===d.id)===i);
+    _approvePending.sort((a,b)=>(b.createdAt?.seconds||0)-(a.createdAt?.seconds||0));
+    _approveDone.sort((a,b)=>(b.createdAt?.seconds||0)-(a.createdAt?.seconds||0));
+  } catch(e) {
     const wrap = document.getElementById('approve-list');
-    if (!myApprove.length) {
-      wrap.innerHTML = '<div class="panel-empty" style="padding:40px;text-align:center;">결재 요청 문서가 없습니다</div>';
-      return;
-    }
-    wrap.innerHTML = myApprove.map(d => `
-      <div class="doc-row" onclick="openDocFromHome(${JSON.stringify(d).replace(/"/g,'&quot;')})">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
-          <span style="font-size:13px;font-weight:700;color:#1A2540;">${d.title||'(제목없음)'}</span>
-          <span style="font-size:10px;font-weight:700;padding:2px 9px;border-radius:10px;background:${STATUS_COLOR[d.status]||'#9AAABF'}20;color:${STATUS_COLOR[d.status]||'#9AAABF'};">${STATUS_LABEL[d.status]||d.status}</span>
-        </div>
-        <div style="display:flex;justify-content:space-between;align-items:center;">
-          <span style="font-size:11px;color:#5C6F8A;"><span style="background:#EEF4FC;color:#1D5BA6;padding:1px 7px;border-radius:6px;font-weight:600;margin-right:6px;">${TYPE_LABEL[d.dtype]||d.dtype}</span>${d.authorName||'-'} · ${fmtD(d.createdAt)}</span>
-          <button onclick="event.stopPropagation();openDocFromHome(${JSON.stringify(d).replace(/"/g,'&quot;')})" style="font-size:12px;padding:5px 14px;background:#1D5BA6;color:#fff;border:none;border-radius:8px;cursor:pointer;font-weight:600;">📋 내용 확인 후 결재</button>
-        </div>
-      </div>`).join('');
-  } catch(e) { document.getElementById('approve-list').innerHTML = `<div style="color:#DC2626;padding:20px;">오류: ${e.message}</div>`; }
+    if (wrap) wrap.innerHTML = `<div style="color:#DC2626;padding:20px;">오류: ${e.message}</div>`;
+  }
 }
-window.renderApproveBox = renderApproveBox;
+
+function renderApproveListUI() {
+  const TYPE_LABEL = { daily:'업무일지', leave:'연차신청서', resign:'퇴직원서', cert:'재직증명서', purchase:'구매품의서', expense:'지출결의서' };
+  const STATUS_COLOR = { pending:'#F59E0B', reviewing:'#3B82F6', approved:'#16A34A', rejected:'#DC2626', posted:'#1D5BA6', draft:'#9AAABF' };
+  const STATUS_LABEL = { pending:'결재대기', reviewing:'검토중', approved:'승인', rejected:'반려', posted:'게시', draft:'임시저장' };
+  const fmtD = ts => ts?.seconds ? new Date(ts.seconds*1000).toLocaleDateString('ko-KR',{month:'short',day:'numeric'}) : '-';
+
+  const wrap = document.getElementById('approve-list');
+  if (!wrap) return;
+  const list = _approveSubTab === 'pending' ? _approvePending : _approveDone;
+  const emptyMsg = _approveSubTab === 'pending' ? '결재 요청 문서가 없습니다' : '결재 완료된 문서가 없습니다';
+  const btnLabel = _approveSubTab === 'pending' ? '📋 내용 확인 후 결재' : '📋 내용 확인';
+
+  if (!list.length) {
+    wrap.innerHTML = `<div class="panel-empty" style="padding:40px;text-align:center;">${emptyMsg}</div>`;
+    return;
+  }
+  wrap.innerHTML = list.map(d => `
+    <div class="doc-row" onclick="openDocFromHome(${JSON.stringify(d).replace(/"/g,'&quot;')})">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+        <span style="font-size:13px;font-weight:700;color:#1A2540;">${d.title||'(제목없음)'}</span>
+        <span style="font-size:10px;font-weight:700;padding:2px 9px;border-radius:10px;background:${STATUS_COLOR[d.status]||'#9AAABF'}20;color:${STATUS_COLOR[d.status]||'#9AAABF'};">${STATUS_LABEL[d.status]||d.status}</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:center;">
+        <span style="font-size:11px;color:#5C6F8A;"><span style="background:#EEF4FC;color:#1D5BA6;padding:1px 7px;border-radius:6px;font-weight:600;margin-right:6px;">${TYPE_LABEL[d.dtype]||d.dtype}</span>${d.authorName||'-'} · ${fmtD(d.createdAt)}</span>
+        <button onclick="event.stopPropagation();openDocFromHome(${JSON.stringify(d).replace(/"/g,'&quot;')})" style="font-size:12px;padding:5px 14px;background:#1D5BA6;color:#fff;border:none;border-radius:8px;cursor:pointer;font-weight:600;">${btnLabel}</button>
+      </div>
+    </div>`).join('');
+}
+
+// 상세화면 "‹ 뒤로/목록" 클릭 시 실행할 직전 화면 복귀 함수.
+// 결재함 등 다른 탭에서 진입한 경우에만 설정되고, 그 외에는 null(기존 목록으로 이동).
+// ※ 향후 여러 단계 거슬러 올라가는 뒤로가기가 필요해지면,
+//    이 변수를 _navStack = [] 배열로 바꾸고 push/pop 방식으로 확장 가능
+//    (예: _navStack.push({tab:'approve'}); 뒤로가기 시 _navStack.pop() 후 직전 항목으로 이동)
+let _detailBackFn = null;
 
 window.openDocFromHome = function(d) {
   const dtype = d.dtype;
+  _detailBackFn = () => goTab('approve');
   // 탭 전환 완료 후 상세 열기 (afterFn 콜백 사용)
   goTab(dtype, () => {
-    docDetail(d, dtype);
+    if (dtype === 'daily') {
+      renderDailyDetail(d);
+    } else {
+      docDetail(d, dtype);
+    }
   });
 };
 
@@ -955,25 +1082,8 @@ const DOC_CONFIG = {
   ]},
 };
 
-function renderDocMain(dtype) {
-  const el = document.getElementById(`tab-${dtype}`); if(!el) return;
-  const cfg = DOC_CONFIG[dtype] || { label:dtype, icon:'📄', fields:[] };
-  el.innerHTML = `<div class="wrap2">
-    <div class="sec-title">${cfg.icon} ${cfg.label}</div>
-    <div style="display:flex;flex-direction:column;gap:10px;margin-top:4px;">
-      <button class="sel-btn blue" onclick="renderDocWrite('${dtype}')">
-        <div class="sel-icon" style="background:#E8F0FB;">✏️</div>
-        <div class="sel-tx"><div class="sel-name">작성</div><div class="sel-desc">${cfg.label} 신규 작성 및 상신</div></div>
-        <div class="sel-chev">›</div>
-      </button>
-      <button class="sel-btn" onclick="renderDocList('${dtype}')">
-        <div class="sel-icon" style="background:#DCFCE7;">📂</div>
-        <div class="sel-tx"><div class="sel-name">조회</div><div class="sel-desc">제출된 ${cfg.label} 목록 조회</div></div>
-        <div class="sel-chev">›</div>
-      </button>
-    </div>
-  </div>`;
-}
+// 메인 = 조회(테이블) 화면. 우측 상단에 작성 버튼 배치 (업무일지 N6-2와 동일 패턴)
+function renderDocMain(dtype) { renderDocList(dtype); }
 window.renderDocMain = renderDocMain;
 
 // ══════════════════════════════════════════════
@@ -1055,22 +1165,8 @@ function leaveCalcDays() {
 
 window.leaveAutoTitle = leaveAutoTitle;
 window.leaveCalcDays = leaveCalcDays;
-window.renderLeaveMain = async function() {
-  const el = document.getElementById('tab-leave'); if(!el) return;
-  el.innerHTML = `<div class="wrap2">
-    <div class="sec-title">🏖️ 연차신청서</div>
-    <div style="display:flex;flex-direction:column;gap:10px;margin-top:4px;">
-      <button class="sel-btn blue" onclick="renderLeaveWrite()">
-        <div class="sel-icon" style="background:#E8F0FB;">✏️</div>
-        <div><div class="sel-label">신청서 작성</div><div class="sel-desc">연차·반차·병가 신청</div></div>
-      </button>
-      <button class="sel-btn" onclick="renderDocList('leave')">
-        <div class="sel-icon">📋</div>
-        <div><div class="sel-label">내 신청 목록</div><div class="sel-desc">제출한 신청서 조회</div></div>
-      </button>
-    </div>
-  </div>`;
-};
+// 메인 = 조회(테이블) 화면. 연차는 작성 함수가 renderLeaveWrite로 별도이므로 renderDocList에서 분기 처리
+window.renderLeaveMain = async function() { renderDocList('leave'); };
 
 window.renderLeaveWrite = async function(editDoc) {
   // editDoc: 수정 시 기존 문서 데이터
@@ -1359,20 +1455,20 @@ window.renderDocList = async function(dtype) {
   const el = document.getElementById(`tab-${dtype}`); if(!el) return;
   const cfg = DOC_CONFIG[dtype];
   el.innerHTML = `<div class="wrap2">
-    <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;">
-      <button onclick="${dtype==='leave'?'renderLeaveMain()':"renderDocMain('"+dtype+"')"}" class="back-btn">‹ 뒤로</button>
-      <span style="font-size:13px;font-weight:700;color:#1A2540;">${cfg.icon} ${cfg.label} 목록</span>
+    <div class="sec-toolbar">
+      <div class="sec-title" style="margin-bottom:0;">${cfg.icon} ${cfg.label}</div>
+      <div style="display:flex;gap:8px;">
+        ${edocHomeBtnHtml()}
+        <button class="toolbar-btn primary" onclick="${dtype==='leave'?'renderLeaveWrite()':`renderDocWrite('${dtype}')`}">✏️ 작성</button>
+      </div>
     </div>
-    <div id="doc-list-wrap">⏳ 불러오는 중…</div>
+    <div id="doc-list-wrap"></div>
   </div>`;
 
   try {
-    console.log('[renderDocList] 시작:', dtype, 'db:', !!db, 'window._db:', !!window._db);
     const { getDocs, collection } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
-    console.log('[renderDocList] firestore import 완료');
     const dbRef = window._db || db;
     const snap = await getDocs(collection(dbRef, `edoc_${dtype}`));
-    console.log('[renderDocList] getDocs 완료, 문서수:', snap.size);
     const allDocs = []; snap.forEach(d=>allDocs.push({id:d.id,...d.data()}));
     const myUid = _user?.uid;
     // 볼 수 있는 문서:
@@ -1394,14 +1490,18 @@ window.renderDocList = async function(dtype) {
     const wrap = document.getElementById('doc-list-wrap');
     if (!docs.length) { wrap.innerHTML='<div class="panel-empty" style="padding:40px;">등록된 문서가 없습니다.</div>'; return; }
 
-    wrap.innerHTML = docs.map(d => `
-      <div class="doc-row" onclick="docDetail(${JSON.stringify(d).replace(/"/g,'&quot;')}, '${dtype}')">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px;">
-          <span style="font-size:13px;font-weight:700;color:#1A2540;">${d.title||'(제목없음)'}</span>
-          <span style="font-size:10px;font-weight:700;padding:2px 9px;border-radius:10px;background:${STATUS_COLOR[d.status]||'#9AAABF'}20;color:${STATUS_COLOR[d.status]||'#9AAABF'};">${STATUS[d.status]||d.status}</span>
-        </div>
-        <div style="font-size:11px;color:#5C6F8A;">${d.authorName||'-'} · ${fmtD(d.createdAt)}</div>
-      </div>`).join('');
+    wrap.innerHTML = `<table class="ptable">
+      <thead><tr><th style="text-align:left;">제목</th><th>작성자</th><th>작성일</th><th>상태</th></tr></thead>
+      <tbody>
+        ${docs.map(d=>`
+          <tr onclick="docDetail(${JSON.stringify(d).replace(/"/g,'&quot;')}, '${dtype}')">
+            <td style="text-align:left;font-weight:600;">${d.title||'(제목없음)'}</td>
+            <td>${d.authorName||'-'}</td>
+            <td style="color:#5C6F8A;">${fmtD(d.createdAt)}</td>
+            <td><span class="status-pill" style="background:${STATUS_COLOR[d.status]||'#9AAABF'}22;color:${STATUS_COLOR[d.status]||'#9AAABF'};">${STATUS[d.status]||d.status}</span></td>
+          </tr>`).join('')}
+      </tbody>
+    </table>`;
   } catch(e) {
     document.getElementById('doc-list-wrap').innerHTML = `<div style="color:#DC2626;padding:20px;">오류: ${e.message}</div>`;
   }
@@ -1511,13 +1611,22 @@ window.printDocA4 = function(d, dtype) {
   w.document.close();
 };
 
+// 상세화면 "뒤로/목록" 버튼 클릭 시 호출. 직전 화면으로 이동 후 즉시 초기화.
+window.docDetailBack = function() {
+  const fn = _detailBackFn;
+  _detailBackFn = null;
+  if (fn) fn(); else renderEdocHome();
+};
+
 window.docDetail = function(d, dtype) {
   const el = document.getElementById(`tab-${dtype}`); if(!el) return;
   const cfg = DOC_CONFIG[dtype];
   const STATUS = { draft:'임시저장', pending:'결재대기', reviewing:'검토중', approved:'승인', rejected:'반려', posted:'게시' };
   const STATUS_COLOR = { draft:'#9AAABF', pending:'#F59E0B', reviewing:'#3B82F6', approved:'#16A34A', rejected:'#DC2626', posted:'#1D5BA6' };
   const fmtD = ts => ts?.seconds ? new Date(ts.seconds*1000).toLocaleDateString('ko-KR') : '-';
-  const backFn = dtype==='leave' ? 'renderLeaveMain()' : `renderDocList('${dtype}')`;
+  // 결재함 등 다른 탭에서 진입했다면 그 화면으로, 아니면 기존처럼 해당 문서함 목록으로
+  const defaultBackFn = dtype==='leave' ? 'renderLeaveMain()' : `renderDocList('${dtype}')`;
+  const backFn = _detailBackFn ? 'docDetailBack()' : defaultBackFn;
 
   // leave 전용 필드 목록
   const leaveFields = [
@@ -1744,10 +1853,12 @@ body{font-family:-apple-system,'Apple SD Gothic Neo','Pretendard',sans-serif;bac
   #sb{display:flex;flex-direction:column;width:212px;flex:0 0 auto;background:#13335C;color:#CDD8E8;padding:16px 12px;min-height:calc(100vh - 56px);}
   .app-header{display:flex;}
   #tabbar{display:none;}
-  .tab-content{max-width:none;}
+  .tab-content{max-width:1180px;margin:0 auto;}
 }
 @media(max-width:899px){#sb{display:none!important;}}
 .portal-embed #sb{display:none!important;}
+.portal-embed #tabbar{display:none!important;}
+.portal-embed .app-header{display:none!important;}
 
 .sb-brand{display:flex;align-items:center;gap:9px;padding:4px 6px 14px;border-bottom:1px solid rgba(255,255,255,0.1);margin-bottom:8px;}
 .sb-logo{width:30px;height:30px;border-radius:8px;background:#fff;color:#13335C;font-weight:800;font-size:13px;display:flex;align-items:center;justify-content:center;}
@@ -1775,6 +1886,20 @@ body{font-family:-apple-system,'Apple SD Gothic Neo','Pretendard',sans-serif;bac
 /* ── 공통 컴포넌트 ── */
 .wrap2{max-width:840px;margin:0 auto;padding:4px 0;}
 .sec-title{font-size:20px;font-weight:800;color:#1A2540;margin-bottom:4px;}
+.appr-subtab{padding:8px 18px;font-size:13px;font-weight:700;color:#5C6F8A;background:#F4F7FB;border:1px solid #DDE4EF;border-radius:9px;cursor:pointer;}
+.dvt-chip{padding:6px 14px;font-size:12px;font-weight:600;color:#5C6F8A;background:#F4F7FB;border:1px solid #DDE4EF;border-radius:20px;cursor:pointer;user-select:none;}
+.dvt-chip.on{background:#1D5BA6;color:#fff;border-color:#1D5BA6;}
+.ptable{width:100%;border-collapse:collapse;font-size:13px;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 1px 4px rgba(29,91,166,0.06);}
+.ptable th{background:#E8F0FB;color:#1D5BA6;font-size:11px;font-weight:700;padding:10px 8px;text-align:center;border-bottom:1px solid #DDE4EF;}
+.ptable td{padding:11px 8px;text-align:center;border-bottom:1px solid #F0F4FA;color:#1A2540;}
+.ptable tbody tr{cursor:pointer;}
+.ptable tbody tr:hover{background:#F7FAFD;}
+.sec-toolbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;}
+.toolbar-btn{display:flex;align-items:center;gap:5px;padding:7px 16px;font-size:13px;font-weight:600;border-radius:9px;cursor:pointer;border:1px solid #DDE4EF;background:#F4F7FB;color:#5C6F8A;}
+.toolbar-btn.primary{background:#1D5BA6;color:#fff;border-color:#1D5BA6;}
+.status-pill{font-size:10px;font-weight:700;padding:2px 9px;border-radius:10px;}
+.edoc-home-btn{display:inline-flex;align-items:center;gap:5px;padding:6px 13px;font-size:12px;font-weight:600;color:#1D5BA6;background:#EEF4FC;border:1px solid #DDE4EF;border-radius:8px;cursor:pointer;}
+.appr-subtab.active{background:#1D5BA6;color:#fff;border-color:#1D5BA6;}
 .sec-sub{font-size:12px;color:#5C6F8A;margin-bottom:18px;}
 .back-btn{background:#E8F0FB;border:1px solid #DDE4EF;border-radius:8px;padding:5px 12px;color:#1D5BA6;font-size:12px;cursor:pointer;font-weight:600;}
 .form-card{background:#fff;border-radius:12px;border:1px solid #DDE4EF;padding:16px;margin-bottom:10px;box-shadow:0 1px 4px rgba(29,91,166,0.08);}
