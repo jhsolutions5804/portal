@@ -1,6 +1,6 @@
 # JH Solutions 포털 — 문서 인덱스
 
-> 최초 작성: 2026-06-26 · 최종 수정: 2026-07-01(r4) · 작성: 춘식이(Claude)
+> 최초 작성: 2026-06-26 · 최종 수정: 2026-07-01(r5) · 작성: 춘식이(Claude)
 
 ---
 
@@ -8,7 +8,7 @@
 
 | 파일명 | 내용 |
 |--------|------|
-| `0_ground_rule_r8.md` | Ground Rule 정립, 용어 정의, 업데이트 절차 |
+| `0_ground_rule_r9.md` | Ground Rule, 용어 정의, 업데이트 절차, Semantic Versioning |
 | `0_update_algorithm.md` | 업데이트 알고리즘 상세 절차 |
 | `0.1_portal_concept.md` | 포털 concept, structure |
 | `0.2_portal_rule.md` | 포털 기본 rule |
