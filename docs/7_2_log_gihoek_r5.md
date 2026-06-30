@@ -97,3 +97,37 @@ function ctSnap(cid, name){
 - 인사 섹션 `homeBtn()` 스타일과 통일 (`🏠 기획 홈`, 회색 박스)
 - "← 목록", "← 뒤로" 등 탭 내 뒤로가기 버튼은 `.back` 그대로 유지
 - 적용 탭: 프로젝트·거래처·견적·정산·회계 (5개)
+---
+
+## 급여·용역비 직접비 자동연동 (N10-1/N10-2, 2026-06-30~07-01)
+
+> Test server에서 무결점 테스트 후 main 이식 완료
+
+### 커밋 이력 (main)
+| SHA | 내용 |
+|-----|------|
+| `beefbb1c` | N10-1/N10-2 일괄 이식 (test 검증본) |
+
+### N10-1 — 하청 용역비 자동연동
+- 지급예정서(`docType:'payment'`)에 "✓ 지급완료" 버튼 추가 (`doneSettlePayment`). 기존 완결(invoice 전용)과 분리, 라벨/메시지 분기
+- 비용장부가 완결된 지급예정서를 자동 집계: `paymentAsExpense()`가 `status==='done' && baseMonth===현재회계월` 인 payment를 cat:'용역비'(직접비) 가상비용으로 변환
+- `accMonthExp()` = 수동입력 expenses + paymentAsExpense() → 손익/카테고리집계/PJT별 직접비 모두 자동 반영
+- 자동반영 항목은 "🔗 정산 연동" 태그 표시, 클릭 시 정산서로 이동(수정 불가). 지급완료 취소 시 자동 제외
+
+### N10-2 — 급여 PJT 비율배분
+- 회계>비용장부에 "👥 급여 배분" 버튼. 접근B(gihoek 입력) + 급여명세서 자동로드
+- 흐름: 근로자 선택(`workers` 컬렉션) → `salLoadMonths`로 그 직원의 발행된 명세서 월 목록(`payslips/{wid}/months` getDocs, 최신순) → 월 선택 시 `salLoadNet`로 **netPay(실지급액)** 로드
+- **기준금액 = netPay** (세전 grossPay 아님)
+- **급여일 지정**: `defaultPayDate(기준월)` = 익월 말일, 주말이면 직전 평일(금)로 당김. date 입력칸으로 공휴일 등 직접 수정 가능. 회계 반영월 = 급여일이 속한 월
+- PJT별 비율% → 금액 실시간 계산(100% 초과 차단). 저장 시 동일 직원·기준월 기존 salaryDist 항목 전체 삭제 후 재작성 (id: `salary_{wid}_{기준월}_{pjt}`, cat:'급여', salaryDist:true). "👥 급여배분" 태그
+
+### 데이터 구조
+- `gihoek_expenses` 급여배분 항목: `{date:급여일, cat:'급여', vendor:이름, total:배분액, pjt, salaryDist:true, workerId, salBaseMonth:기준월, baseMonth:반영월}`
+- 직접비(DIRECT_CATS): ['급여','용역비','공구·자재비']
+- 급여명세서 읽기: `payslips/{workerId}/months/{month}` (필드: netPay, grossPay 등). 직원: `workers` 컬렉션
+
+### 이슈 & 해결
+| 이슈 | 해결 |
+|------|------|
+| 재입력 시 PJT 개수 감소하면 빠진 PJT 항목 잔존 | 저장 전 동일 직원·기준월 salaryDist 항목 전체 삭제 후 재작성 |
+| 급여배분 버튼 안 보임 | iframe 캐시 문제 (코드 정상). 근본해결 N11 |
