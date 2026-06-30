@@ -65,3 +65,33 @@
 - **module scope**: 모든 인라인 onclick 함수 `window.fn = fn` 등록 필수
 - **show 함수 호이스팅**: `onAuthStateChanged`보다 앞에 정의
 - 배포 전 `node --check`로 JS 문법 검증 필수
+
+---
+
+## PC 레이아웃·결재함·권한·네비게이션 개편 (N2~N9, 2026-06-30~07-01)
+
+> Test server(`portal-test`)에서 무결점 테스트 후 main 이식 완료
+
+### 커밋 이력 (main)
+| SHA | 내용 |
+|-----|------|
+| `3a5ad393` | N2~N9 일괄 이식 (test 검증본) |
+
+### 변경 항목
+| 코드 | 내용 |
+|------|------|
+| N2/N4 | 포털 임베드(`portal-embed`) 시 파란 헤더·탭바 숨김 + PC(900px+) 콘텐츠 `max-width:1180px` 중앙정렬 |
+| N5 | 결재함 `결재대기`/`결재완료` 서브탭 분리. `switchApproveSubTab`, `loadApproveData`(`_approvePending`/`_approveDone` 캐시), `renderApproveListUI`. 완결 판단: status가 approved/rejected/posted |
+| N6-1 | 업무일지 열람 권한관리(관리자 전용). 데이터모델 `portal_users/{uid}.dailyViewTargets:[열람허용대상uid...]` = "X의 글을 Y가 볼 수 있다". 필터: 내 uid가 타인의 dailyViewTargets에 포함되면 그 사람 글 열람 가능. `renderDailyPerms`, `toggleDailyViewTarget`(칩 클릭 즉시 저장) |
+| N6-2 | 업무일지 PC 테이블 레이아웃(`.ptable`/`.sec-toolbar`). 진입 시 바로 조회 테이블, 우측 상단 작성/권한관리 버튼 |
+| N6-3~6 | 연차·퇴직원서·재직증명서·구매품의서·지출결의서 5개 탭 동일 테이블 레이아웃. `renderDocMain`→`renderDocList` 통합, `renderDocList` 1곳 수정으로 5탭 동시 적용. 연차는 작성함수 `renderLeaveWrite` 분기 |
+| N7 | 각 탭에 "🏠 전자결재 홈" 버튼. 공통헬퍼 `edocHomeBtnHtml()`. portal-embed 시 헤더·사이드바 숨겨지므로 콘텐츠 툴바에 배치 |
+| N8/N9 | 결재함 내용확인 → 뒤로가기 직전화면(결재함) 복귀. 전역 `_detailBackFn`(향후 `_navStack` 배열 확장 컨셉 주석 기록). `openDocFromHome`에서 설정, `docDetailBack`(실행 후 즉시 null 초기화). daily는 `DOC_CONFIG` 미정의 → `renderDailyDetail` 분기로 cfg undefined 버그 동시 수정 |
+
+### 이슈 & 해결
+| 이슈 | 해결 |
+|------|------|
+| N6-1 권한 방향 반대 구현 | "내가 부여한 대상"이 아닌 "내 글을 볼 수 있는 대상"으로 필터 방향 수정 |
+| 퇴직원서~지출결의 "불러오는 중" 멈춤 | iframe 캐시 문제 (코드 정상). 강력 새로고침으로 해결 → 근본해결은 N11 |
+| 목록 화면 "불러오는 중" 깜빡임 | 초기 로딩 문구 제거(빈 컨테이너), 데이터 오면 결과로 채움 |
+| 결재함→업무일지 클릭 시 cfg undefined | daily는 renderDailyDetail로 분기 (N8/9와 동시 수정) |
