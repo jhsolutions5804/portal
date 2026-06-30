@@ -100,3 +100,38 @@ Azure AD 앱 등록 및 코드 구현 완료. 실제 메일 로드 여부 미확
 ### 백업
 - `backup/v1.0.4` — 오전 작업분
 - `backup/v1.0.5` — 오후 작업분 (최종)
+
+---
+
+## 2026-06-30~07-01 세션 — PC레이아웃·자동연동·캐시방지 + main 이식
+
+> Test server(`portal-test`)에서 전 작업 무결점 테스트 후 main 일괄 이식
+
+### N11 — iframe 캐시 방지 (portal index.html)
+- 포털이 하위 앱(gihoek/edoc 등)을 iframe 로드 시 `src`에 `_cb=Date.now()` 파라미터 추가 → 항상 최신 버전 로드
+- iframe src에만 적용, "새 창에서 열기" href는 깔끔하게 유지
+- 같은 앱 내 탭 전환(postMessage 분기)은 재로드 없이 유지 (`_embUrl`은 `_cb` 없는 순수 URL로 비교)
+- 배경: 테스트 중 "배포했는데 캐시 때문에 안 보임"이 반복 발생 → 매번 최신 방식 채택
+
+### 이번 세션 전체 작업 (코드 N2~N11)
+| 코드 | 파일 | 내용 |
+|------|------|------|
+| N2/N4/N5/N6-1~6/N7/N8/N9 | edoc | PC레이아웃·결재함 서브탭·업무일지 권한·테이블화·홈버튼·뒤로가기 |
+| N10-1 | gihoek | 지급예정서 지급완료 → 용역비 직접비 자동연동 |
+| N10-2 | gihoek | 급여 PJT 비율배분 (netPay·명세서 월선택·급여일 지정) |
+| N11 | portal | iframe 캐시 방지 |
+
+### Main 이식 (2026-07-01)
+| 파일 | 커밋 SHA | 이식 전 백업 SHA |
+|------|---------|----------------|
+| `index.html` | `bf21fa0d` | `2621fe19` |
+| `edoc/index.html` | `3a5ad393` | `77d78594` |
+| `gihoek/index.html` | `beefbb1c` | `000011fc` |
+
+- `index.html` 이식 시 test 전용 요소 변환: TEST SERVER 배너 제거, 하위앱 URL `portal-test/`→`portal/` (8건), N11 캐시방지는 유지
+- `edoc`/`gihoek`은 test 전용 요소 없어 그대로 이식
+- `hr/index.html`은 main=test 동일하여 미변경
+- 안전성: main 최근 변경(6/29까지)이 모두 test에 포함된 superset 확인 → 이식 시 손실 없음
+
+### 대기열 잔여
+- **N1**: Outlook 연동 (Azure AD SPA 플랫폼 미등록 또는 redirect URI 불일치 의심) — 보류
