@@ -131,3 +131,22 @@ function ctSnap(cid, name){
 |------|------|
 | 재입력 시 PJT 개수 감소하면 빠진 PJT 항목 잔존 | 저장 전 동일 직원·기준월 salaryDist 항목 전체 삭제 후 재작성 |
 | 급여배분 버튼 안 보임 | iframe 캐시 문제 (코드 정상). 근본해결 N11 |
+
+---
+
+## 2026-07-01 세션 — 지급예정서 회계 계상월 자동화
+
+> 버전: 정산 **1.4.x → MINOR +1** (기능 추가)
+
+### 변경 내용
+
+| 코드 | 내용 |
+|------|------|
+| G1 | 지급예정서(payment) 회계 계상월을 급여와 동일 규칙 적용 — 지급예정일(payDate) 기준 |
+| G1 | 지급예정일 비면 `defaultPayDate(기준월)` = 익월 말일(주말→금요일 보정) 자동 |
+| G1 | `acctMonthOf(s)` 헬퍼 — 저장된 `acctMonth` 우선, 없으면 payDate→issueDate→baseMonth 폴백(하위호환) |
+| G1 | 발행 시 `acctMonth` 저장, 상세보기에 회계 계상월 표시 + 수정 버튼(`editAcctMonth`, prompt YYYY-MM) |
+| G1 | `paymentAsExpense` 필터를 `baseMonth` → `acctMonth` 기준으로 변경 |
+
+### Main 이식
+- `gihoek/index.html` 커밋 `45e36db07f` — test 전용 요소 없어 그대로 이식
