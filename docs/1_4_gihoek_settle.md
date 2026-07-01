@@ -72,3 +72,14 @@ gihoek_settlements/{id}:
 - 지급완료 취소 시 비용장부에서 자동 제외
 
 > ⚠️ 지급예정서는 "지급완료" 처리 전까지는 손익에 반영되지 않는다. (실제 송금 확인 후 반영)
+
+---
+
+## 지급예정서 회계 계상월 — 1.4.x
+
+지급예정서(payment)가 회계 장부에 계상되는 월(`acctMonth`). 급여와 동일 규칙.
+
+- 기준: **지급예정일(payDate)** 의 월. 지급예정일 비면 `defaultPayDate(기준월)` = 익월 말일(주말→금요일 보정) 자동
+- `acctMonthOf(s)`: 저장된 `acctMonth` 우선 → 없으면 payDate→issueDate→baseMonth 폴백(하위호환)
+- 발행 시 `acctMonth` 저장. 상세보기에서 표시 + 수정 버튼(`editAcctMonth`, YYYY-MM prompt)
+- 회계 반영(`paymentAsExpense`)은 `acctMonth` 기준으로 해당 월 집계
