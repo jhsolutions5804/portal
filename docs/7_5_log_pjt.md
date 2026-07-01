@@ -134,3 +134,46 @@ pjt_settings/{pjtKey}:   // pjtKey = 'p4ph2' | 'p4ph4'
 | 포털 iframe 내 그래픽 깨짐 | 홈탭 CSS 전체가 PC @media 전용 | 모바일 기본값 CSS 추가 |
 | D+ 타 기기 미연동 | localStorage만 사용 | Firestore `pjt_settings` 저장/읽기로 전환 |
 | via=portal 미전달 | overrideUrl 사용 시 파라미터 누락 | `(overrideUrl||m.url)+'?via=portal'` 방식으로 통일 |
+
+---
+
+## 2026-07-01 세션 — PJT 개편 (설정 탭 · 홈 하이브리드 · 실시간 반영)
+
+> 버전: PJT 관리 **4.2.0 → 4.3.0** (MINOR, 기능 추가)
+> 테섭(`portal-test`) 검증 완료 후 main 이식
+
+### 신규/변경 기능
+
+| 코드 | 파일 | 내용 |
+|------|------|------|
+| P1 | pjt·ph4 | **⚙️ 설정 탭 신설** — 상단 탭바(PC/모바일)에 추가. 신규 PJT 등록 정보(명칭·현장·거래처·내용·품목·물량·시작일) 수정. 저장은 `pjt_settings/{key}` |
+| P1 | pjt·ph4 | 홈 하단 "프로젝트 설정" 섹션 제거 (설정 탭으로 이동, 섹터별 공정율은 공정 탭에서 확인) |
+| P2 | pjt·ph4 | **헤더 실시간 반영** — 설정 저장/페이지 로드 시 상단 헤더(명칭·부제=거래처·내용)를 `pjt_settings` 값으로 갱신 (`applyPjtHeader`). 값 없으면 하드코딩 유지 |
+| P2 | portal | **사이드바·카드 메뉴명 실시간 반영** — 로그인 시 `pjt_settings` 읽어 `PJT_SUBTABS`의 name·desc 갱신 후 재렌더 (`syncPjtSubtabsFromSettings`) |
+| P3 | portal | **홈 하이브리드 레이아웃** — 상단 축소 카드(공정율·D+·누적공수, 2열 grid) + 하단 타임라인 2단(전체 일정 / 업무지시·보고). 날짜 시간순, 오늘 노드 강조 |
+| P4 | pjt·ph4 | **헤더 우측 누적공수 → 전체 누적**으로 변경 (공사 시작일~오늘 `worker_manday`/`ph4_manday` 합산). 홈 가운데 카드는 "이달 누적" 유지 |
+| P5 | pjt·ph4 | **오늘 탭 날짜 이동 수정** — 달력에서 날짜 선택 시 `viewDayOffset` 갱신하도록 (기존엔 미사용 변수 `viewDate`에 대입해 이동 안 됨) |
+| P6 | portal | 설정 폼 URL 필드 삭제 |
+| P6 | portal | 개별 PJT 빈 화면 수정 — overrideUrl(개별 PJT) 진입 시 서브탭 key를 `&tab=`으로 넘기지 않음 + `switchTab` 폴백(`ALL_TABS` 밖이면 home) |
+| P7 | portal | 홈 일정/보고 패널 "DB 연결 안 됨" 수정 — `window._db=db` 전역 노출 (module 블록. `loadPjtPanels`가 참조하나 미설정이었음) |
+| P7 | portal | 업무지시·보고 목록에서 내용 없는 항목 미표시 (필터) |
+
+### 이슈 & 해결
+
+| 이슈 | 원인 | 해결 |
+|------|------|------|
+| 설정 저장 `serverTimestamp is not defined` | UI 함수가 일반 `<script>` 블록에 위치 — Firestore 심볼(`serverTimestamp`,`db`,`setDoc`,`getDoc`)은 `module` 블록에서만 import/선언 | Firestore 접근부를 module 블록 헬퍼(`window._savePjtSettingsData` 등)로 이동, UI 함수는 헬퍼 호출 |
+| 헤더 우측 누적공수 0.0 | 헤더가 홈 카드와 동일하게 "이달 합계"(`_mandayCache`, 당월만 로드)를 참조 | 전체 누적 전용 계산 `window._updateTotalManday` 추가 (시작일~오늘 전체 조회) |
+| 오늘 탭 달력 선택 시 이동 안 됨 | `pickTodayDate`가 렌더에 안 쓰이는 `viewDate`에 대입 | 선택 날짜↔오늘 일수차를 `viewDayOffset`에 반영 |
+| 홈 카드 세로로 쌓임 | `repeat(auto-fit, minmax(300px,1fr))`가 컨테이너 폭 대비 커서 2열 실패 | `repeat(2, minmax(0,1fr))` 2열 고정 |
+| 페이지 로드 시 헤더/시작일 미반영 | 로드 IIFE가 일반 블록에서 `getDoc(doc(db,...))` 직접 호출(죽은 코드) | `_loadPjtSettingsData` 헬퍼 기반으로 교체 |
+
+### Main 이식 (2026-07-01)
+
+| 파일 | 커밋 SHA |
+|------|---------|
+| `pjt/index.html` | `b0b7e5a5f3` |
+| `pjt_ph4/index.html` | `43ddb41bea` |
+| `index.html` (홈 하이브리드·메뉴반영·DB패널·빈항목) | `a613673755` |
+
+- 테섭 검증 완료분만 이식. `index.html`은 TEST 배너 제거 + `portal-test/`→`portal/` 8건 치환 후 이식 (기능만 반영)
