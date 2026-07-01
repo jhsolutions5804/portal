@@ -135,3 +135,29 @@ Azure AD 앱 등록 및 코드 구현 완료. 실제 메일 로드 여부 미확
 
 ### 대기열 잔여
 - **N1**: Outlook 연동 (Azure AD SPA 플랫폼 미등록 또는 redirect URI 불일치 의심) — 보류
+
+---
+
+## 2026-07-01 세션 — 홈 하이브리드 + 테스트 서버 DB 격리 (인프라)
+
+### 포털 index 기능 (4.3.0 이식)
+- PJT 홈 하이브리드 레이아웃(`pjt-cards-row` 2열 + `pjt-timeline-grid` 2단)
+- 메뉴명 실시간 반영 `syncPjtSubtabsFromSettings` (로그인 시 `pjt_settings` 읽어 `PJT_SUBTABS` 갱신)
+- `window._db=db` 전역 노출 → 홈 일정/보고 패널 "DB 연결 안 됨" 해결
+- 업무지시·보고 빈 항목 미표시
+- main 이식 커밋 `a613673755` (TEST 배너 제거 + `portal-test/`→`portal/` 8건 치환)
+
+### 테스트 서버 DB 격리 (진행 중) — ⚠️ 중요
+
+**문제**: 기존 테섭(`portal-test`)이 본섭과 **동일 Firebase(`p4ph2-fab-506a7`)** 를 공유 → 테섭에서 승인·입력 시 본섭 운영 데이터 오염 (전자결재 승인이 본섭에 반영되는 사고 확인)
+
+**조치 (A안 — 완전 격리)**:
+1. 신규 Firebase 프로젝트 `portal-test-6e0ff` 생성 (Firestore + Auth 이메일/비번, Spark 요금제)
+2. 본섭→테섭 Firestore 전체 복제 — Admin SDK 스크립트(`copy_firestore.py`) 로컬 실행. 최상위 컬렉션 자동 나열(동적 포함) + 서브컬렉션 재귀, 429 할당량 시 무한 재시도·이어하기
+3. 복제 완료 후 테섭 6개 HTML(`edoc·gihoek·hr·index·pjt·pjt_ph4`)의 `firebaseConfig`를 `portal-test-6e0ff`로 교체 예정 (로컬 준비 완료, 배포 대기)
+
+**교체 매핑**: apiKey/authDomain/projectId/storageBucket/messagingSenderId/appId 6종
+**미완**: 데이터 복제 진행 중(무료 할당량으로 수일 소요 가능) → 완료 후 config 교체 배포 + 테스트 로그인 계정 생성
+
+### 이미 섞인 데이터
+- 격리 전 테섭에서 발생한 본섭 반영분은 구분 불가로 그대로 둠 (사용자 판단)
