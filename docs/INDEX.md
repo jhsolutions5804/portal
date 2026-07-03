@@ -1,6 +1,6 @@
 # JH Solutions 포털 — 문서 인덱스
 
-> 최초 작성: 2026-06-26 · 최종 수정: 2026-07-03(r9) · 작성: 춘식이(Claude)
+> 최초 작성: 2026-06-26 · 최종 수정: 2026-07-04(r9a) · 파일명 표기 실제 파일 정합화 · 작성: 춘식이(Claude)
 
 ---
 
@@ -10,10 +10,10 @@
 |--------|------|
 | `0_ground_rule_r9.md` | Ground Rule, 용어 정의, 업데이트 절차, Semantic Versioning |
 | `0_update_algorithm.md` | 업데이트 알고리즘 상세 절차 |
-| `0.1_portal_concept.md` | 포털 concept, structure |
-| `0.2_portal_rule.md` | 포털 기본 rule |
-| `0.3_portal_auth.md` | 포털 인증 구조 |
-| `0.4_structure_index.md` | 구조 인덱스 (전체 앱·컬렉션 목록) |
+| `0_1_portal_concept.md` | 포털 concept, structure |
+| `0_2a_portal_rule_r2.md` · `0_2b_portal_rule_r2.md` | 포털 기본 rule (a/b 분할) |
+| `0_3_portal_auth_r2.md` | 포털 인증 구조 |
+| `0_4_structure_index.md` | 구조 인덱스 (전체 앱·컬렉션 목록) |
 
 ---
 
@@ -21,12 +21,12 @@
 
 | 파일명 | 내용 |
 |--------|------|
-| `1.0_gihoek_home.md` | 기획 홈 |
-| `1.1_gihoek_project.md` | 프로젝트 |
-| `1.2_gihoek_company.md` | 거래처 |
-| `1.3_gihoek_estimate.md` | 견적 |
-| `1.4_gihoek_settle.md` | 정산 |
-| `1.5_gihoek_account.md` | 회계 (외상거래·상세내역 필터·등록창 중앙정렬 r2) |
+| `1_0_gihoek_home_r2.md` | 기획 홈 |
+| `1_1_gihoek_project.md` | 프로젝트 |
+| `1_2_gihoek_company.md` | 거래처 |
+| `1_3_gihoek_estimate_r3.md` | 견적 |
+| `1_4_gihoek_settle.md` | 정산 |
+| `1_5_gihoek_account.md` | 회계 (외상거래·상세내역 필터·등록창 중앙정렬 r2) |
 
 ---
 
@@ -34,7 +34,7 @@
 
 | 파일명 | 내용 |
 |--------|------|
-| `2.0_hr_home.md` ~ `2.7_hr_leave_status.md` | 인사 각 기능 |
+| `2_0_hr_home_r3.md` ~ `2_7_hr_leave_status_r2.md` | 인사 각 기능 (홈·명부·노무연간·연차·연장·급여명세·퇴직·휴가현황) |
 
 ---
 
@@ -42,7 +42,7 @@
 
 | 파일명 | 내용 |
 |--------|------|
-| `3.0_edoc_home_approve.md` · `3.1_edoc_daily_leave.md` · `3.3_edoc_docs.md` | 전자결재 각 기능 |
+| `3_0_edoc_home_approve.md` · `3_1_edoc_daily_leave.md` · `3_3_edoc_docs.md` | 전자결재 각 기능 |
 
 ---
 
@@ -50,10 +50,10 @@
 
 | 파일명 | 내용 |
 |--------|------|
-| `4.0_pjt_home.md` | PJT 홈 — **통합 캘린더 레이아웃 4.4.0** (카드 가로스크롤·전체폭·달력, 날짜별 일정+업무지시) |
-| `4.1_pjt_fab.md` | P4 Ph2 FAB — 홈·오늘·주간(좌우이동)·캘린더(등록/수정·년월점프)·등록자 자동 (4.4.0) |
-| `4.1_pjt_fab_attend_progress.md` | P4 Ph2 FAB — 근태(출역·공수 일괄 4.4.0)·공정 · **공정표 PPT 상세 6P·설치진행도·섹터공정율(4.5.1)** |
-| `4.2_pjt_sup.md` | P4 Ph4 SUP — FAB 동일 반영 |
+| `4_0_pjt_home.md` | PJT 홈 — **통합 캘린더 레이아웃 4.4.0** (카드 가로스크롤·전체폭·달력, 날짜별 일정+업무지시) |
+| `4_1_pjt_fab.md` | P4 Ph2 FAB — 홈·오늘·주간(좌우이동)·캘린더(등록/수정·년월점프)·등록자 자동 (4.4.0) |
+| `4_1_pjt_fab_attend_progress.md` | P4 Ph2 FAB — 근태(출역·공수 일괄 4.4.0)·공정 · **공정표 PPT 상세 6P·설치진행도·섹터공정율(4.5.1)** |
+| `4_2_pjt_sup.md` | P4 Ph4 SUP — FAB 동일 반영 |
 
 ---
 
@@ -62,7 +62,8 @@
 | 파일명 | 내용 |
 |--------|------|
 | `5_org_chart.md` | 조직도 |
-| `6_portal_admin.md` | Portal 관리 |
+| `6_portal_admin_r2.md` | Portal 관리 |
+| `6_expense_upload_log.md` · `expense_upload_routine.md` | 경비 업로드 로그·루틴 |
 
 ---
 
@@ -70,8 +71,8 @@
 
 | 파일명 | 내용 |
 |--------|------|
-| `7.0_log_2026-07-02_session.md` | **2026-07-02 세션 종합 로그** (운영 배포·Firebase 격리·트러블슈팅) |
-| `7.1_log_portal.md` ~ `7.6_...md` | 모듈별 개발 로그 |
+| `7_0_log_2026-07-02_session.md` | **2026-07-02 세션 종합 로그** (운영 배포·Firebase 격리·트러블슈팅) |
+| `7_1_log_portal_r4a.md` ~ `7_6_log_org_portal_admin_r3.md` | 모듈별 개발 로그 (portal·gihoek·hr·edoc·pjt·조직/portal관리) |
 
 ---
 
@@ -90,7 +91,7 @@
 
 **주요 트러블슈팅**: GitHub Pages 빌드 반복 실패(원인=`.nojekyll` 부재로 인한 Jekyll 오류) → `.nojekyll`로 해결. 캘린더 격자 미표시 → 요소 인라인 스타일로 격자 고정.
 
-**상세**: `7.0_log_2026-07-02_session.md`
+**상세**: `7_0_log_2026-07-02_session.md`
 
 ---
 
