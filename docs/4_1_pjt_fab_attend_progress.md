@@ -46,4 +46,6 @@ worker_manday/{dateKey}:     { md:{ workerId: 공수값, ... }, updatedAt }   //
   - 기존 `calcZone`/`getCksProg` 재사용 → **추가 Firestore 쿼리 없음**
   - 활동 없는 섹터: 값 `0` + 진행바 `-`
 - 삽입 위치: `generateProgressPPT` 내 `// 다운로드` 직전 (`todayStats.forEach`)
+- **설치 진행도(2026-07-03)**: 상세페이지 설치 행의 공정율·진행바는 2페이지와 동일하게 `instBarPct`(설치 5개 항목 부분 진행률) 사용 → 완료 대수 0이어도 진행도 반영. 대수 컬럼(전일/금일/누계/증감)은 완료 대수(`instDone`) 유지
+- **섹터 전체 공정율(2026-07-03)**: 상세페이지 헤더 우측에 섹터 전체 공정율(`z.pct`, 8단계 전체 체크 기준) + 전일 대비 증감 표시
 
