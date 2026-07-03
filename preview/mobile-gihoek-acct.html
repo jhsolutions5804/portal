@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>기획 · 회계 (초안)</title>
+<style>
+  :root{--blue:#1D5BA6;--blue-d:#16487f;--ink:#1a2330;--sub:#6b7787;--line:#e4eaf2;--bg:#eef2f7;--card:#fff;--ok:#1b8a5a;--warn:#c0392b}
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:-apple-system,'Apple SD Gothic Neo','Pretendard',sans-serif;background:var(--bg);color:var(--ink);line-height:1.5;min-height:100vh}
+  .phone{width:100%;max-width:480px;margin:0 auto;background:var(--bg);min-height:100vh}
+  .scr{padding:0 0 28px}
+  .top{display:flex;align-items:center;justify-content:space-between;padding:22px 22px 4px}
+  .back{background:var(--card);border:1px solid var(--line);color:var(--blue);font-size:13px;font-weight:700;padding:8px 14px;border-radius:12px;cursor:pointer;font-family:inherit;box-shadow:0 2px 6px rgba(30,50,80,.05)}
+  .back:active{background:#f0f4f9}
+  .avatar{width:40px;height:40px;border-radius:50%;background:var(--blue);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:15px;box-shadow:0 4px 10px rgba(29,91,166,.3)}
+  .hello{padding:18px 24px 6px}
+  .hello .name{font-size:25px;font-weight:800;letter-spacing:-.5px;color:var(--blue)}
+  .hello .sub{font-size:12.5px;color:var(--sub);margin-top:4px;font-weight:600}
+  /* 월 선택바 */
+  .monthbar{display:flex;align-items:center;justify-content:center;gap:18px;margin:14px 20px 0;padding:10px;background:var(--card);border:1px solid var(--line);border-radius:14px;box-shadow:0 2px 8px rgba(30,50,80,.05)}
+  .monthbar button{background:#f0f4f9;border:1px solid var(--line);border-radius:9px;width:34px;height:34px;font-size:17px;color:#5c6f8a;cursor:pointer;font-family:inherit}
+  .monthbar .m{font-size:16px;font-weight:800;color:var(--blue-d);min-width:110px;text-align:center}
+  /* 서브탭 */
+  .segs{display:flex;gap:8px;margin:14px 20px 0}
+  .seg{flex:1;padding:11px;border-radius:12px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;text-align:center;border:1px solid var(--line);background:var(--card);color:var(--sub)}
+  .seg.on{background:var(--blue);color:#fff;border-color:var(--blue);box-shadow:0 4px 10px rgba(29,91,166,.25)}
+  /* 영업이익 요약 4칸 */
+  .sumgrid{display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:16px 20px 0}
+  .scell{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:15px 16px;box-shadow:0 2px 8px rgba(30,50,80,.05)}
+  .scell .l{font-size:11.5px;color:var(--sub);font-weight:700}
+  .scell .v{font-size:19px;font-weight:800;margin-top:5px}
+  .scell .v.pos{color:var(--ok)} .scell .v.neg{color:var(--warn)}
+  .scell .v .rate{font-size:12px;color:var(--blue);font-weight:700}
+  .note{margin:14px 22px 0;font-size:11px;color:#9aa8bc;line-height:1.5;font-weight:500}
+  .lbl{font-size:12px;font-weight:800;color:#9aa8bc;letter-spacing:.3px;padding:22px 24px 10px}
+  .pjtprofit{padding:0 20px;display:flex;flex-direction:column;gap:10px}
+  .prow{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:13px 15px;display:flex;align-items:center;justify-content:space-between;box-shadow:0 2px 8px rgba(30,50,80,.05)}
+  .prow .pc{font-size:13px;font-weight:700}
+  .prow .pc .nm{font-size:11px;color:var(--sub);font-weight:500;margin-top:1px}
+  .prow .pp{font-size:14px;font-weight:800}
+  .prow .pp.pos{color:var(--ok)} .prow .pp.neg{color:var(--warn)}
+  .hint{margin:22px 20px 0;padding:12px 14px;background:#fff7e6;border:1px solid #f5e2b8;border-radius:12px;font-size:11.5px;color:#8a6d1e;line-height:1.5;font-weight:600}
+</style>
+</head>
+<body>
+  <div class="phone"><div class="scr">
+    <div class="top"><button class="back">← 기획</button><div class="avatar">김</div></div>
+    <div class="hello"><div class="name">회계</div><div class="sub">월별 영업이익 · 비용 장부</div></div>
+
+    <div class="monthbar"><button>‹</button><span class="m">2026년 7월</span><button>›</button></div>
+
+    <div class="segs">
+      <div class="seg on">영업이익 현황</div>
+      <div class="seg">비용 장부</div>
+    </div>
+
+    <div class="sumgrid">
+      <div class="scell"><div class="l">매출 (완결 청구)</div><div class="v">1.5억</div></div>
+      <div class="scell"><div class="l">직접비</div><div class="v neg">9천만</div></div>
+      <div class="scell"><div class="l">간접비</div><div class="v neg">2천만</div></div>
+      <div class="scell"><div class="l">영업이익 <span class="rate">(26.7%)</span></div><div class="v pos">+4천만</div></div>
+    </div>
+    <div class="note">영업이익 = 매출(기준월 완결 청구) − 직접비 − 간접비. 직접비=급여·용역비·공구자재비 / 간접비=임대료·식대·세금 등.</div>
+
+    <div class="lbl">PJT별 영업이익</div>
+    <div class="pjtprofit">
+      <div class="prow"><div class="pc">P4 Ph2 (FAB)<div class="nm">FCU 설치</div></div><div class="pp pos">+3천만</div></div>
+      <div class="prow"><div class="pc">P4 Ph4 (SUP)<div class="nm">EHU 설치</div></div><div class="pp pos">+1천만</div></div>
+      <div class="prow"><div class="pc">공통 (미배분)<div class="nm">간접비</div></div><div class="pp neg">-2천만</div></div>
+    </div>
+
+    <div class="hint">💡 기획 › 회계 초안입니다. 상단 월 선택바로 기준월을 넘기고, 영업이익 현황 / 비용 장부 탭으로 나뉩니다. 영업이익 요약 4칸(매출·직접비·간접비·영업이익%)과 PJT별 영업이익을 보여줍니다. 실제 통합 시 gihoek_expenses·정산 데이터 연동됩니다.</div>
+  </div></div>
+</body>
+</html>
