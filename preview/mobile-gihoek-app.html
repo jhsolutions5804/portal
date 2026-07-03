@@ -130,6 +130,11 @@
   .banner.err{background:#fdecea;border:1px solid #f5c6c0;color:#a5342a}
   #toast{position:fixed;left:50%;bottom:34px;transform:translateX(-50%) translateY(20px);background:#1a2330;color:#fff;font-size:13px;font-weight:600;padding:11px 18px;border-radius:12px;opacity:0;pointer-events:none;transition:.25s;z-index:100;max-width:90%}
   #toast.show{opacity:.96;transform:translateX(-50%) translateY(0)}
+  .dcard{margin:16px 20px 0;background:var(--card);border:1px solid var(--line);border-radius:16px;padding:4px 16px;box-shadow:0 2px 8px rgba(30,50,80,.05)}
+  .drow{display:flex;align-items:center;justify-content:space-between;padding:11px 0;border-bottom:1px solid #f2f5f9}
+  .drow:last-child{border-bottom:none}
+  .dk{font-size:12.5px;color:var(--sub);font-weight:600}
+  .dv{font-size:13.5px;font-weight:700;text-align:right;max-width:60%}
 </style>
 </head>
 <body>
@@ -151,7 +156,7 @@ const db = getFirestore(app);
 /* ---------- 상태 ---------- */
 let projects=[], estimates=[], settlements=[], companies=[], expenses=[];
 let loaded={p:false,e:false,s:false,c:false,x:false};
-let curView='home';
+let curView='home', detailId=null;
 let curMonth=new Date().toISOString().slice(0,7);
 let accSub='pnl';
 let loadError='';
@@ -188,20 +193,25 @@ const $app=()=>document.getElementById('app');
 function toast(t){const e=document.getElementById('toast');e.textContent=t;e.classList.add('show');clearTimeout(e._t);e._t=setTimeout(()=>e.classList.remove('show'),2200);}
 
 /* ---------- 화면 전환 ---------- */
-function showView(v){curView=v;render();window.scrollTo(0,0);}
-window.showView=showView;
+function nav(v,id){ curView=v; detailId=id||null; history.pushState({v,id:id||null},''); render(); window.scrollTo(0,0); }
+function showView(v){ nav(v,null); }
+function showDetail(v,id){ nav(v+'D',id); }
+window.showView=showView; window.showDetail=showDetail;
+window.goBack=function(){ history.back(); };
+window.addEventListener('popstate',e=>{ const st=e.state||{v:'home',id:null}; curView=st.v; detailId=st.id||null; render(); window.scrollTo(0,0); });
 window.shiftMonth=function(d){const [y,m]=curMonth.split('-').map(Number);const nm=new Date(y,m-1+d,1);curMonth=nm.getFullYear()+'-'+String(nm.getMonth()+1).padStart(2,'0');render();};
 window.accTab=function(t){accSub=t;render();};
 
 const allLoaded=()=>loaded.p&&loaded.e&&loaded.s&&loaded.c&&loaded.x;
 function render(){
-  if(loadError){ $app().innerHTML=topBar('')+`<div class="banner err">데이터를 불러오지 못했습니다: ${esc(loadError)}<br>포털 로그인 세션이 필요할 수 있습니다.</div>`; return; }
-  ({home:renderHome,pjt:renderPjt,comp:renderComp,est:renderEst,settle:renderSettle,acct:renderAcct})[curView]();
+  if(loadError){ $app().innerHTML=topBar('기획')+`<div class="banner err">데이터를 불러오지 못했습니다: ${esc(loadError)}<br>포털 로그인 세션이 필요할 수 있습니다.</div>`; return; }
+  const map={home:renderHome,pjt:renderPjt,comp:renderComp,est:renderEst,settle:renderSettle,acct:renderAcct,pjtD:renderPjtDetail,compD:renderCompDetail,estD:renderEstDetail,settleD:renderSettleDetail};
+  (map[curView]||renderHome)();
 }
 
 /* ---------- 공통 상단 ---------- */
-function topBar(backTo){
-  return `<div class="top">${backTo!==null?`<button class="back" onclick="showView('${backTo}')">← ${backTo==='home'?'기획':'홈'}</button>`:'<span></span>'}<div class="avatar">김</div></div>`;
+function topBar(label){
+  return `<div class="top"><button class="back" onclick="goBack()">← ${label}</button><div class="avatar">김</div></div>`;
 }
 
 /* ---------- 기획 홈 ---------- */
@@ -233,7 +243,7 @@ function renderPjt(){
   const run=projects.filter(p=>p.status!=='done').length, done=projects.length-run;
   const cards=projects.map(p=>{
     const est=pjtEstSum(p.id),b=pjtBilled(p.id),pd=pjtPaid(p.id),pr=b-pd;
-    return `<div class="pcard">
+    return `<div class="pcard" onclick="showDetail('pjt','${p.id}')">
       <div class="pcard-top"><div class="code">${esc(p.code)} <span class="tbadge ${p.type==='fcu'?'auto':''}">${TYPE_LABEL[p.type]||'일반'}</span></div>
       <span class="sbadge ${p.status==='done'?'done':'run'}">${p.status==='done'?'종료':'진행중'}</span></div>
       <div class="pname">${esc(p.name||'')}</div>
@@ -244,17 +254,17 @@ function renderPjt(){
         <div class="cell"><div class="l">손익</div><div class="v ${pr>=0?'pos':'neg'}">${pr>=0?'+':''}${won(pr).replace('₩','')}</div></div>
       </div></div>`;
   }).join('');
-  $app().innerHTML=topBar('home')+`
+  $app().innerHTML=topBar('기획')+`
     <div class="hello rowend"><div><div class="name">프로젝트</div><div class="sub">진행 ${run} · 종료 ${done}</div></div></div>
     ${projects.length?`<div class="list">${cards}</div><div class="foot">금액 단위: 원 · 청구·지급·손익은 정산 입력 시 자동 집계</div>`:'<div class="empty">등록된 프로젝트가 없습니다.</div>'}`;
 }
 
 /* ---------- 거래처 ---------- */
 function roleBadges(c){let b='';if(c.roleSupplier)b+='<span class="pill pub">발행처</span> ';if(c.roleClient)b+='<span class="pill rcv">수신처</span>';return b;}
-function compCard(c){return `<div class="ccard"><div class="cav">🏢</div><div class="cbody"><div class="cname">${esc(c.company||'(무명)')} ${roleBadges(c)}</div><div class="cmeta">${c.ceo?'대표 '+esc(c.ceo):''}${c.bizno?' · '+esc(c.bizno):''}${c.tel?' · '+esc(c.tel):''}</div></div><span class="cgo">›</span></div>`;}
+function compCard(c){return `<div class="ccard" onclick="showDetail('comp','${c.id}')"><div class="cav">🏢</div><div class="cbody"><div class="cname">${esc(c.company||'(무명)')} ${roleBadges(c)}</div><div class="cmeta">${c.ceo?'대표 '+esc(c.ceo):''}${c.bizno?' · '+esc(c.bizno):''}${c.tel?' · '+esc(c.tel):''}</div></div><span class="cgo">›</span></div>`;}
 function renderComp(){
   const sup=companies.filter(c=>c.roleSupplier), cli=companies.filter(c=>c.roleClient);
-  $app().innerHTML=topBar('home')+`
+  $app().innerHTML=topBar('기획')+`
     <div class="hello rowend"><div><div class="name">거래처</div><div class="sub">발행처 ${sup.length} · 수신처 ${cli.length}</div></div></div>
     ${companies.length?`
       <div class="grp pub">🟠 발행처 <span class="cnt">우리 발행 주체 · ${sup.length}</span></div>
@@ -275,12 +285,12 @@ function renderEst(){
   const active=estimates.filter(isActive).length, voidCnt=estimates.length-active;
   const cards=estimates.map(e=>{
     const v=!isActive(e);
-    return `<div class="icard ${v?'void':''}"><div class="ibody">
+    return `<div class="icard ${v?'void':''}" onclick="showDetail('est','${e.id}')"><div class="ibody">
       <div class="ititle">${esc(e.title||'(제목없음)')} ${estTag(e)}</div>
       <div class="imeta"><span class="pill">${esc(projName(e.pjtId))}</span> ${esc(e.no||'')} · ${esc(e.date||'')}${e.client?.company?' · '+esc(e.client.company):''}</div>
     </div><div class="iamt">${won(estTotal(e))}</div></div>`;
   }).join('');
-  $app().innerHTML=topBar('home')+`
+  $app().innerHTML=topBar('기획')+`
     <div class="hello rowend"><div><div class="name">견적</div><div class="sub">유효 ${active} · 폐기 ${voidCnt}</div></div></div>
     ${estimates.length?`<div class="list">${cards}</div>`:'<div class="empty">작성된 견적이 없습니다.</div>'}`;
 }
@@ -295,12 +305,12 @@ function renderSettle(){
   const payCnt=settlements.filter(s=>s.docType==='payment'&&setActive(s)).length;
   const cards=sorted.map(s=>{
     const v=!setActive(s),isInv=s.docType==='invoice';
-    return `<div class="icard ${v?'void':''}"><div class="ibody">
+    return `<div class="icard ${v?'void':''}" onclick="showDetail('settle','${s.id}')"><div class="ibody">
       <div class="ititle"><span class="kind ${isInv?'inv':'pay'}">${isInv?'대금청구서':'지급예정서'}</span> <span class="pill">${esc(s.no||'')}</span>${v?' <span class="tag void">폐기</span>':''}${s.status==='done'?' <span class="tag done">✓ 완결</span>':''}</div>
       <div class="imeta"><span class="pill">${esc(projName(s.pjtId))}</span> 기준월 ${esc(s.baseMonth||'-')} · 발행 ${esc(s.issueDate||'-')}${s.recipient?.company?' · '+esc(s.recipient.company):''}</div>
     </div><div class="iamt">${won(s.total||0)}</div></div>`;
   }).join('');
-  $app().innerHTML=topBar('home')+`
+  $app().innerHTML=topBar('기획')+`
     <div class="hello rowend"><div><div class="name">정산</div><div class="sub">청구 ${invCnt} · 지급 ${payCnt}</div></div></div>
     <div class="summary">
       <div class="s"><div class="n">${won(inv).replace('₩','')}</div><div class="k">대금청구 누계</div></div>
@@ -312,7 +322,7 @@ function renderSettle(){
 
 /* ---------- 회계 ---------- */
 function renderAcct(){
-  const head=topBar('home')+`
+  const head=topBar('기획')+`
     <div class="hello"><div class="name">회계</div><div class="sub">월별 영업이익 · 비용 장부</div></div>
     <div class="monthbar"><button onclick="shiftMonth(-1)">‹</button><span class="m">${curMonth.replace('-','년 ')}월</span><button onclick="shiftMonth(1)">›</button></div>
     <div class="segs">
@@ -352,6 +362,75 @@ function renderLedger(){
   return `<div style="padding:16px 20px 0">${rows}</div><div class="foot">이 달 비용 합계 ${won(tot)}</div>`;
 }
 
+/* ---------- 상세 화면 ---------- */
+function renderPjtDetail(){
+  const p=projects.find(x=>x.id===detailId);
+  if(!p){ $app().innerHTML=topBar('프로젝트')+'<div class="empty">프로젝트를 찾을 수 없습니다.</div>'; return; }
+  const ests=estimates.filter(e=>e.pjtId===p.id);
+  const setts=[...settlements].filter(s=>s.pjtId===p.id).sort((a,b)=>(b.issueDate||'').localeCompare(a.issueDate||''));
+  const est=pjtEstSum(p.id),b=pjtBilled(p.id),pd=pjtPaid(p.id),pr=b-pd;
+  const eRows=ests.length?ests.map(e=>`<div class="icard ${!isActive(e)?'void':''}"><div class="ibody"><div class="ititle">${esc(e.title||'')} ${estTag(e)}</div><div class="imeta">${esc(e.no||'')} · ${esc(e.date||'')}${e.client?.company?' · '+esc(e.client.company):''}</div></div><div class="iamt">${won(estTotal(e))}</div></div>`).join(''):'<div class="empty">견적 없음</div>';
+  const sRows=setts.length?setts.map(s=>{const inv=s.docType==='invoice';return `<div class="icard ${!setActive(s)?'void':''}"><div class="ibody"><div class="ititle"><span class="kind ${inv?'inv':'pay'}">${inv?'대금청구서':'지급예정서'}</span> <span class="pill">${esc(s.no||'')}</span>${s.status==='done'?' <span class="tag done">✓ 완결</span>':''}</div><div class="imeta">기준월 ${esc(s.baseMonth||'-')} · 발행 ${esc(s.issueDate||'-')}</div></div><div class="iamt">${won(s.total||s.amount||0)}</div></div>`}).join(''):'<div class="empty">정산 없음</div>';
+  $app().innerHTML=topBar('프로젝트')+`
+    <div class="hello"><div class="name" style="font-size:21px">${esc(p.code)}</div><div class="sub">${esc(p.name||'')}${p.client?' · 발주처 '+esc(p.client):''}</div></div>
+    <div style="padding:16px 20px 0"><div class="psum" style="border:1px solid var(--line);border-radius:16px;padding:14px;background:#fff">
+      <div class="cell"><div class="l">견적 합계</div><div class="v">${won(est)}</div></div>
+      <div class="cell"><div class="l">청구 누계</div><div class="v">${won(b)}</div></div>
+      <div class="cell"><div class="l">지급 누계</div><div class="v">${won(pd)}</div></div>
+      <div class="cell"><div class="l">실현 손익</div><div class="v ${pr>=0?'pos':'neg'}">${pr>=0?'+':''}${won(pr).replace('₩','')}</div></div>
+    </div></div>
+    <div class="lbl">견적 내역 (${ests.length})</div><div class="list">${eRows}</div>
+    <div class="lbl">정산 내역 (${setts.length})</div><div class="list">${sRows}</div>`;
+}
+function renderCompDetail(){
+  const c=companies.find(x=>x.id===detailId);
+  if(!c){ $app().innerHTML=topBar('거래처')+'<div class="empty">거래처를 찾을 수 없습니다.</div>'; return; }
+  const contacts=c.contacts||[];
+  const info=[['대표',c.ceo],['사업자번호',c.bizno],['전화',c.tel],['이메일',c.email],['주소',c.address]].filter(x=>x[1]);
+  $app().innerHTML=topBar('거래처')+`
+    <div class="hello"><div class="name" style="font-size:21px">${esc(c.company||'')}</div><div class="sub">${roleBadges(c)||'역할 미지정'}</div></div>
+    <div class="dcard">${info.length?info.map(([k,v])=>`<div class="drow"><span class="dk">${k}</span><span class="dv">${esc(v)}</span></div>`).join(''):'<div class="drow"><span class="dk">정보</span><span class="dv">등록된 정보 없음</span></div>'}</div>
+    ${contacts.length?`<div class="lbl">담당자 (${contacts.length})</div><div class="list">${contacts.map(ct=>`<div class="ccard"><div class="cav">👤</div><div class="cbody"><div class="cname">${esc(ct.name||'')}</div><div class="cmeta">${ct.tel?esc(ct.tel):''}${ct.email?' · '+esc(ct.email):''}</div></div></div>`).join('')}</div>`:''}`;
+}
+function renderEstDetail(){
+  const e=estimates.find(x=>x.id===detailId);
+  if(!e){ $app().innerHTML=topBar('견적')+'<div class="empty">견적을 찾을 수 없습니다.</div>'; return; }
+  const items=(e.items||[]).filter(i=>i.name||i.amount||i.qty);
+  const supply=estSupply(e),vat=Math.round(supply*0.1),total=supply+vat;
+  const rows=items.length?items.map(i=>`<div class="lrow"><div class="ld"><div class="lc">${esc(i.name||'(품목)')}</div><div class="lm">${i.spec?esc(i.spec)+' · ':''}${i.qty||0} × ${won(i.price||0)}</div></div><div class="la">${won(itemAmt(i))}</div></div>`).join(''):'<div class="empty">품목 없음</div>';
+  $app().innerHTML=topBar('견적')+`
+    <div class="hello"><div class="name" style="font-size:20px">${esc(e.title||'')} ${estTag(e)}</div><div class="sub"><span class="pill">${esc(projName(e.pjtId))}</span> ${esc(e.no||'')} · ${esc(e.date||'')}</div></div>
+    <div class="dcard">
+      ${e.client?.company?`<div class="drow"><span class="dk">거래처</span><span class="dv">${esc(e.client.company)}</span></div>`:''}
+      ${e.issuer?.company?`<div class="drow"><span class="dk">발행처</span><span class="dv">${esc(e.issuer.company)}</span></div>`:''}
+      <div class="drow"><span class="dk">날짜</span><span class="dv">${esc(e.date||'-')}</span></div>
+    </div>
+    <div class="lbl">품목 내역 (${items.length})</div><div style="padding:0 20px">${rows}</div>
+    <div class="dcard" style="margin-top:14px">
+      <div class="drow"><span class="dk">공급가</span><span class="dv">${won(supply)}</span></div>
+      <div class="drow"><span class="dk">부가세 (10%)</span><span class="dv">${won(vat)}</span></div>
+      <div class="drow" style="border-top:1px solid var(--line);padding-top:11px"><span class="dk" style="font-weight:800;color:var(--ink)">합계</span><span class="dv" style="font-size:16px;color:var(--blue)">${won(total)}</span></div>
+    </div>`;
+}
+function renderSettleDetail(){
+  const s=settlements.find(x=>x.id===detailId);
+  if(!s){ $app().innerHTML=topBar('정산')+'<div class="empty">정산서를 찾을 수 없습니다.</div>'; return; }
+  const inv=s.docType==='invoice';
+  const supply=s.supply||0,vat=s.vat||0,total=s.total||s.amount||0;
+  $app().innerHTML=topBar('정산')+`
+    <div class="hello"><div class="name" style="font-size:20px"><span class="kind ${inv?'inv':'pay'}">${inv?'대금청구서':'지급예정서'}</span></div><div class="sub"><span class="pill">${esc(projName(s.pjtId))}</span> ${esc(s.no||'')}${s.status==='done'?' · 완결':''}</div></div>
+    <div class="dcard">
+      <div class="drow"><span class="dk">기준월</span><span class="dv">${esc(s.baseMonth||'-')}</span></div>
+      <div class="drow"><span class="dk">발행일</span><span class="dv">${esc(s.issueDate||'-')}</span></div>
+      ${s.recipient?.company?`<div class="drow"><span class="dk">수신처</span><span class="dv">${esc(s.recipient.company)}</span></div>`:''}
+      ${s.sender?.company?`<div class="drow"><span class="dk">발행처</span><span class="dv">${esc(s.sender.company)}</span></div>`:''}
+    </div>
+    <div class="dcard" style="margin-top:14px">
+      ${supply?`<div class="drow"><span class="dk">공급가</span><span class="dv">${won(supply)}</span></div><div class="drow"><span class="dk">부가세</span><span class="dv">${won(vat)}</span></div>`:''}
+      <div class="drow" style="${supply?'border-top:1px solid var(--line);padding-top:11px':''}"><span class="dk" style="font-weight:800;color:var(--ink)">${inv?'청구액':'지급액'}</span><span class="dv" style="font-size:16px;color:var(--blue)">${won(total)}</span></div>
+    </div>`;
+}
+
 /* ---------- Firestore 구독 ---------- */
 function sub(coll,setter,key){
   onSnapshot(collection(db,coll), snap=>{
@@ -366,7 +445,8 @@ sub('gihoek_settlements',a=>{settlements=a;},'s');
 sub('gihoek_companies',  a=>{companies=a.sort((x,y)=>(x.company||'').localeCompare(y.company||''));},'c');
 sub('gihoek_expenses',   a=>{expenses=a;},'x');
 
-// 최초 렌더
+// 최초 렌더 (앱 진입 상태를 히스토리에 기록 → 뒤로가기 시 홈 복귀 후 포털로)
+history.replaceState({v:'home',id:null},'');
 render();
 </script>
 </body>
