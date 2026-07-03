@@ -15,6 +15,7 @@
 | `f56b7b1e` | L3 | 근로자 명부 수정 모달 `oninput` `f.key` 런타임 참조 오류 수정 |
 | `03e16c6f` | — | 근로자 명부 상세 모달 🔗 포털 계정 연동 버튼 추가 (`rosterLinkPortal`) |
 | `e0d0004b` | — | `rosterLinkPortal` portal_users 직접 쓰기 → `postMessage` 위임으로 수정 |
+| `8bb7b1c0ca` | — | 급여명세서 지급내역 직접 수정 (공제와 동일 오버라이드, PC 전용) — 2026-07-03 |
 
 ---
 
