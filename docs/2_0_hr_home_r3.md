@@ -1,7 +1,7 @@
 # 2.0. 인사 홈
 
 > `portal/hr/index.html` · URL: `.../portal/hr/?via=portal`
-> 최초 작성: 2026-06-26 · 최종 수정: 2026-06-29(r3) · 작성: 춘식이(Claude)
+> 최초 작성: 2026-06-26 · 최종 수정: 2026-07-03(r3a) · 정산도우미 가이드 대조 후 PDF 출력 규격 보완 · 작성: 춘식이(Claude)
 
 ---
 
@@ -66,3 +66,18 @@ const homeBtn = () =>
 - **저장**: `company_settings/signatures.kjh` — base64 이미지
 - **출력 반영**: 근로계약서·연봉계약서 A4 출력 시 자동 삽입
 - **함수**: `loadCompSignatures`, `saveCompSignature`, `renderSignMgr`
+
+---
+
+## PDF 출력 규격 (급여명세서·근로/연봉계약서 공통)
+
+| 구분 | 규격 |
+|------|------|
+| 용지 | A4 (210mm × 297mm) |
+| 여백 | 16mm 18mm |
+| 폰트 | Malgun Gothic, Arial |
+| 로고 | `JH_LOGO` (급여명세서 우상단) |
+| 출력 | `window.print()` → PDF 저장 |
+
+> 근로/연봉계약서는 `company_settings/signatures.kjh` 서명·도장이 A4 출력 시 자동 삽입됨(위 서명/도장 관리 참조).
+> 출처: 구 정산도우미(`administrator`) 인사섹션 가이드 대조 결과, portal/hr 코드로 재검증하여 반영(2026-07-03). 나머지 항목(급여 공식·공제율·간이세액표·Firebase 스키마·Work Flow)은 이미 2.1~2.6 문서에 반영 완료.
