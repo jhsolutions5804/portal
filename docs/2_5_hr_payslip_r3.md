@@ -143,3 +143,25 @@ payslips/{workerId}/months/{month}
   pension, health, ltcare, employ, incomeTax, localTax  ← 실제 저장된 공제값
   totalDeduct, netPay  ← 저장 시점 기준
 ```
+
+---
+
+## 지급내역 직접 수정 기능 (r4, 2026-07-03)
+
+공제내역(r3)과 동일한 오버라이드 방식으로, 지급내역의 연봉계약서 연동 항목(기본급·고정연장·고정야간·주휴)도 PC 화면에서 직접 수정 가능.
+
+### 동작 방식
+| 상황 | 동작 |
+|------|------|
+| 근로자/기준월 선택 | 연봉계약서 자동값으로 input 채움 |
+| 직접 수정 | 입력값으로 지급계·공제(4대보험·소득세)·실지급액 즉시 재계산 |
+| 근로자 변경/뷰 재진입 | 수정값 초기화 → 자동값 리셋 |
+| 조회/출력(PDF) | 저장 시점 지급값 그대로 표시 |
+
+### 관련 변수
+- `ps._basic`, `ps._fixedOt`, `ps._fixedNight`, `ps._weekly` — `undefined`면 자동값, 숫자면 오버라이드
+- `psCalcAll`에서 `sal` 구성 시 반영 → `sal.total`·`totalPay` 재계산 → 공제·실지급액 연쇄 갱신
+
+### 범위
+- **PC 전용**(`renderPayslipPCRight`). 모바일은 공제와 동일하게 표시 전용 유지
+- 저장은 기존 `...c.sal` 스프레드로 자동 반영, 재출력 시 `ps._basic` 등 세팅으로 수정값 보존
