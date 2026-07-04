@@ -13,7 +13,7 @@
   .top{display:flex;align-items:center;justify-content:space-between;padding:22px 22px 4px}
   .back{background:var(--card);border:1px solid var(--line);color:var(--blue);font-size:13px;font-weight:700;padding:8px 14px;border-radius:12px;cursor:pointer;font-family:inherit;box-shadow:0 2px 6px rgba(30,50,80,.05)}
   .back:active{background:#f0f4f9}
-  .avatar{width:40px;height:40px;border-radius:50%;background:var(--blue);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:15px;box-shadow:0 4px 10px rgba(29,91,166,.3)}
+  .avatar{width:40px;height:40px;border-radius:50%;background:var(--blue);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:15px;box-shadow:0 4px 10px rgba(29,91,166,.3);cursor:pointer}
   .hello{padding:18px 24px 6px}
   .hello.rowend{display:flex;align-items:flex-end;justify-content:space-between}
   .hello .name{font-size:25px;font-weight:800;letter-spacing:-.5px;color:var(--violet)}
@@ -99,6 +99,7 @@ function showView(v){ nav(v,null); }
 function showDetail(v,id){ nav(v+'D',id); }
 window.showView=showView; window.showDetail=showDetail;
 window.goBack=function(){ history.back(); };
+window.goAccount=function(){ location.href='mobile-account.html'; };
 window.goHome=function(){ location.href='mobile-home.html'; };
 window.addEventListener('popstate',e=>{ const st=e.state||{v:'home',id:null}; curView=st.v; detailId=st.id||null; render(); window.scrollTo(0,0); });
 
@@ -108,14 +109,14 @@ function render(){
     resign:()=>renderStub('퇴직원서'),cert:()=>renderStub('재직증명서'),purchase:()=>renderStub('구매품의서'),expense:()=>renderStub('지출결의서')};
   (map[curView]||renderHome)();
 }
-function topBar(label,onclick){ return `<div class="top"><button class="back" onclick="${onclick||'goBack()'}">← ${label}</button><div class="avatar">김</div></div>`; }
+function topBar(label,onclick){ return `<div class="top"><button class="back" onclick="${onclick||'goBack()'}">← ${label}</button><div class="avatar" onclick="goAccount()">김</div></div>`; }
 
 function renderHome(){
   const allDocs=[...dailies,...leaves];
   const waitCnt=allDocs.filter(d=>isWait(d.status)).length;
   const okCnt=allDocs.filter(d=>isOk(d.status)).length;
   $app().innerHTML=`
-    <div class="top"><button class="back" onclick="goHome()">← 홈</button><div class="avatar">김</div></div>
+    <div class="top"><button class="back" onclick="goHome()">← 홈</button><div class="avatar" onclick="goAccount()">김</div></div>
     <div class="hello"><div class="name">전자결재</div><div class="sub">업무일지 · 연차 · 구매품의 · 지출결의</div></div>
     <div class="summary">
       <div class="s"><div class="n wait">${waitCnt}</div><div class="k">결재 대기</div></div>
@@ -126,12 +127,12 @@ function renderHome(){
     <div class="grid">
       <div class="tile c1" onclick="showView('approve')"><span class="go">›</span>${waitCnt?`<span class="badge">${waitCnt}</span>`:''}<div class="ic">📥</div><div class="nm">결재함</div><div class="ds">대기·완료</div></div>
       <div class="tile c2" onclick="showView('daily')"><span class="go">›</span><div class="ic">📔</div><div class="nm">업무일지</div><div class="ds">일일 업무</div></div>
-      <div class="tile c3" onclick="showView('leave')"><span class="go">›</span><div class="ic">🌴</div><div class="nm">연차신청서</div><div class="ds">연차 신청</div></div>
-      <div class="tile c4" onclick="showView('resign')"><span class="go">›</span><div class="ic">📄</div><div class="nm">퇴직원서</div><div class="ds">퇴직 신청</div></div>
-      <div class="tile c5" onclick="showView('cert')"><span class="go">›</span><div class="ic">📃</div><div class="nm">재직증명서</div><div class="ds">증명 발급</div></div>
       <div class="tile c6" onclick="showView('purchase')"><span class="go">›</span><div class="ic">🛒</div><div class="nm">구매품의서</div><div class="ds">구매 품의</div></div>
+      <div class="tile c7" onclick="showView('expense')"><span class="go">›</span><div class="ic">💳</div><div class="nm">지출결의서</div><div class="ds">지출 결의</div></div>
+      <div class="tile c3" onclick="showView('leave')"><span class="go">›</span><div class="ic">🌴</div><div class="nm">연차신청서</div><div class="ds">연차 신청</div></div>
+      <div class="tile c5" onclick="showView('cert')"><span class="go">›</span><div class="ic">📃</div><div class="nm">재직증명서</div><div class="ds">증명 발급</div></div>
     </div>
-    <div class="wide" onclick="showView('expense')"><div class="ic">💳</div><div><div class="nm">지출결의서</div><div class="ds">지출 결의·정산</div></div><span class="go">›</span></div>`;
+    <div class="wide" onclick="showView('resign')"><div class="ic">📄</div><div><div class="nm">퇴직원서</div><div class="ds">퇴직 신청</div></div><span class="go">›</span></div>`;
 }
 
 function dailyCard(d){
