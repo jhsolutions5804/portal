@@ -1026,7 +1026,6 @@ async function loadPjtPanels(){
     const REPORT_PREFIX = { p4ph2:'daily_reports_', p4ph4:'ph4_daily_' };
     let reports=[];
     const _rt=new Date();
-    console.log('[보고디버그] 조회시작 · 시스템오늘=', _rt.getFullYear()+'-'+String(_rt.getMonth()+1).padStart(2,'0')+'-'+String(_rt.getDate()).padStart(2,'0'));
     for(let _off=-14;_off<=21;_off++){
       const _d=new Date(_rt); _d.setDate(_d.getDate()+_off);
       const dk=_d.getFullYear()+'-'+String(_d.getMonth()+1).padStart(2,'0')+'-'+String(_d.getDate()).padStart(2,'0');
@@ -1034,14 +1033,11 @@ async function loadPjtPanels(){
         const st=PJT_SUBTABS.find(s=>s.key===key);
         try{
           const snap=await getDocs(collection(window._db, prefix+dk));
-          if(snap.size>0) console.log('[보고디버그] '+prefix+dk+' → '+snap.size+'건');
           snap.forEach(dd=>{ const r=dd.data(); reports.push({...r, id:dd.id, dateKey:dk, pjtName:st?.name||key}); });
-        }catch(e){ console.log('[보고디버그] 조회오류 '+prefix+dk+' : '+e.message); }
+        }catch(e){}
       }
     }
-    console.log('[보고디버그] filter전 총 '+reports.length+'건', reports);
     reports=reports.filter(r=>(r.text||'').trim().length>0);
-    console.log('[보고디버그] filter후(text있는것) '+reports.length+'건');
     reports.sort((a,b)=>{var ta=a.ts&&a.ts.toMillis?a.ts.toMillis():0,tb=b.ts&&b.ts.toMillis?b.ts.toMillis():0; if(ta||tb)return tb-ta; return String(b.dateKey||'').localeCompare(String(a.dateKey||''));});
     reports=reports.slice(0,6);
 
@@ -1169,19 +1165,17 @@ window.pjtCalSelectDay=async function(dk){
   html+='<div id="pjt-cal-report-slot" style="color:#9AAABF;font-size:12px">불러오는 중...</div>';
   det.innerHTML=html;
   try{
-    const {getDoc,doc} = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+    const {getDocs,collection} = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
     let rHtml='';
-    for(const [key,col] of Object.entries(PJT_REPORT_COL)){
+    const REPORT_PREFIX = { p4ph2:'daily_reports_', p4ph4:'ph4_daily_' };
+    for(const [key,prefix] of Object.entries(REPORT_PREFIX)){
       const st=PJT_SUBTABS.find(s=>s.key===key);
       try{
-        const snap=await getDoc(doc(window._db,col,dk));
-        if(snap.exists()){
-          const r=snap.data();
-          const ins=(r.instruction||'').trim();
-          const brf=(r.briefText||r.content||'').trim();
-          if(ins) rHtml+=_pjtReportItem('지시',ins,st?.name||key,'#E6F1FB','#0C447C');
-          if(brf) rHtml+=_pjtReportItem('보고',brf,st?.name||key,'#FAEEDA','#633806');
-        }
+        const snap=await getDocs(collection(window._db, prefix+dk));
+        const items=[];
+        snap.forEach(d=>{ const r=d.data(); if((r.text||'').trim()) items.push(r); });
+        items.sort((a,b)=>((a.ts&&a.ts.toMillis?a.ts.toMillis():0)-(b.ts&&b.ts.toMillis?b.ts.toMillis():0)));
+        items.forEach(r=>{ rHtml+=_pjtReportItem((r.time||'')+(r.name?' '+r.name:''), r.text, st?.name||key, '#E6F1FB','#0C447C'); });
       }catch(e){}
     }
     const slot=document.getElementById('pjt-cal-report-slot');
