@@ -114,6 +114,7 @@ const ZONES={
 // 공정 계산용 상세 데이터 (기존 PJT 모듈과 동일)
 const PROG={
   fab:{
+    coll:'progress_checks_', ls:'fabls_eq_ck_',
     checkCols:['반입','입고검사','내진스토퍼','다이크','실링','동판','결선','시공검측'],
     installCols:['내진스토퍼','다이크','실링','동판','결선'],
     start:'2026-06-17',
@@ -131,6 +132,19 @@ const PROG={
       '2026-06-19':{fiz:{'824_반입':true,'825_반입':true,'826_반입':true,'827_반입':true,'828_반입':true,'829_반입':true,'830_반입':true,'807_입고검사':true,'808_입고검사':true,'809_입고검사':true,'820_입고검사':true,'821_입고검사':true,'822_입고검사':true,'823_입고검사':true}},
       '2026-06-20':{fiz:{'824_입고검사':true,'825_입고검사':true,'826_입고검사':true,'827_입고검사':true,'828_입고검사':true,'829_입고검사':true,'830_입고검사':true}},
     },
+  },
+  sup:{
+    coll:'ph4_progress_', ls:'ph4ls_eq_ck_',
+    start:(function(){try{return localStorage.getItem('ph4_pjt_start_date')||'2026-06-17';}catch(e){return '2026-06-17';}})(),
+    checkCols:['반입','입고검사','내진스토퍼','시공검측'],
+    installCols:['내진스토퍼'],
+    zones:[
+      {id:'core20',name:'(중공업) #20Core',total:3,eqs:['EHU_4F10701','EHU_4F10702','EHU_4F10703']},
+      {id:'core13',name:'(물산) #13Core',total:3,eqs:['EHU_4F10511','EHU_4F10512','EHU_4F10513']},
+      {id:'core14',name:'(물산) #14Core',total:3,eqs:['EHU_4F10803','EHU_4F10804','EHU_4F10805']},
+      {id:'core17',name:'(물산) #17Core',total:2,eqs:['EHU_4F10801','EHU_4F10802']},
+    ],
+    past:{},
   },
 };
 function calcZone(z,cks,cfg){
@@ -158,25 +172,26 @@ async function loadProgress(s){
   const td=todayStr();
   const dates=dateRange(cfg.start, td);
   for(const dk of dates){
-    try{ const snap=await getDocs(collection(db,'progress_checks_'+dk)); snap.forEach(d=>{ const zid=d.id; const ck=(d.data()||{}).checks||{}; if(byZone[zid]){ Object.assign(byZone[zid],ck); if(dk===td) Object.assign(today[zid],ck); } }); }catch(e){}
+    try{ const snap=await getDocs(collection(db,cfg.coll+dk)); snap.forEach(d=>{ const zid=d.id; const ck=(d.data()||{}).checks||{}; if(byZone[zid]){ Object.assign(byZone[zid],ck); if(dk===td) Object.assign(today[zid],ck); } }); }catch(e){}
   }
   // 3) 오늘 localStorage
-  cfg.zones.forEach(z=>{ try{ const t=JSON.parse(localStorage.getItem('fabls_eq_ck_'+td+'_'+z.id)||'{}'); Object.assign(byZone[z.id],t); Object.assign(today[z.id],t); }catch(e){} });
+  cfg.zones.forEach(z=>{ try{ const t=JSON.parse(localStorage.getItem(cfg.ls+td+'_'+z.id)||'{}'); Object.assign(byZone[z.id],t); Object.assign(today[z.id],t); }catch(e){} });
   progData=byZone; progToday=today; progLoaded=true; progLoadingSite=null; render();
 }
 // 오늘 progress_checks_{오늘}/{섹터}에 체크 저장 (오늘만 수정 가능)
 window.toggleZone=function(zid){ expandedZone=(expandedZone===zid?null:zid); render(); };
 window.toggleCheck=async function(zid,eq,col){
+  const cfg=PROG[site]; if(!cfg) return;
   const td=todayStr(); const key=eq+'_'+col;
   const isDone=!((progToday&&progToday[zid])||{})[key];
   try{
-    const ref=doc(db,'progress_checks_'+td,zid);
+    const ref=doc(db,cfg.coll+td,zid);
     const snap=await getDoc(ref);
     const checks=snap.exists()?((snap.data()||{}).checks||{}):{};
     if(isDone)checks[key]=true; else delete checks[key];
     await setDoc(ref,{checks,updatedAt:serverTimestamp()});
   }catch(e){
-    try{ const lk='fabls_eq_ck_'+td+'_'+zid; const d=JSON.parse(localStorage.getItem(lk)||'{}'); if(isDone)d[key]=true; else delete d[key]; localStorage.setItem(lk,JSON.stringify(d)); }catch(_){}
+    try{ const lk=cfg.ls+td+'_'+zid; const d=JSON.parse(localStorage.getItem(lk)||'{}'); if(isDone)d[key]=true; else delete d[key]; localStorage.setItem(lk,JSON.stringify(d)); }catch(_){}
   }
   if(!progData[zid])progData[zid]={}; if(!progToday[zid])progToday[zid]={};
   if(isDone){progData[zid][key]=true; progToday[zid][key]=true;} else {delete progData[zid][key]; delete progToday[zid][key];}
@@ -373,4 +388,3 @@ render();
 </script>
 </body>
 </html>
-<!-- b 1783175299 -->
