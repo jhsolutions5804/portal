@@ -135,7 +135,7 @@ const PROG={
   },
   sup:{
     coll:'ph4_progress_', ls:'ph4ls_eq_ck_',
-    start:(function(){try{return localStorage.getItem('ph4_pjt_start_date')||'2026-06-17';}catch(e){return '2026-06-17';}})(),
+    start:(function(){try{var v=localStorage.getItem('ph4_pjt_start_date')||'';return (v&&v<'2026-06-01')?v:'2026-06-01';}catch(e){return '2026-06-01';}})(),
     checkCols:['반입','입고검사','내진스토퍼','시공검측'],
     installCols:['내진스토퍼'],
     zones:[
