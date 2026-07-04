@@ -219,7 +219,7 @@ const ATT={
   fab:{workers:'pjt_workers_fab', att:'worker_attendance', md:'worker_manday'},
   sup:{workers:'pjt_workers_ph4', att:'ph4_attendance', md:'ph4_manday'},
 };
-let attWorkers=null, attChecks=[], attMd={}, attLoaded=false, attLoadingSite=null, attDate=todayStr();
+let attWorkers=null, attChecks=[], attMd={}, attLoaded=false, attLoadingSite=null, attDate=(function(){var d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');})();
 async function loadAtt(s){
   const cfg=ATT[s]; if(!cfg){ attLoaded=true; attWorkers=[]; render(); return; }
   attLoadingSite=s; attLoaded=false; render();
@@ -477,4 +477,3 @@ render();
 </script>
 </body>
 </html>
-<!-- b 1783180154 -->
