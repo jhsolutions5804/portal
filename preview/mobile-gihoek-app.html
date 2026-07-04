@@ -221,7 +221,7 @@ function renderHome(){
   const estCnt=estimates.filter(e=>(e.date||'').slice(0,7)===thisMonth&&isActive(e)).length;
   const waitCnt=settlements.filter(s=>s.docType==='invoice'&&s.status!=='done'&&setActive(s)).length;
   $app().innerHTML=`
-    <div class="top"><span></span><div class="avatar">김</div></div>
+    <div class="top"><button class="back" onclick="location.href='mobile-home.html'">← 홈</button><div class="avatar">김</div></div>
     <div class="hello"><div class="name">기획</div><div class="sub">영업 · 정산 · 회계</div></div>
     <div class="summary">
       <div class="s"><div class="n">${runCnt}</div><div class="k">진행 프로젝트</div></div>
