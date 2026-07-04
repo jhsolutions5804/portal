@@ -37,7 +37,7 @@
   .tag{font-size:10px;font-weight:700;padding:2px 8px;border-radius:6px;background:#e7f5ee;color:#1b8a5a;white-space:nowrap}
   .ic-text{font-size:14px;font-weight:700;margin-top:6px}
   .ic-meta{font-size:11.5px;color:var(--sub);font-weight:500;margin-top:4px}
-  .empty{margin:24px 20px;padding:26px;text-align:center;color:#9aa8bc;font-size:13px;font-weight:600;background:var(--card);border:1px solid var(--line);border-radius:16px}
+  .empty{margin:20px 20px 0;padding:24px;text-align:center;color:#9aa8bc;font-size:13px;font-weight:600;background:var(--card);border:1px solid var(--line);border-radius:16px}
   .loading{text-align:center;padding:40px;color:#9aa8bc;font-size:13px;font-weight:600}
   .banner{margin:14px 20px 0;padding:11px 14px;border-radius:12px;font-size:11.5px;font-weight:600;line-height:1.5}
   .banner.err{background:#fdecea;border:1px solid #f5c6c0;color:#a5342a}
@@ -58,19 +58,24 @@ const firebaseConfig = {
 const app=initializeApp(firebaseConfig); const db=getFirestore(app);
 
 const SITES={
-  fab:{code:'P4 Ph2 (FAB)',client:'귀뚜라미범양냉방',desc:'FCU 설치 · 6섹터 183대',ic:'🏭',cls:'fab',sch:'user_schedules',rep:'daily_report_docs'},
-  sup:{code:'P4 Ph4 (SUP)',client:'귀뚜라미범양냉방',desc:'EHU 설치 · 4섹터 11대',ic:'🔧',cls:'sup',sch:'ph4_schedules',rep:'ph4_reports'},
+  fab:{code:'P4 Ph2 (FAB)',client:'귀뚜라미범양냉방',desc:'FCU 설치 · 6섹터 183대',ic:'🏭',cls:'fab',sch:'user_schedules'},
+  sup:{code:'P4 Ph4 (SUP)',client:'귀뚜라미범양냉방',desc:'EHU 설치 · 4섹터 11대',ic:'🔧',cls:'sup',sch:'ph4_schedules'},
 };
-let data={user_schedules:[],ph4_schedules:[],daily_report_docs:[],ph4_reports:[]};
+let data={user_schedules:[],ph4_schedules:[]};
 let curView='home', site=null, sub='sched', loadError='';
+const todayStr=()=>{const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');};
+let selectedDate=todayStr(), calMonth=todayStr().slice(0,7);
 
 const esc=v=>String(v==null?'':v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 const $app=()=>document.getElementById('app');
 const fmtDate=v=>{if(!v)return '';if(v.seconds)return new Date(v.seconds*1000).toISOString().slice(0,10);return String(v).slice(0,10);};
+const WD=['일','월','화','수','목','금','토'];
 
 function nav(v,s){ curView=v; if(s!==undefined)site=s; history.pushState({v,site,sub},''); render(); window.scrollTo(0,0); }
-window.openSite=function(s){ site=s; sub='sched'; nav('site',s); };
-window.setSub=function(t){ sub=t; render(); };
+window.openSite=function(s){ site=s; sub='sched'; selectedDate=todayStr(); calMonth=todayStr().slice(0,7); nav('site',s); };
+window.setSub=function(t){ sub=t; if(t==='sched'){ selectedDate=todayStr(); calMonth=todayStr().slice(0,7); } render(); };
+window.selectDate=function(d){ selectedDate=d; render(); };
+window.shiftCalMonth=function(delta){ const [y,m]=calMonth.split('-').map(Number); const nm=new Date(y,m-1+delta,1); calMonth=nm.getFullYear()+'-'+String(nm.getMonth()+1).padStart(2,'0'); render(); };
 window.goBack=function(){ history.back(); };
 window.goHome=function(){ location.href='home.html'; };
 window.goAccount=function(){ location.href='account.html'; };
@@ -91,49 +96,75 @@ function renderHome(){
     <div class="list top">
       ${Object.entries(SITES).map(([k,s])=>`<div class="fcard ${s.cls}" onclick="openSite('${k}')">
         <div class="ic">${s.ic}</div>
-        <div><div class="cl">${esc(s.client)}</div><div class="nm">${esc(s.code)}</div><div class="ds">${esc(s.desc)} · 일정·공사일보</div></div>
+        <div><div class="cl">${esc(s.client)}</div><div class="nm">${esc(s.code)}</div><div class="ds">${esc(s.desc)} · 공정·일정·근태</div></div>
         <span class="go">›</span></div>`).join('')}
     </div>`;
 }
 
 function renderSite(){
   const s=SITES[site]; if(!s){ renderHome(); return; }
-  const scheds=[...(data[s.sch]||[])].sort((a,b)=>(b.sdate||'').localeCompare(a.sdate||''));
-  const reps=[...(data[s.rep]||[])].sort((a,b)=>fmtDate(b.startDate||b.sdate||b.createdAt).localeCompare(fmtDate(a.startDate||a.sdate||a.createdAt)));
+  const scheds=data[s.sch]||[];
   let body='';
-  if(sub==='sched'){
-    body = scheds.length ? `<div class="list top">${scheds.slice(0,50).map(schCard).join('')}</div>` : '<div class="empty">등록된 일정이 없습니다.</div>';
-  }else if(sub==='report'){
-    body = reps.length ? `<div class="list top">${reps.slice(0,50).map(repCard).join('')}</div>` : '<div class="empty">작성된 공사일보가 없습니다.</div>';
-  }else{
-    body = '<div class="banner soft">근태·공정 상세는 날짜별 데이터 구조라 순차로 붙이고 있습니다. 곧 제공됩니다.</div><div class="empty">준비 중</div>';
-  }
+  if(sub==='sched') body=renderCalendar(scheds);
+  else if(sub==='progress') body='<div class="banner soft">공정 진척은 섹터별·날짜별 데이터라 정확히 붙이는 중입니다. 곧 제공됩니다.</div><div class="empty">준비 중</div>';
+  else body='<div class="banner soft">근태(출역·공수) 데이터를 붙이는 중입니다. 곧 제공됩니다.</div><div class="empty">준비 중</div>';
   $app().innerHTML=topBar('PJT','goBack()')+`
     <div class="hello"><div class="name" style="font-size:21px;color:var(--ink)">${esc(s.code)}</div><div class="sub">${esc(s.client)} · ${esc(s.desc)}</div></div>
     <div class="segs">
-      <div class="seg ${sub==='sched'?'on':''}" onclick="setSub('sched')">일정${scheds.length?' ('+scheds.length+')':''}</div>
-      <div class="seg ${sub==='report'?'on':''}" onclick="setSub('report')">공사일보${reps.length?' ('+reps.length+')':''}</div>
-      <div class="seg ${sub==='etc'?'on':''}" onclick="setSub('etc')">근태·공정</div>
+      <div class="seg ${sub==='progress'?'on':''}" onclick="setSub('progress')">공정</div>
+      <div class="seg ${sub==='sched'?'on':''}" onclick="setSub('sched')">일정</div>
+      <div class="seg ${sub==='attend'?'on':''}" onclick="setSub('attend')">근태</div>
     </div>
     ${body}`;
 }
+
+function renderCalendar(scheds){
+  const byDate={}; scheds.forEach(x=>{const d=fmtDate(x.sdate); if(d)(byDate[d]=byDate[d]||[]).push(x);});
+  const [y,m]=calMonth.split('-').map(Number);
+  const startDay=new Date(y,m-1,1).getDay();
+  const daysInMonth=new Date(y,m,0).getDate();
+  const td=todayStr();
+  // 요일 헤더
+  let head=WD.map((w,i)=>`<div style="text-align:center;font-size:11px;font-weight:700;color:${i===0?'#c0392b':i===6?'#1D5BA6':'#9aa8bc'};padding:4px 0">${w}</div>`).join('');
+  // 날짜 셀
+  let cells='';
+  for(let i=0;i<startDay;i++) cells+='<div></div>';
+  for(let d=1;d<=daysInMonth;d++){
+    const ds=`${y}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const has=!!byDate[ds]; const sel=ds===selectedDate; const isToday=ds===td;
+    const dow=new Date(y,m-1,d).getDay();
+    const col=sel?'#fff':(dow===0?'#c0392b':dow===6?'#1D5BA6':'#1a2330');
+    const bg=sel?'#1b8a5a':(isToday?'#e7f5ee':'transparent');
+    cells+=`<div onclick="selectDate('${ds}')" style="aspect-ratio:1;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;border-radius:11px;background:${bg};color:${col};font-size:13.5px;font-weight:${sel||isToday?'800':'600'};position:relative">
+      ${d}${has?`<span style="position:absolute;bottom:5px;width:5px;height:5px;border-radius:50%;background:${sel?'#fff':'#1b8a5a'}"></span>`:''}</div>`;
+  }
+  const dayItems=(byDate[selectedDate]||[]).sort((a,b)=>(a.stime||'').localeCompare(b.stime||''));
+  const [sy,sm,sd]=selectedDate.split('-');
+  const selLabel=`${sm}월 ${sd}일 (${WD[new Date(sy,sm-1,sd).getDay()]})`;
+  return `
+    <div style="margin:14px 20px 0;background:#fff;border:1px solid #e4eaf2;border-radius:18px;padding:14px 14px 16px;box-shadow:0 2px 8px rgba(30,50,80,.05)">
+      <div style="display:flex;align-items:center;justify-content:center;gap:20px;margin-bottom:12px">
+        <button onclick="shiftCalMonth(-1)" style="background:#f0f4f9;border:1px solid #e4eaf2;border-radius:9px;width:32px;height:32px;font-size:16px;color:#5c6f8a;cursor:pointer">‹</button>
+        <div style="font-size:16px;font-weight:800;color:#16487f;min-width:104px;text-align:center">${y}년 ${m}월</div>
+        <button onclick="shiftCalMonth(1)" style="background:#f0f4f9;border:1px solid #e4eaf2;border-radius:9px;width:32px;height:32px;font-size:16px;color:#5c6f8a;cursor:pointer">›</button>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(7,1fr)">${head}</div>
+      <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:2px;margin-top:2px">${cells}</div>
+    </div>
+    <div class="lbl">${selLabel} 일정 ${dayItems.length?`(${dayItems.length})`:''}</div>
+    ${dayItems.length?`<div class="list">${dayItems.map(schCard).join('')}</div>`:'<div class="empty">이 날 등록된 일정이 없습니다.</div>'}`;
+}
 function schCard(s){
-  return `<div class="icard"><div class="ic-top"><span class="ic-date">${esc(fmtDate(s.sdate))}${s.stime?' '+esc(s.stime):''}</span>${s.tag?`<span class="tag">${esc(s.tag)}</span>`:''}</div>
+  return `<div class="icard"><div class="ic-top"><span class="ic-date">${s.stime?esc(s.stime):'종일'}</span>${s.tag?`<span class="tag">${esc(s.tag)}</span>`:''}</div>
     <div class="ic-text">${esc(s.text||s.title||'(내용 없음)')}</div>
     ${s.pjtName||s.role?`<div class="ic-meta">${esc(s.pjtName||'')}${s.role?' · '+esc(s.role):''}</div>`:''}</div>`;
-}
-function repCard(r){
-  const c=r.content||r.data||''; const cs=typeof c==='string'?c:'';
-  return `<div class="icard"><div class="ic-top"><span class="ic-date">${esc(fmtDate(r.startDate||r.sdate||r.createdAt))}</span>${r.name?`<span class="tag">${esc(r.name)}</span>`:''}</div>
-    <div class="ic-text">${esc(r.client||r.site||'공사일보')}</div>
-    ${cs?`<div class="ic-meta">${esc(cs.slice(0,60))}${cs.length>60?'…':''}</div>`:''}</div>`;
 }
 
 function subscribe(coll){
   onSnapshot(collection(db,coll), snap=>{ const arr=[]; snap.forEach(d=>arr.push({id:d.id,...d.data()})); data[coll]=arr; render(); },
     err=>{ loadError=err.code||err.message; render(); });
 }
-['user_schedules','ph4_schedules','daily_report_docs','ph4_reports'].forEach(subscribe);
+['user_schedules','ph4_schedules'].forEach(subscribe);
 
 history.replaceState({v:'home',site:null,sub:'sched'},'');
 render();
