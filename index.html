@@ -1022,40 +1022,37 @@ async function loadPjtPanels(){
       sp.innerHTML='<div style="color:#9AAABF;font-size:12px;padding:12px 0;text-align:center;">이번 주 주요 일정이 없습니다.</div>';
     }
 
-    // 2. 업무지시 및 보고 — 모든 PJT 최근 5건
+    // 2. 업무지시 및 보고 — 최근 21일 daily_reports_{날짜}(FAB)/ph4_daily_{날짜}(SUP)
+    const REPORT_PREFIX = { p4ph2:'daily_reports_', p4ph4:'ph4_daily_' };
     let reports=[];
-    for(const [key,col] of Object.entries(PJT_REPORT_COL)){
-      const st=PJT_SUBTABS.find(s=>s.key===key);
-      try{
-        const snap=await getDocs(collection(window._db,col));
-        snap.forEach(d=>{
-          const r=d.data();
-          reports.push({...r, id:d.id, pjtName:st?.name||key});
-        });
-      }catch(e){}
+    const _rt=new Date();
+    for(let _i=0;_i<21;_i++){
+      const _d=new Date(_rt); _d.setDate(_d.getDate()-_i);
+      const dk=_d.getFullYear()+'-'+String(_d.getMonth()+1).padStart(2,'0')+'-'+String(_d.getDate()).padStart(2,'0');
+      for(const [key,prefix] of Object.entries(REPORT_PREFIX)){
+        const st=PJT_SUBTABS.find(s=>s.key===key);
+        try{
+          const snap=await getDocs(collection(window._db, prefix+dk));
+          snap.forEach(dd=>{ const r=dd.data(); reports.push({...r, id:dd.id, dateKey:dk, pjtName:st?.name||key}); });
+        }catch(e){}
+      }
     }
-    // 내용이 있는 항목만 표시
-    reports=reports.filter(r=>{
-      var txt=(r.instruction||r.briefText||r.content||'').trim();
-      return txt.length>0;
-    });
-    reports.sort((a,b)=>{var ta=a.savedAt&&a.savedAt.toMillis?a.savedAt.toMillis():0,tb=b.savedAt&&b.savedAt.toMillis?b.savedAt.toMillis():0; if(ta||tb)return tb-ta; return String(b.id||'').localeCompare(String(a.id||''));});
+    reports=reports.filter(r=>(r.text||'').trim().length>0);
+    reports.sort((a,b)=>{var ta=a.ts&&a.ts.toMillis?a.ts.toMillis():0,tb=b.ts&&b.ts.toMillis?b.ts.toMillis():0; if(ta||tb)return tb-ta; return String(b.dateKey||'').localeCompare(String(a.dateKey||''));});
     reports=reports.slice(0,6);
 
-    const fmtDate=ts=>{if(!ts) return ''; const d=ts.toDate?ts.toDate():new Date(ts); return (d.getMonth()+1)+'/'+(d.getDate());};
     if(reports.length){
       let html='<div style="position:relative;padding-left:16px">'
         +'<div style="position:absolute;left:3px;top:5px;bottom:5px;width:2px;background:#EEF2F7"></div>';
       reports.forEach((r,idx)=>{
-        const isBrief=r.type==='brief'||r.briefText;
         const dotColor=idx===0?'#1D5BA6':'#C9D2DF';
+        const dateLbl=String(r.dateKey||'').slice(5);
         html+='<div style="position:relative;margin-bottom:13px">'
           +'<div style="position:absolute;left:-16px;top:3px;width:8px;height:8px;border-radius:50%;background:'+dotColor+';border:2px solid #fff"></div>'
           +'<div style="display:flex;align-items:center;gap:6px;margin-bottom:3px">'
-          +'<span style="font-size:10px;padding:2px 7px;border-radius:5px;background:'+(isBrief?'#FAEEDA':'#E6F1FB')+';color:'+(isBrief?'#633806':'#0C447C')+';white-space:nowrap">'+(isBrief?'보고':'지시')+'</span>'
-          +'<span style="font-size:11px;color:#9AAABF">'+(r.savedAt?fmtDate(r.savedAt):String(r.id||'').slice(5))+' · '+r.pjtName+'</span>'
+          +'<span style="font-size:11px;color:#9AAABF">'+dateLbl+(r.time?' '+r.time:'')+(r.name?' · '+r.name:'')+' · '+r.pjtName+'</span>'
           +'</div>'
-          +'<div style="font-size:12px;color:#1A2540;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+(r.instruction||r.briefText||r.content||'(내용 없음)')+'</div>'
+          +'<div style="font-size:12px;color:#1A2540;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+(r.text||'(내용 없음)')+'</div>'
           +'</div>';
       });
       html+='</div>';
