@@ -827,7 +827,9 @@ const SUBTABS={ plan:PLAN_SUBTABS, hr:HR_SUBTABS, edoc:EDOC_SUBTABS, pjt:PJT_SUB
 let me=null;
 // 하단 탭바(일반 script)에서 접근 가능하도록 window 노출
 window.MODULES=MODULES; window.SUBTABS=SUBTABS;
-Object.defineProperty(window,'me',{get:()=>me,set:v=>{me=v;}});
+Object.defineProperty(window,'me',{get:()=>me,set:v=>{me=v;
+  try{ if(v){ localStorage.setItem('jh_login_perms', JSON.stringify({perms:v.perms||{}, admin:!!v.admin, uid:v.uid||'', name:v.name||'', dept:v.dept||'', rank:v.rank||''})); } }catch(e){}
+}});
 
 const $=id=>document.getElementById(id);
 function showAuth(id){
@@ -837,6 +839,8 @@ function showAuth(id){
   window.scrollTo(0,0);
 }
 function showApp(){
+  // 모바일(<900px)은 새 모바일 화면(m/)으로, PC는 기존 사이드바 유지
+  if(window.innerWidth<900){ location.href='m/home.html'; return; }
   $('auth-stage').style.display='none';
   $('s-app').classList.add('shown');
   window.scrollTo(0,0);
