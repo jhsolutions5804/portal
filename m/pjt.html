@@ -73,6 +73,11 @@
   .ckb.past::after{content:'✓';color:#fff;font-size:12px;display:flex;align-items:center;justify-content:center;height:100%}
   .ckhint{font-size:10px;color:#9aa8bc;font-weight:600;margin-top:8px;line-height:1.5}
   .att-hint{font-size:11px;color:#9aa8bc;font-weight:600;text-align:center}
+  .att-nav{display:flex;align-items:center;justify-content:center;gap:12px;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:10px 12px;box-shadow:0 2px 8px rgba(30,50,80,.05)}
+  .att-arrow{background:#f0f4f9;border:1px solid var(--line);border-radius:9px;width:32px;height:32px;font-size:16px;color:#5c6f8a;cursor:pointer}
+  .att-navlabel{font-size:15px;font-weight:800;color:#16487f;min-width:130px;text-align:center}
+  .att-todaybtn{background:var(--ok);border:none;color:#fff;font-size:12px;font-weight:700;padding:7px 12px;border-radius:9px;cursor:pointer;font-family:inherit}
+  .attb.ro{cursor:default;border-color:#e4eaf2}
   .att-list{display:flex;flex-direction:column;gap:10px}
   .attcard{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:13px 15px;box-shadow:0 2px 8px rgba(30,50,80,.05);display:flex;align-items:center;gap:11px}
   .att-body{flex:1;min-width:0}
@@ -214,20 +219,24 @@ const ATT={
   fab:{workers:'pjt_workers_fab', att:'worker_attendance', md:'worker_manday'},
   sup:{workers:'pjt_workers_ph4', att:'ph4_attendance', md:'ph4_manday'},
 };
-let attWorkers=null, attChecks=[], attMd={}, attLoaded=false, attLoadingSite=null;
+let attWorkers=null, attChecks=[], attMd={}, attLoaded=false, attLoadingSite=null, attDate=todayStr();
 async function loadAtt(s){
   const cfg=ATT[s]; if(!cfg){ attLoaded=true; attWorkers=[]; render(); return; }
-  if(attLoadingSite===s) return; attLoadingSite=s; attLoaded=false; render();
-  const td=todayStr();
+  attLoadingSite=s; attLoaded=false; render();
+  const dk=attDate;
   let ws=[];
   try{ const snap=await getDocs(collection(db,cfg.workers)); ws=snap.docs.map(d=>Object.assign({id:d.id},d.data())).filter(w=>w.active!==false); ws.sort((a,b)=>(a.order||0)-(b.order||0)); }catch(e){}
   let checks=[];
-  try{ const s2=await getDoc(doc(db,cfg.att,td)); if(s2.exists())checks=(s2.data()||{}).checks||[]; }catch(e){}
+  try{ const s2=await getDoc(doc(db,cfg.att,dk)); if(s2.exists())checks=(s2.data()||{}).checks||[]; }catch(e){}
   let md={};
-  try{ const s3=await getDoc(doc(db,cfg.md,td)); if(s3.exists())md=(s3.data()||{}).md||{}; }catch(e){}
+  try{ const s3=await getDoc(doc(db,cfg.md,dk)); if(s3.exists())md=(s3.data()||{}).md||{}; }catch(e){}
+  if(attDate!==dk) return; // 로드 중 날짜가 바뀌면 무시
   attWorkers=ws; attChecks=checks; attMd=md; attLoaded=true; attLoadingSite=null; render();
 }
+window.shiftAttDate=function(delta){ const d=new Date(attDate); d.setDate(d.getDate()+delta); attDate=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); attLoaded=false; loadAtt(site); };
+window.attToday=function(){ attDate=todayStr(); attLoaded=false; loadAtt(site); };
 window.toggleAttend=async function(wid){
+  if(attDate!==todayStr()) return; // 오늘만 수정 가능
   const cfg=ATT[site]; if(!cfg) return; const td=todayStr();
   const idx=attChecks.indexOf(wid); const isDone=idx===-1;
   try{
@@ -329,27 +338,40 @@ function renderProgress(){
 function renderAttend(){
   const cfg=ATT[site];
   if(!cfg) return '<div class="empty">준비 중</div>';
-  if(!attLoaded) return '<div class="loading">근태 데이터 불러오는 중…</div>';
-  const ws=attWorkers||[];
-  const present=ws.filter(w=>attChecks.includes(w.id)).length;
-  const totMd=Object.keys(attMd).reduce((a,k)=>a+(parseFloat(attMd[k])||0),0);
-  const [y,m,d]=todayStr().split('-');
-  const rows=ws.length?ws.map(w=>{
-    const on=attChecks.includes(w.id); const md=attMd[w.id];
-    return `<div class="attcard">
-      <div class="att-body"><div class="att-name">${esc(w.name||'—')}</div>${w.role?`<div class="att-role">${esc(w.role)}</div>`:''}</div>
-      <div class="att-md">${md!=null&&md!==''?('공수 '+md):'<span style="color:#c3cedd">공수 —</span>'}</div>
-      <div class="attb ${on?'on':''}" onclick="toggleAttend('${w.id}')">${on?'출역':'미출역'}</div>
-    </div>`;
-  }).join(''):'<div class="empty">등록된 기술인이 없습니다.</div>';
-  return `<div class="prog-wrap">
-    <div class="prog-sum">
-      <div class="pi"><div class="pil">${m}/${d} 출역</div><div class="piv" style="color:#1D5BA6">${present}/${ws.length}명</div></div>
-      <div class="pi"><div class="pil">오늘 공수</div><div class="piv">${(+totMd.toFixed(2))}</div></div>
-    </div>
-    <div class="att-hint">기술인을 눌러 오늘 출역을 체크할 수 있습니다 · 공수 값은 표시 전용입니다</div>
-    <div class="att-list">${rows}</div>
+  const isToday=attDate===todayStr();
+  const [y,m,d]=attDate.split('-');
+  const label=`${m}월 ${d}일 (${WD[new Date(+y,+m-1,+d).getDay()]})`;
+  const nav=`<div class="att-nav">
+    <button class="att-arrow" onclick="shiftAttDate(-1)">‹</button>
+    <div class="att-navlabel">${label}${isToday?' · 오늘':''}</div>
+    <button class="att-arrow" onclick="shiftAttDate(1)">›</button>
+    ${!isToday?`<button class="att-todaybtn" onclick="attToday()">오늘</button>`:''}
   </div>`;
+  let inner;
+  if(!attLoaded){ inner='<div class="loading">근태 불러오는 중…</div>'; }
+  else{
+    const ws=attWorkers||[];
+    const present=ws.filter(w=>attChecks.includes(w.id)).length;
+    const totMd=Object.keys(attMd).reduce((a,k)=>a+(parseFloat(attMd[k])||0),0);
+    const rows=ws.length?ws.map(w=>{
+      const on=attChecks.includes(w.id); const md=attMd[w.id];
+      const btn=isToday
+        ? `<div class="attb ${on?'on':''}" onclick="toggleAttend('${w.id}')">${on?'출역':'미출역'}</div>`
+        : `<div class="attb ro ${on?'on':''}">${on?'출역':'-'}</div>`;
+      return `<div class="attcard">
+        <div class="att-body"><div class="att-name">${esc(w.name||'—')}</div>${w.role?`<div class="att-role">${esc(w.role)}</div>`:''}</div>
+        <div class="att-md">${md!=null&&md!==''?('공수 '+md):'<span style="color:#c3cedd">공수 —</span>'}</div>
+        ${btn}
+      </div>`;
+    }).join(''):'<div class="empty">등록된 기술인이 없습니다.</div>';
+    inner=`<div class="prog-sum">
+        <div class="pi"><div class="pil">출역</div><div class="piv" style="color:#1D5BA6">${present}/${ws.length}명</div></div>
+        <div class="pi"><div class="pil">공수 합계</div><div class="piv">${(+totMd.toFixed(2))}</div></div>
+      </div>
+      <div class="att-hint">${isToday?'기술인을 눌러 오늘 출역을 체크할 수 있습니다':'지난 날짜는 조회만 됩니다'} · 공수는 표시 전용</div>
+      <div class="att-list">${rows}</div>`;
+  }
+  return `<div class="prog-wrap">${nav}${inner}</div>`;
 }
 function buildCheckTable(z,cfg){
   const merged=(progData&&progData[z.id])||{}, today=(progToday&&progToday[z.id])||{};
