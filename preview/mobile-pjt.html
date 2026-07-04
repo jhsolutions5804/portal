@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PJT 관리 · JH Solutions</title>
+<style>
+  :root{--blue:#1D5BA6;--blue-d:#16487f;--ink:#1a2330;--sub:#6b7787;--line:#e4eaf2;--bg:#eef2f7;--card:#fff;--ok:#1b8a5a}
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:-apple-system,'Apple SD Gothic Neo','Pretendard',sans-serif;background:var(--bg);color:var(--ink);line-height:1.5;min-height:100vh}
+  .phone{width:100%;max-width:480px;margin:0 auto;background:var(--bg);min-height:100vh}
+  .scr{padding:0 0 28px}
+  .top{display:flex;align-items:center;justify-content:space-between;padding:22px 22px 4px}
+  .back{background:var(--card);border:1px solid var(--line);color:var(--blue);font-size:13px;font-weight:700;padding:8px 14px;border-radius:12px;cursor:pointer;font-family:inherit;box-shadow:0 2px 6px rgba(30,50,80,.05)}
+  .back:active{background:#f0f4f9}
+  .avatar{width:40px;height:40px;border-radius:50%;background:var(--blue);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:15px;box-shadow:0 4px 10px rgba(29,91,166,.3)}
+  .hello{padding:18px 24px 6px}
+  .hello .name{font-size:25px;font-weight:800;letter-spacing:-.5px;color:var(--ok)}
+  .hello .sub{font-size:12.5px;color:var(--sub);margin-top:4px;font-weight:600}
+  .lbl{font-size:12px;font-weight:800;color:#9aa8bc;letter-spacing:.5px;padding:22px 24px 12px}
+  .list{padding:0 20px;display:flex;flex-direction:column;gap:14px}
+  .pcard{background:var(--card);border:1px solid var(--line);border-radius:20px;padding:20px 18px;cursor:pointer;transition:transform .12s ease;box-shadow:0 2px 8px rgba(30,50,80,.05);display:flex;align-items:center;gap:15px}
+  .pcard:active{transform:scale(.98)}
+  .pcard .ic{width:58px;height:58px;border-radius:17px;display:flex;align-items:center;justify-content:center;font-size:30px;flex-shrink:0}
+  .pcard.fab .ic{background:#e7f5ee;color:#1b8a5a}
+  .pcard.sup .ic{background:#eaf2fc;color:#1D5BA6}
+  .pcard .code{font-size:12px;font-weight:700;color:var(--sub)}
+  .pcard .nm{font-size:17px;font-weight:800;letter-spacing:-.3px;margin-top:2px}
+  .pcard .ds{font-size:11.5px;color:var(--sub);font-weight:500;margin-top:3px}
+  .pcard .go{margin-left:auto;font-size:18px;color:#c3cedd;flex-shrink:0}
+  .hint{margin:22px 20px 0;padding:12px 14px;background:#fff7e6;border:1px solid #f5e2b8;border-radius:12px;font-size:11.5px;color:#8a6d1e;line-height:1.5;font-weight:600}
+</style>
+</head>
+<body>
+  <div class="phone"><div class="scr">
+    <div class="top"><button class="back" onclick="location.href='mobile-home.html'">← 홈</button><div class="avatar">김</div></div>
+    <div class="hello"><div class="name">PJT 관리</div><div class="sub">진행 중인 프로젝트 현장 관리</div></div>
+    <div class="lbl">진행 프로젝트</div>
+    <div class="list">
+      <div class="pcard fab" onclick="alert('세부 화면은 준비 중입니다.')">
+        <div class="ic">🏭</div>
+        <div><div class="code">P4 Ph2 (FAB)</div><div class="nm">귀뚜라미범양냉방</div><div class="ds">FCU 설치 · 6섹터 183대 · 공정·근태·일정</div></div>
+        <span class="go">›</span>
+      </div>
+      <div class="pcard sup" onclick="alert('세부 화면은 준비 중입니다.')">
+        <div class="ic">🔧</div>
+        <div><div class="code">P4 Ph4 (SUP)</div><div class="nm">귀뚜라미범양냉방</div><div class="ds">EHU 설치 · 4섹터 11대 · 공정·근태·일정</div></div>
+        <span class="go">›</span>
+      </div>
+    </div>
+    <div class="hint">💡 PJT 관리 섹션 홈 골격입니다. 홈에서 PJT 타일을 누르면 이 화면으로 들어옵니다. 각 현장(FAB·SUP)의 공정·근태·일정 등 세부는 순차로 실제 데이터를 붙이겠습니다.</div>
+  </div></div>
+</body>
+</html>
