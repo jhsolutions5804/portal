@@ -72,6 +72,15 @@
   .ckb.past{background:#c3cedd;border-color:#c3cedd;cursor:default}
   .ckb.past::after{content:'✓';color:#fff;font-size:12px;display:flex;align-items:center;justify-content:center;height:100%}
   .ckhint{font-size:10px;color:#9aa8bc;font-weight:600;margin-top:8px;line-height:1.5}
+  .att-hint{font-size:11px;color:#9aa8bc;font-weight:600;text-align:center}
+  .att-list{display:flex;flex-direction:column;gap:10px}
+  .attcard{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:13px 15px;box-shadow:0 2px 8px rgba(30,50,80,.05);display:flex;align-items:center;gap:11px}
+  .att-body{flex:1;min-width:0}
+  .att-name{font-size:14.5px;font-weight:700}
+  .att-role{font-size:11px;color:var(--sub);margin-top:2px}
+  .att-md{font-size:12px;color:#5c6f8a;font-weight:600;white-space:nowrap}
+  .attb{font-size:12px;font-weight:700;padding:7px 14px;border-radius:10px;cursor:pointer;white-space:nowrap;border:1.5px solid #d6deea;color:#9aa8bc;background:#fff}
+  .attb.on{background:var(--ok);border-color:var(--ok);color:#fff}
   .pzcard{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:15px 16px;box-shadow:0 2px 8px rgba(30,50,80,.05)}
   .pz-head{display:flex;align-items:center;gap:8px;margin-bottom:11px}
   .pz-name{font-size:15px;font-weight:800}
@@ -200,6 +209,36 @@ window.toggleCheck=async function(zid,eq,col){
   if(isDone){progData[zid][key]=true; progToday[zid][key]=true;} else {delete progData[zid][key]; delete progToday[zid][key];}
   render();
 };
+// ===== 근태 =====
+const ATT={
+  fab:{workers:'pjt_workers_fab', att:'worker_attendance', md:'worker_manday'},
+  sup:{workers:'pjt_workers_ph4', att:'ph4_attendance', md:'ph4_manday'},
+};
+let attWorkers=null, attChecks=[], attMd={}, attLoaded=false, attLoadingSite=null;
+async function loadAtt(s){
+  const cfg=ATT[s]; if(!cfg){ attLoaded=true; attWorkers=[]; render(); return; }
+  if(attLoadingSite===s) return; attLoadingSite=s; attLoaded=false; render();
+  const td=todayStr();
+  let ws=[];
+  try{ const snap=await getDocs(collection(db,cfg.workers)); ws=snap.docs.map(d=>Object.assign({id:d.id},d.data())).filter(w=>w.active!==false); ws.sort((a,b)=>(a.order||0)-(b.order||0)); }catch(e){}
+  let checks=[];
+  try{ const s2=await getDoc(doc(db,cfg.att,td)); if(s2.exists())checks=(s2.data()||{}).checks||[]; }catch(e){}
+  let md={};
+  try{ const s3=await getDoc(doc(db,cfg.md,td)); if(s3.exists())md=(s3.data()||{}).md||{}; }catch(e){}
+  attWorkers=ws; attChecks=checks; attMd=md; attLoaded=true; attLoadingSite=null; render();
+}
+window.toggleAttend=async function(wid){
+  const cfg=ATT[site]; if(!cfg) return; const td=todayStr();
+  const idx=attChecks.indexOf(wid); const isDone=idx===-1;
+  try{
+    const ref=doc(db,cfg.att,td); const snap=await getDoc(ref);
+    let checks=snap.exists()?((snap.data()||{}).checks||[]):[];
+    const i=checks.indexOf(wid); if(i===-1)checks.push(wid); else checks.splice(i,1);
+    await setDoc(ref,{checks,updatedAt:serverTimestamp()});
+    attChecks=checks;
+  }catch(e){ if(isDone)attChecks.push(wid); else attChecks.splice(idx,1); }
+  render();
+};
 
 let data={user_schedules:[],ph4_schedules:[],daily_report_docs:[],ph4_reports:[]};
 let curView='home', site=null, sub='sched', detailId=null, loadError='';
@@ -212,8 +251,8 @@ const fmtDate=v=>{if(!v)return '';if(v.seconds)return new Date(v.seconds*1000).t
 const WD=['일','월','화','수','목','금','토'];
 
 function nav(v,s){ curView=v; if(s!==undefined)site=s; history.pushState({v,site,sub,selectedDate,detailId},''); render(); window.scrollTo(0,0); }
-window.openSite=function(s){ site=s; sub='sched'; selectedDate=todayStr(); calMonth=todayStr().slice(0,7); progLoaded=false; progData=null; progLoadingSite=null; nav('site',s); };
-window.setSub=function(t){ sub=t; if(t==='sched'){ selectedDate=todayStr(); calMonth=todayStr().slice(0,7); } if(t==='progress' && !progLoaded && progLoadingSite!==site){ loadProgress(site); } render(); };
+window.openSite=function(s){ site=s; sub='sched'; selectedDate=todayStr(); calMonth=todayStr().slice(0,7); progLoaded=false; progData=null; progLoadingSite=null; attLoaded=false; attWorkers=null; attLoadingSite=null; nav('site',s); };
+window.setSub=function(t){ sub=t; if(t==='sched'){ selectedDate=todayStr(); calMonth=todayStr().slice(0,7); } if(t==='progress' && !progLoaded && progLoadingSite!==site){ loadProgress(site); } if(t==='attend' && !attLoaded && attLoadingSite!==site){ loadAtt(site); } render(); };
 window.selectDate=function(d){ selectedDate=d; render(); };
 window.shiftCalMonth=function(delta){ const [y,m]=calMonth.split('-').map(Number); const nm=new Date(y,m-1+delta,1); calMonth=nm.getFullYear()+'-'+String(nm.getMonth()+1).padStart(2,'0'); render(); };
 window.openSched=function(id){ detailId=id; nav('schedD',site); };
@@ -248,7 +287,7 @@ function renderSite(){
   let body='';
   if(sub==='sched') body=renderCalendar(s);
   else if(sub==='progress') body=renderProgress();
-  else body='<div class="banner soft">근태(출역·공수) 데이터를 붙이는 중입니다. 곧 제공됩니다.</div><div class="empty">준비 중</div>';
+  else body=renderAttend();
   $app().innerHTML=topBar('PJT','goBack()')+`
     <div class="hello"><div class="name" style="font-size:21px;color:var(--ink)">${esc(s.code)}</div><div class="sub">${esc(s.client)} · ${esc(s.desc)}</div></div>
     <div class="segs">
@@ -286,6 +325,31 @@ function renderProgress(){
       <div class="prog-leg"><span style="color:#1D5BA6">■</span>반입 <span style="color:#4aa3df">■</span>입고검사 <span style="color:#2e7d32">■</span>설치 <span style="color:#7c3aed">■</span>시공검측</div>
       ${cards}
     </div>`;
+}
+function renderAttend(){
+  const cfg=ATT[site];
+  if(!cfg) return '<div class="empty">준비 중</div>';
+  if(!attLoaded) return '<div class="loading">근태 데이터 불러오는 중…</div>';
+  const ws=attWorkers||[];
+  const present=ws.filter(w=>attChecks.includes(w.id)).length;
+  const totMd=Object.keys(attMd).reduce((a,k)=>a+(parseFloat(attMd[k])||0),0);
+  const [y,m,d]=todayStr().split('-');
+  const rows=ws.length?ws.map(w=>{
+    const on=attChecks.includes(w.id); const md=attMd[w.id];
+    return `<div class="attcard">
+      <div class="att-body"><div class="att-name">${esc(w.name||'—')}</div>${w.role?`<div class="att-role">${esc(w.role)}</div>`:''}</div>
+      <div class="att-md">${md!=null&&md!==''?('공수 '+md):'<span style="color:#c3cedd">공수 —</span>'}</div>
+      <div class="attb ${on?'on':''}" onclick="toggleAttend('${w.id}')">${on?'출역':'미출역'}</div>
+    </div>`;
+  }).join(''):'<div class="empty">등록된 기술인이 없습니다.</div>';
+  return `<div class="prog-wrap">
+    <div class="prog-sum">
+      <div class="pi"><div class="pil">${m}/${d} 출역</div><div class="piv" style="color:#1D5BA6">${present}/${ws.length}명</div></div>
+      <div class="pi"><div class="pil">오늘 공수</div><div class="piv">${(+totMd.toFixed(2))}</div></div>
+    </div>
+    <div class="att-hint">기술인을 눌러 오늘 출역을 체크할 수 있습니다 · 공수 값은 표시 전용입니다</div>
+    <div class="att-list">${rows}</div>
+  </div>`;
 }
 function buildCheckTable(z,cfg){
   const merged=(progData&&progData[z.id])||{}, today=(progToday&&progToday[z.id])||{};
