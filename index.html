@@ -1026,6 +1026,7 @@ async function loadPjtPanels(){
     const REPORT_PREFIX = { p4ph2:'daily_reports_', p4ph4:'ph4_daily_' };
     let reports=[];
     const _rt=new Date();
+    console.log('[보고디버그] 조회시작 · 시스템오늘=', _rt.getFullYear()+'-'+String(_rt.getMonth()+1).padStart(2,'0')+'-'+String(_rt.getDate()).padStart(2,'0'));
     for(let _off=-14;_off<=21;_off++){
       const _d=new Date(_rt); _d.setDate(_d.getDate()+_off);
       const dk=_d.getFullYear()+'-'+String(_d.getMonth()+1).padStart(2,'0')+'-'+String(_d.getDate()).padStart(2,'0');
@@ -1033,11 +1034,14 @@ async function loadPjtPanels(){
         const st=PJT_SUBTABS.find(s=>s.key===key);
         try{
           const snap=await getDocs(collection(window._db, prefix+dk));
+          if(snap.size>0) console.log('[보고디버그] '+prefix+dk+' → '+snap.size+'건');
           snap.forEach(dd=>{ const r=dd.data(); reports.push({...r, id:dd.id, dateKey:dk, pjtName:st?.name||key}); });
-        }catch(e){}
+        }catch(e){ console.log('[보고디버그] 조회오류 '+prefix+dk+' : '+e.message); }
       }
     }
+    console.log('[보고디버그] filter전 총 '+reports.length+'건', reports);
     reports=reports.filter(r=>(r.text||'').trim().length>0);
+    console.log('[보고디버그] filter후(text있는것) '+reports.length+'건');
     reports.sort((a,b)=>{var ta=a.ts&&a.ts.toMillis?a.ts.toMillis():0,tb=b.ts&&b.ts.toMillis?b.ts.toMillis():0; if(ta||tb)return tb-ta; return String(b.dateKey||'').localeCompare(String(a.dateKey||''));});
     reports=reports.slice(0,6);
 
