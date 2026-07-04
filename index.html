@@ -1027,7 +1027,7 @@ async function loadPjtPanels(){
     for(const [key,col] of Object.entries(PJT_REPORT_COL)){
       const st=PJT_SUBTABS.find(s=>s.key===key);
       try{
-        const snap=await getDocs(query(collection(window._db,col),orderBy('savedAt','desc'),limit(5)));
+        const snap=await getDocs(collection(window._db,col));
         snap.forEach(d=>{
           const r=d.data();
           reports.push({...r, id:d.id, pjtName:st?.name||key});
@@ -1039,7 +1039,7 @@ async function loadPjtPanels(){
       var txt=(r.instruction||r.briefText||r.content||'').trim();
       return txt.length>0;
     });
-    reports.sort((a,b)=>(b.savedAt?.toMillis?.()||0)-(a.savedAt?.toMillis?.()||0));
+    reports.sort((a,b)=>{var ta=a.savedAt&&a.savedAt.toMillis?a.savedAt.toMillis():0,tb=b.savedAt&&b.savedAt.toMillis?b.savedAt.toMillis():0; if(ta||tb)return tb-ta; return String(b.id||'').localeCompare(String(a.id||''));});
     reports=reports.slice(0,6);
 
     const fmtDate=ts=>{if(!ts) return ''; const d=ts.toDate?ts.toDate():new Date(ts); return (d.getMonth()+1)+'/'+(d.getDate());};
@@ -1053,7 +1053,7 @@ async function loadPjtPanels(){
           +'<div style="position:absolute;left:-16px;top:3px;width:8px;height:8px;border-radius:50%;background:'+dotColor+';border:2px solid #fff"></div>'
           +'<div style="display:flex;align-items:center;gap:6px;margin-bottom:3px">'
           +'<span style="font-size:10px;padding:2px 7px;border-radius:5px;background:'+(isBrief?'#FAEEDA':'#E6F1FB')+';color:'+(isBrief?'#633806':'#0C447C')+';white-space:nowrap">'+(isBrief?'보고':'지시')+'</span>'
-          +'<span style="font-size:11px;color:#9AAABF">'+fmtDate(r.savedAt)+' · '+r.pjtName+'</span>'
+          +'<span style="font-size:11px;color:#9AAABF">'+(r.savedAt?fmtDate(r.savedAt):String(r.id||'').slice(5))+' · '+r.pjtName+'</span>'
           +'</div>'
           +'<div style="font-size:12px;color:#1A2540;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+(r.instruction||r.briefText||r.content||'(내용 없음)')+'</div>'
           +'</div>';
