@@ -1026,8 +1026,8 @@ async function loadPjtPanels(){
     const REPORT_PREFIX = { p4ph2:'daily_reports_', p4ph4:'ph4_daily_' };
     let reports=[];
     const _rt=new Date();
-    for(let _i=0;_i<21;_i++){
-      const _d=new Date(_rt); _d.setDate(_d.getDate()-_i);
+    for(let _off=-14;_off<=21;_off++){
+      const _d=new Date(_rt); _d.setDate(_d.getDate()+_off);
       const dk=_d.getFullYear()+'-'+String(_d.getMonth()+1).padStart(2,'0')+'-'+String(_d.getDate()).padStart(2,'0');
       for(const [key,prefix] of Object.entries(REPORT_PREFIX)){
         const st=PJT_SUBTABS.find(s=>s.key===key);
@@ -2633,4 +2633,3 @@ window.mbnCloseMore=mbnCloseMore;
 
 </body>
 </html>
-<!-- b 1783186917 -->
