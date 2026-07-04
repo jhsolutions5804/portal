@@ -16,7 +16,7 @@
   .top{display:flex;align-items:center;justify-content:space-between;padding:22px 22px 4px}
   .back{background:var(--card);border:1px solid var(--line);color:var(--blue);font-size:13px;font-weight:700;padding:8px 14px;border-radius:12px;cursor:pointer;font-family:inherit;box-shadow:0 2px 6px rgba(30,50,80,.05)}
   .back:active{background:#f0f4f9}
-  .avatar{width:40px;height:40px;border-radius:50%;background:var(--blue);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:15px;box-shadow:0 4px 10px rgba(29,91,166,.3)}
+  .avatar{width:40px;height:40px;border-radius:50%;background:var(--blue);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:15px;box-shadow:0 4px 10px rgba(29,91,166,.3);cursor:pointer}
   .hello{padding:18px 24px 6px}
   .hello.rowend{display:flex;align-items:flex-end;justify-content:space-between}
   .hello .name{font-size:25px;font-weight:800;letter-spacing:-.5px;color:var(--amber)}
@@ -107,6 +107,7 @@ function showView(v){ nav(v,null); }
 function showDetail(v,id){ nav(v+'D',id); }
 window.showView=showView; window.showDetail=showDetail;
 window.goBack=function(){ history.back(); };
+window.goAccount=function(){ location.href='mobile-account.html'; };
 window.goHome=function(){ location.href='mobile-home.html'; };
 window.addEventListener('popstate',e=>{ const st=e.state||{v:'home',id:null}; curView=st.v; detailId=st.id||null; render(); window.scrollTo(0,0); });
 
@@ -119,7 +120,7 @@ function render(){
   (map[curView]||renderHome)();
 }
 function topBar(label,onclick){
-  return `<div class="top"><button class="back" onclick="${onclick||'goBack()'}">← ${label}</button><div class="avatar">김</div></div>`;
+  return `<div class="top"><button class="back" onclick="${onclick||'goBack()'}">← ${label}</button><div class="avatar" onclick="goAccount()">김</div></div>`;
 }
 
 function renderHome(){
@@ -127,7 +128,7 @@ function renderHome(){
   const otH=overtime.filter(o=>(o.yearMonth||'')===thisMonth).reduce((s,o)=>s+(Number(o.hours)||0),0);
   const lvUsed=leaves.filter(l=>(l.startDate||l.sdate||'').slice(0,7)===thisMonth).reduce((s,l)=>s+(parseFloat(l.days||l.leaveDays||0)||0),0);
   $app().innerHTML=`
-    <div class="top"><button class="back" onclick="goHome()">← 홈</button><div class="avatar">김</div></div>
+    <div class="top"><button class="back" onclick="goHome()">← 홈</button><div class="avatar" onclick="goAccount()">김</div></div>
     <div class="hello"><div class="name">인사</div><div class="sub">급여 · 계약 · 근태 · 연차</div></div>
     <div class="summary">
       <div class="s"><div class="n">${cnt}</div><div class="k">재직 인원</div></div>
@@ -206,7 +207,7 @@ function sub(coll,setter){
   onSnapshot(collection(db,coll), snap=>{ const arr=[]; snap.forEach(d=>arr.push({id:d.id,...d.data()})); setter(arr); render(); },
     err=>{ loadError=err.code||err.message; render(); });
 }
-sub('workers',   a=>{workers=a.sort((x,y)=>(x.name||'').localeCompare(y.name||''));});
+sub('workers',   a=>{workers=a.sort((x,y)=>String(x.empNo||'').localeCompare(String(y.empNo||''),undefined,{numeric:true}));});
 sub('overtime',  a=>{overtime=a;});
 sub('edoc_leave',a=>{leaves=a;});
 
