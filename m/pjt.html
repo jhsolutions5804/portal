@@ -78,6 +78,11 @@ const SITES={
 // 일정 태그 (PC PJT홈과 동일)
 const TAGS={in:{c:'#1D5BA6',l:'반입'},inspect:{c:'#2e7d32',l:'검수'},edu:{c:'#5e35b1',l:'교육'},off:{c:'#c0392b',l:'휴무'},leave:{c:'#e67e22',l:'연차'},meeting:{c:'#5D3A00',l:'회의'},fcu:{c:'#0A3D7A',l:'설치'},safety:{c:'#8D6E00',l:'안전'},admin:{c:'#7A8AA0',l:'행정'}};
 function tagChip(t){ if(!t)return ''; const x=TAGS[t]; if(x) return `<span class="tag" style="background:${x.c}1a;color:${x.c}">${x.l}</span>`; return `<span class="tag" style="background:#eef2f7;color:#5c6f8a">${esc(t)}</span>`; }
+// 섹터 구성 (기존 PJT 모듈 ZONES와 동일)
+const ZONES={
+  fab:[{name:'3F FIZ',total:39},{name:'X-OB',total:19},{name:'복합3동',total:14},{name:'복합4동',total:14},{name:'W-OB',total:81},{name:'2F 제조부속실',total:16}],
+  sup:[{name:'(중공업) #20Core',total:3},{name:'(물산) #13Core',total:3},{name:'(물산) #14Core',total:3},{name:'(물산) #17Core',total:2}],
+};
 
 let data={user_schedules:[],ph4_schedules:[],daily_report_docs:[],ph4_reports:[]};
 let curView='home', site=null, sub='sched', detailId=null, loadError='';
@@ -125,7 +130,12 @@ function renderSite(){
   const s=SITES[site]; if(!s){ renderHome(); return; }
   let body='';
   if(sub==='sched') body=renderCalendar(s);
-  else if(sub==='progress') body='<div class="banner soft">공정 진척은 섹터별·날짜별 데이터라 정확히 붙이는 중입니다. 곧 제공됩니다.</div><div class="empty">준비 중</div>';
+  else if(sub==='progress'){
+    const zs=ZONES[site]||[]; const tot=zs.reduce((a,z)=>a+z.total,0);
+    body=`<div class="lbl">📊 섹터 구성 · 총 ${tot}대</div>
+      <div class="list top">${zs.map(z=>`<div class="schcard" style="cursor:default"><div class="sch-body"><div class="sch-text">${esc(z.name)}</div></div><span class="tag" style="background:#e7f5ee;color:#1b8a5a">${z.total}대</span></div>`).join('')}</div>
+      <div class="banner soft">진척률(공정율)은 실제 progress_checks 데이터와 대조 검증 후 정확히 붙일 예정입니다.</div>`;
+  }
   else body='<div class="banner soft">근태(출역·공수) 데이터를 붙이는 중입니다. 곧 제공됩니다.</div><div class="empty">준비 중</div>';
   $app().innerHTML=topBar('PJT','goBack()')+`
     <div class="hello"><div class="name" style="font-size:21px;color:var(--ink)">${esc(s.code)}</div><div class="sub">${esc(s.client)} · ${esc(s.desc)}</div></div>
@@ -212,4 +222,3 @@ render();
 </script>
 </body>
 </html>
-<!-- build 1783168622 -->
