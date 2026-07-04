@@ -20,7 +20,7 @@
   .top{display:flex;align-items:center;justify-content:space-between;padding:22px 22px 4px}
   .back{background:var(--card);border:1px solid var(--line);color:var(--blue);font-size:13px;font-weight:700;padding:8px 14px;border-radius:12px;cursor:pointer;font-family:inherit;box-shadow:0 2px 6px rgba(30,50,80,.05)}
   .back:active{background:#f0f4f9}
-  .avatar{width:40px;height:40px;border-radius:50%;background:var(--blue);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:15px;box-shadow:0 4px 10px rgba(29,91,166,.3)}
+  .avatar{width:40px;height:40px;border-radius:50%;background:var(--blue);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:15px;box-shadow:0 4px 10px rgba(29,91,166,.3);cursor:pointer}
   .hello{padding:18px 24px 6px}
   .hello.rowend{display:flex;align-items:flex-end;justify-content:space-between}
   .hello .name{font-size:25px;font-weight:800;letter-spacing:-.5px;color:var(--blue)}
@@ -198,6 +198,7 @@ function showView(v){ nav(v,null); }
 function showDetail(v,id){ nav(v+'D',id); }
 window.showView=showView; window.showDetail=showDetail;
 window.goBack=function(){ history.back(); };
+window.goAccount=function(){ location.href='mobile-account.html'; };
 window.addEventListener('popstate',e=>{ const st=e.state||{v:'home',id:null}; curView=st.v; detailId=st.id||null; render(); window.scrollTo(0,0); });
 window.shiftMonth=function(d){const [y,m]=curMonth.split('-').map(Number);const nm=new Date(y,m-1+d,1);curMonth=nm.getFullYear()+'-'+String(nm.getMonth()+1).padStart(2,'0');render();};
 window.accTab=function(t){accSub=t;render();};
@@ -211,7 +212,7 @@ function render(){
 
 /* ---------- 공통 상단 ---------- */
 function topBar(label){
-  return `<div class="top"><button class="back" onclick="goBack()">← ${label}</button><div class="avatar">김</div></div>`;
+  return `<div class="top"><button class="back" onclick="goBack()">← ${label}</button><div class="avatar" onclick="goAccount()">김</div></div>`;
 }
 
 /* ---------- 기획 홈 ---------- */
@@ -221,7 +222,7 @@ function renderHome(){
   const estCnt=estimates.filter(e=>(e.date||'').slice(0,7)===thisMonth&&isActive(e)).length;
   const waitCnt=settlements.filter(s=>s.docType==='invoice'&&s.status!=='done'&&setActive(s)).length;
   $app().innerHTML=`
-    <div class="top"><button class="back" onclick="location.href='mobile-home.html'">← 홈</button><div class="avatar">김</div></div>
+    <div class="top"><button class="back" onclick="location.href='mobile-home.html'">← 홈</button><div class="avatar" onclick="goAccount()">김</div></div>
     <div class="hello"><div class="name">기획</div><div class="sub">영업 · 정산 · 회계</div></div>
     <div class="summary">
       <div class="s"><div class="n">${runCnt}</div><div class="k">진행 프로젝트</div></div>
