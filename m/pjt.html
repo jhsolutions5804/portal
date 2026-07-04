@@ -52,12 +52,26 @@
   .banner.soft{background:#f4f6f9;border:1px solid var(--line);color:var(--sub)}
   .divider{height:1px;background:#e4eaf2;margin:18px 22px 4px}
   .dcard{margin:16px 20px 0;background:var(--card);border:1px solid var(--line);border-radius:16px;padding:4px 16px;box-shadow:0 2px 8px rgba(30,50,80,.05)}
-  .prog-sum{display:flex;gap:8px;margin:16px 20px 0;padding:14px 12px;background:var(--card);border:1px solid var(--line);border-radius:16px;box-shadow:0 2px 8px rgba(30,50,80,.05)}
+  .prog-wrap{padding:16px 20px 0;display:flex;flex-direction:column;gap:14px}
+  .prog-sum{display:flex;gap:8px;margin:0;padding:14px 12px;background:var(--card);border:1px solid var(--line);border-radius:16px;box-shadow:0 2px 8px rgba(30,50,80,.05)}
   .prog-sum .pi{flex:1;text-align:center}
   .prog-sum .pi+.pi{border-left:1px solid var(--line)}
   .prog-sum .pil{font-size:10px;color:#9aa8bc;font-weight:700}
   .prog-sum .piv{font-size:17px;font-weight:800;margin-top:3px}
-  .prog-leg{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;font-size:11px;color:var(--sub);font-weight:600;margin:12px 20px 0}
+  .prog-leg{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;font-size:11px;color:var(--sub);font-weight:600;margin:0}
+  .cktbl-wrap{margin-top:12px;overflow-x:auto;-webkit-overflow-scrolling:touch;border:1px solid var(--line);border-radius:10px}
+  .cktbl{border-collapse:collapse;font-size:11px;width:100%}
+  .cktbl th{background:#f4f6f9;color:#5c6f8a;font-weight:700;padding:6px 4px;white-space:nowrap;font-size:10px;border-bottom:1px solid var(--line)}
+  .cktbl th.eqh,.cktbl td.eqc{position:sticky;left:0;background:#fff;z-index:1;text-align:left;padding:6px 8px;white-space:nowrap;border-right:1px solid var(--line);font-weight:700}
+  .cktbl th.eqh{background:#f4f6f9}
+  .cktbl td.eqc span{display:block;font-size:9px;color:#9aa8bc;font-weight:600}
+  .cktbl td{padding:5px 4px;text-align:center;border-bottom:1px solid #f4f6f9}
+  .ckb{width:20px;height:20px;border-radius:5px;border:1.5px solid #d6deea;margin:0 auto;cursor:pointer;background:#fff}
+  .ckb.on{background:#1D5BA6;border-color:#1D5BA6}
+  .ckb.on::after{content:'✓';color:#fff;font-size:12px;display:flex;align-items:center;justify-content:center;height:100%}
+  .ckb.past{background:#c3cedd;border-color:#c3cedd;cursor:default}
+  .ckb.past::after{content:'✓';color:#fff;font-size:12px;display:flex;align-items:center;justify-content:center;height:100%}
+  .ckhint{font-size:10px;color:#9aa8bc;font-weight:600;margin-top:8px;line-height:1.5}
   .pzcard{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:15px 16px;box-shadow:0 2px 8px rgba(30,50,80,.05)}
   .pz-head{display:flex;align-items:center;gap:8px;margin-bottom:11px}
   .pz-name{font-size:15px;font-weight:800}
@@ -77,7 +91,7 @@
 
 <script type="module">
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
-import { getFirestore, collection, onSnapshot, getDocs } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+import { getFirestore, collection, onSnapshot, getDocs, doc, getDoc, setDoc, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
 const firebaseConfig = {
   apiKey:"AIzaSyCyQxBJ_ftfM0ImBXubmqD5gfzFR54iPmE", authDomain:"p4ph2-fab-506a7.firebaseapp.com",
   projectId:"p4ph2-fab-506a7", storageBucket:"p4ph2-fab-506a7.firebasestorage.app",
@@ -133,23 +147,41 @@ function calcZone(z,cks,cfg){
   return {zIn,zAn,zInst,zChk,tot,mx,pct:+(tot/mx*100).toFixed(1),instDone,instBarPct:+(zInst/(z.total*cfg.installCols.length)*100).toFixed(0)};
 }
 function dateRange(start,end){ const out=[]; let d=new Date(start); const e=new Date(end); while(d<=e){ out.push(d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')); d.setDate(d.getDate()+1);} return out; }
-let progData=null, progLoaded=false, progLoadingSite=null;
+let progData=null, progToday=null, progLoaded=false, progLoadingSite=null, expandedZone=null;
 async function loadProgress(s){
-  const cfg=PROG[s]; if(!cfg){ progLoaded=true; progData={}; render(); return; }
+  const cfg=PROG[s]; if(!cfg){ progLoaded=true; progData={}; progToday={}; render(); return; }
   if(progLoadingSite===s) return; progLoadingSite=s; progLoaded=false; render();
-  const byZone={}; cfg.zones.forEach(z=>byZone[z.id]={});
+  const byZone={}, today={}; cfg.zones.forEach(z=>{byZone[z.id]={};today[z.id]={};});
   // 1) 하드코딩 과거(PAST) 누적
   Object.keys(cfg.past).sort().forEach(dk=>{ Object.entries(cfg.past[dk]).forEach(([zid,ck])=>{ if(byZone[zid]) Object.assign(byZone[zid],ck); }); });
-  // 2) Firebase progress_checks_{날짜} 누적 (시작일~오늘)
-  const dates=dateRange(cfg.start, todayStr());
+  // 2) Firebase progress_checks_{날짜} 누적 (시작일~오늘). 오늘 것은 today에도 별도 저장
+  const td=todayStr();
+  const dates=dateRange(cfg.start, td);
   for(const dk of dates){
-    try{ const snap=await getDocs(collection(db,'progress_checks_'+dk)); snap.forEach(d=>{ const zid=d.id; const ck=(d.data()||{}).checks||{}; if(byZone[zid]) Object.assign(byZone[zid],ck); }); }catch(e){}
+    try{ const snap=await getDocs(collection(db,'progress_checks_'+dk)); snap.forEach(d=>{ const zid=d.id; const ck=(d.data()||{}).checks||{}; if(byZone[zid]){ Object.assign(byZone[zid],ck); if(dk===td) Object.assign(today[zid],ck); } }); }catch(e){}
   }
   // 3) 오늘 localStorage
-  const td=todayStr();
-  cfg.zones.forEach(z=>{ try{ const t=JSON.parse(localStorage.getItem('fabls_eq_ck_'+td+'_'+z.id)||'{}'); Object.assign(byZone[z.id],t); }catch(e){} });
-  progData=byZone; progLoaded=true; progLoadingSite=null; render();
+  cfg.zones.forEach(z=>{ try{ const t=JSON.parse(localStorage.getItem('fabls_eq_ck_'+td+'_'+z.id)||'{}'); Object.assign(byZone[z.id],t); Object.assign(today[z.id],t); }catch(e){} });
+  progData=byZone; progToday=today; progLoaded=true; progLoadingSite=null; render();
 }
+// 오늘 progress_checks_{오늘}/{섹터}에 체크 저장 (오늘만 수정 가능)
+window.toggleZone=function(zid){ expandedZone=(expandedZone===zid?null:zid); render(); };
+window.toggleCheck=async function(zid,eq,col){
+  const td=todayStr(); const key=eq+'_'+col;
+  const isDone=!((progToday&&progToday[zid])||{})[key];
+  try{
+    const ref=doc(db,'progress_checks_'+td,zid);
+    const snap=await getDoc(ref);
+    const checks=snap.exists()?((snap.data()||{}).checks||{}):{};
+    if(isDone)checks[key]=true; else delete checks[key];
+    await setDoc(ref,{checks,updatedAt:serverTimestamp()});
+  }catch(e){
+    try{ const lk='fabls_eq_ck_'+td+'_'+zid; const d=JSON.parse(localStorage.getItem(lk)||'{}'); if(isDone)d[key]=true; else delete d[key]; localStorage.setItem(lk,JSON.stringify(d)); }catch(_){}
+  }
+  if(!progData[zid])progData[zid]={}; if(!progToday[zid])progToday[zid]={};
+  if(isDone){progData[zid][key]=true; progToday[zid][key]=true;} else {delete progData[zid][key]; delete progToday[zid][key];}
+  render();
+};
 
 let data={user_schedules:[],ph4_schedules:[],daily_report_docs:[],ph4_reports:[]};
 let curView='home', site=null, sub='sched', detailId=null, loadError='';
@@ -222,26 +254,48 @@ function renderProgress(){
   const cards=cfg.zones.map(z=>{
     const r=calcZone(z,(progData&&progData[z.id])||{},cfg);
     grand+=r.tot; gmax+=r.mx; totIn+=r.zIn; totInst+=r.instDone;
-    return progZoneCard(z,r);
+    return progZoneCard(z,r,cfg);
   }).join('');
   const totalPct=gmax?(grand/gmax*100).toFixed(1):'0.0';
   const totQty=cfg.zones.reduce((a,z)=>a+z.total,0);
-  return `
-    <div class="prog-sum">
-      <div class="pi"><div class="pil">전체 물량</div><div class="piv">${totQty}대</div></div>
-      <div class="pi"><div class="pil">전체 공정율</div><div class="piv" style="color:#1D5BA6">${totalPct}%</div></div>
-      <div class="pi"><div class="pil">누적 반입</div><div class="piv">${totIn}대</div></div>
-      <div class="pi"><div class="pil">누적 설치</div><div class="piv">${totInst}대</div></div>
-    </div>
-    <div class="prog-leg"><span style="color:#1D5BA6">■</span>반입 <span style="color:#4aa3df">■</span>입고검사 <span style="color:#2e7d32">■</span>설치 <span style="color:#7c3aed">■</span>시공검측</div>
-    <div class="list top">${cards}</div>`;
+  return `<div class="prog-wrap">
+      <div class="prog-sum">
+        <div class="pi"><div class="pil">전체 물량</div><div class="piv">${totQty}대</div></div>
+        <div class="pi"><div class="pil">전체 공정율</div><div class="piv" style="color:#1D5BA6">${totalPct}%</div></div>
+        <div class="pi"><div class="pil">누적 반입</div><div class="piv">${totIn}대</div></div>
+        <div class="pi"><div class="pil">누적 설치</div><div class="piv">${totInst}대</div></div>
+      </div>
+      <div class="prog-leg"><span style="color:#1D5BA6">■</span>반입 <span style="color:#4aa3df">■</span>입고검사 <span style="color:#2e7d32">■</span>설치 <span style="color:#7c3aed">■</span>시공검측</div>
+      ${cards}
+    </div>`;
 }
-function progZoneCard(z,r){
+function buildCheckTable(z,cfg){
+  const merged=(progData&&progData[z.id])||{}, today=(progToday&&progToday[z.id])||{};
+  const cols=cfg.checkCols;
+  const head=cols.map(c=>`<th>${esc(c)}</th>`).join('');
+  const rows=z.eqs.map(eq=>{
+    const cells=cols.map(c=>{
+      const key=eq+'_'+c; const done=!!merged[key]; const isT=!!today[key]; const past=done&&!isT;
+      const cls='ckb'+(done?(isT?' on':' past'):'');
+      const click=(!past)?` onclick="toggleCheck('${z.id}','${eq}','${c}')"`:'';
+      return `<td><div class="${cls}"${click}></div></td>`;
+    }).join('');
+    const pct=Math.round(cols.filter(c=>merged[eq+'_'+c]).length/cols.length*100);
+    return `<tr><td class="eqc">${esc(eq)}<span>${pct}%</span></td>${cells}</tr>`;
+  }).join('');
+  return `<div class="cktbl-wrap"><table class="cktbl"><thead><tr><th class="eqh">장비</th>${head}</tr></thead><tbody>${rows}</tbody></table></div>
+    <div class="ckhint">🟦 오늘 체크(수정가능) · ⬜ 이전 완료(읽기전용) — 오늘 날짜만 체크할 수 있습니다</div>`;
+}
+function progZoneCard(z,r,cfg){
   const bar=(pct,c)=>`<div style="flex:1"><div style="height:6px;background:#eef2f7;border-radius:3px;overflow:hidden"><div style="width:${pct}%;height:100%;background:${c}"></div></div></div>`;
+  const expanded=expandedZone===z.id;
   return `<div class="pzcard">
-    <div class="pz-head"><span class="pz-name">${esc(z.name)}</span><span class="pz-sub">${z.total}대</span><span class="pz-pct">${r.pct}%</span></div>
+    <div class="pz-head" onclick="toggleZone('${z.id}')" style="cursor:pointer">
+      <span class="pz-name">${esc(z.name)}</span><span class="pz-sub">${z.total}대</span>
+      <span class="pz-pct">${r.pct}%</span><span style="color:#c3cedd;font-size:11px;margin-left:2px">${expanded?'▲':'▼'}</span></div>
     <div class="pz-bars">${bar((r.zIn/z.total*100).toFixed(0),'#1D5BA6')}${bar((r.zAn/z.total*100).toFixed(0),'#4aa3df')}${bar(r.instBarPct,'#2e7d32')}${bar((r.zChk/z.total*100).toFixed(0),'#7c3aed')}</div>
     <div class="pz-lab"><span>반입 ${r.zIn}/${z.total}</span><span>입고검사 ${r.zAn}/${z.total}</span><span>설치 ${r.instDone}/${z.total}</span><span>시공검측 ${r.zChk}/${z.total}</span></div>
+    ${expanded?(cfg?buildCheckTable(z,cfg):''):''}
   </div>`;
 }
 function renderCalendar(s){
