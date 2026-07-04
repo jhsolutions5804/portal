@@ -5,50 +5,138 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>PJT 관리 · JH Solutions</title>
 <style>
-  :root{--blue:#1D5BA6;--blue-d:#16487f;--ink:#1a2330;--sub:#6b7787;--line:#e4eaf2;--bg:#eef2f7;--card:#fff;--ok:#1b8a5a}
+  :root{--blue:#1D5BA6;--blue-d:#16487f;--ink:#1a2330;--sub:#6b7787;--line:#e4eaf2;--bg:#eef2f7;--card:#fff;--ok:#1b8a5a;--warn:#c0392b;--amber:#e08a1e;--violet:#7C3AED}
   *{box-sizing:border-box;margin:0;padding:0}
   body{font-family:-apple-system,'Apple SD Gothic Neo','Pretendard',sans-serif;background:var(--bg);color:var(--ink);line-height:1.5;min-height:100vh}
   .phone{width:100%;max-width:480px;margin:0 auto;background:var(--bg);min-height:100vh}
-  .scr{padding:0 0 28px}
+  .scr{padding:0 0 30px}
   .top{display:flex;align-items:center;justify-content:space-between;padding:22px 22px 4px}
   .back{background:var(--card);border:1px solid var(--line);color:var(--blue);font-size:13px;font-weight:700;padding:8px 14px;border-radius:12px;cursor:pointer;font-family:inherit;box-shadow:0 2px 6px rgba(30,50,80,.05)}
   .back:active{background:#f0f4f9}
-  .avatar{width:40px;height:40px;border-radius:50%;background:var(--blue);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:15px;box-shadow:0 4px 10px rgba(29,91,166,.3)}
+  .avatar{width:40px;height:40px;border-radius:50%;background:var(--blue);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:15px;box-shadow:0 4px 10px rgba(29,91,166,.3);cursor:pointer}
   .hello{padding:18px 24px 6px}
   .hello .name{font-size:25px;font-weight:800;letter-spacing:-.5px;color:var(--ok)}
   .hello .sub{font-size:12.5px;color:var(--sub);margin-top:4px;font-weight:600}
   .lbl{font-size:12px;font-weight:800;color:#9aa8bc;letter-spacing:.5px;padding:22px 24px 12px}
   .list{padding:0 20px;display:flex;flex-direction:column;gap:14px}
-  .pcard{background:var(--card);border:1px solid var(--line);border-radius:20px;padding:20px 18px;cursor:pointer;transition:transform .12s ease;box-shadow:0 2px 8px rgba(30,50,80,.05);display:flex;align-items:center;gap:15px}
-  .pcard:active{transform:scale(.98)}
-  .pcard .ic{width:58px;height:58px;border-radius:17px;display:flex;align-items:center;justify-content:center;font-size:30px;flex-shrink:0}
-  .pcard.fab .ic{background:#e7f5ee;color:#1b8a5a}
-  .pcard.sup .ic{background:#eaf2fc;color:#1D5BA6}
-  .pcard .code{font-size:12px;font-weight:700;color:var(--sub)}
-  .pcard .nm{font-size:17px;font-weight:800;letter-spacing:-.3px;margin-top:2px}
-  .pcard .ds{font-size:11.5px;color:var(--sub);font-weight:500;margin-top:3px}
-  .pcard .go{margin-left:auto;font-size:18px;color:#c3cedd;flex-shrink:0}
-  .hint{margin:22px 20px 0;padding:12px 14px;background:#fff7e6;border:1px solid #f5e2b8;border-radius:12px;font-size:11.5px;color:#8a6d1e;line-height:1.5;font-weight:600}
+  .list.top{padding-top:16px}
+  .fcard{background:var(--card);border:1px solid var(--line);border-radius:20px;padding:20px 18px;cursor:pointer;transition:transform .12s ease;box-shadow:0 2px 8px rgba(30,50,80,.05);display:flex;align-items:center;gap:15px}
+  .fcard:active{transform:scale(.98)}
+  .fcard .ic{width:58px;height:58px;border-radius:17px;display:flex;align-items:center;justify-content:center;font-size:30px;flex-shrink:0}
+  .fcard.fab .ic{background:#e7f5ee;color:#1b8a5a}.fcard.sup .ic{background:#eaf2fc;color:#1D5BA6}
+  .fcard .cl{font-size:12px;font-weight:700;color:var(--sub)}
+  .fcard .nm{font-size:17px;font-weight:800;letter-spacing:-.3px;margin-top:2px}
+  .fcard .ds{font-size:11.5px;color:var(--sub);font-weight:500;margin-top:3px}
+  .fcard .go{margin-left:auto;font-size:18px;color:#c3cedd;flex-shrink:0}
+  .segs{display:flex;gap:8px;margin:14px 20px 0}
+  .seg{flex:1;padding:11px;border-radius:12px;font-size:12.5px;font-weight:700;cursor:pointer;font-family:inherit;text-align:center;border:1px solid var(--line);background:var(--card);color:var(--sub)}
+  .seg.on{background:var(--ok);color:#fff;border-color:var(--ok);box-shadow:0 4px 10px rgba(27,138,90,.25)}
+  .icard{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px 16px;box-shadow:0 2px 8px rgba(30,50,80,.05)}
+  .ic-top{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
+  .ic-date{font-size:12px;font-weight:800;color:var(--blue-d);white-space:nowrap}
+  .tag{font-size:10px;font-weight:700;padding:2px 8px;border-radius:6px;background:#e7f5ee;color:#1b8a5a;white-space:nowrap}
+  .ic-text{font-size:14px;font-weight:700;margin-top:6px}
+  .ic-meta{font-size:11.5px;color:var(--sub);font-weight:500;margin-top:4px}
+  .empty{margin:24px 20px;padding:26px;text-align:center;color:#9aa8bc;font-size:13px;font-weight:600;background:var(--card);border:1px solid var(--line);border-radius:16px}
+  .loading{text-align:center;padding:40px;color:#9aa8bc;font-size:13px;font-weight:600}
+  .banner{margin:14px 20px 0;padding:11px 14px;border-radius:12px;font-size:11.5px;font-weight:600;line-height:1.5}
+  .banner.err{background:#fdecea;border:1px solid #f5c6c0;color:#a5342a}
+  .banner.soft{background:#f4f6f9;border:1px solid var(--line);color:var(--sub)}
 </style>
 </head>
 <body>
-  <div class="phone"><div class="scr">
-    <div class="top"><button class="back" onclick="location.href='home.html'">← 홈</button><div class="avatar">김</div></div>
+  <div class="phone"><div id="app" class="scr"><div class="loading">불러오는 중…</div></div></div>
+
+<script type="module">
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
+import { getFirestore, collection, onSnapshot } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+const firebaseConfig = {
+  apiKey:"AIzaSyCyQxBJ_ftfM0ImBXubmqD5gfzFR54iPmE", authDomain:"p4ph2-fab-506a7.firebaseapp.com",
+  projectId:"p4ph2-fab-506a7", storageBucket:"p4ph2-fab-506a7.firebasestorage.app",
+  messagingSenderId:"36946317914", appId:"1:36946317914:web:c6ad5f3a1b98130c99fe63"
+};
+const app=initializeApp(firebaseConfig); const db=getFirestore(app);
+
+const SITES={
+  fab:{code:'P4 Ph2 (FAB)',client:'귀뚜라미범양냉방',desc:'FCU 설치 · 6섹터 183대',ic:'🏭',cls:'fab',sch:'user_schedules',rep:'daily_report_docs'},
+  sup:{code:'P4 Ph4 (SUP)',client:'귀뚜라미범양냉방',desc:'EHU 설치 · 4섹터 11대',ic:'🔧',cls:'sup',sch:'ph4_schedules',rep:'ph4_reports'},
+};
+let data={user_schedules:[],ph4_schedules:[],daily_report_docs:[],ph4_reports:[]};
+let curView='home', site=null, sub='sched', loadError='';
+
+const esc=v=>String(v==null?'':v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+const $app=()=>document.getElementById('app');
+const fmtDate=v=>{if(!v)return '';if(v.seconds)return new Date(v.seconds*1000).toISOString().slice(0,10);return String(v).slice(0,10);};
+
+function nav(v,s){ curView=v; if(s!==undefined)site=s; history.pushState({v,site,sub},''); render(); window.scrollTo(0,0); }
+window.openSite=function(s){ site=s; sub='sched'; nav('site',s); };
+window.setSub=function(t){ sub=t; render(); };
+window.goBack=function(){ history.back(); };
+window.goHome=function(){ location.href='home.html'; };
+window.goAccount=function(){ location.href='account.html'; };
+window.addEventListener('popstate',e=>{ const st=e.state||{v:'home',site:null,sub:'sched'}; curView=st.v; site=st.site; sub=st.sub||'sched'; render(); window.scrollTo(0,0); });
+
+function render(){
+  if(loadError){ $app().innerHTML=topBar('홈','goHome()')+`<div class="banner err">데이터를 불러오지 못했습니다: ${esc(loadError)}<br>포털 로그인 세션이 필요할 수 있습니다.</div>`; return; }
+  if(curView==='site') return renderSite();
+  renderHome();
+}
+function topBar(label,onclick){ return `<div class="top"><button class="back" onclick="${onclick||'goBack()'}">← ${label}</button><div class="avatar" onclick="goAccount()">김</div></div>`; }
+
+function renderHome(){
+  $app().innerHTML=`
+    <div class="top"><button class="back" onclick="goHome()">← 홈</button><div class="avatar" onclick="goAccount()">김</div></div>
     <div class="hello"><div class="name">PJT 관리</div><div class="sub">진행 중인 프로젝트 현장 관리</div></div>
     <div class="lbl">진행 프로젝트</div>
-    <div class="list">
-      <div class="pcard fab" onclick="alert('세부 화면은 준비 중입니다.')">
-        <div class="ic">🏭</div>
-        <div><div class="code">귀뚜라미범양냉방</div><div class="nm">P4 Ph2 (FAB)</div><div class="ds">FCU 설치 · 6섹터 183대 · 공정·근태·일정</div></div>
-        <span class="go">›</span>
-      </div>
-      <div class="pcard sup" onclick="alert('세부 화면은 준비 중입니다.')">
-        <div class="ic">🔧</div>
-        <div><div class="code">귀뚜라미범양냉방</div><div class="nm">P4 Ph4 (SUP)</div><div class="ds">EHU 설치 · 4섹터 11대 · 공정·근태·일정</div></div>
-        <span class="go">›</span>
-      </div>
+    <div class="list top">
+      ${Object.entries(SITES).map(([k,s])=>`<div class="fcard ${s.cls}" onclick="openSite('${k}')">
+        <div class="ic">${s.ic}</div>
+        <div><div class="cl">${esc(s.client)}</div><div class="nm">${esc(s.code)}</div><div class="ds">${esc(s.desc)} · 일정·공사일보</div></div>
+        <span class="go">›</span></div>`).join('')}
+    </div>`;
+}
+
+function renderSite(){
+  const s=SITES[site]; if(!s){ renderHome(); return; }
+  const scheds=[...(data[s.sch]||[])].sort((a,b)=>(b.sdate||'').localeCompare(a.sdate||''));
+  const reps=[...(data[s.rep]||[])].sort((a,b)=>fmtDate(b.startDate||b.sdate||b.createdAt).localeCompare(fmtDate(a.startDate||a.sdate||a.createdAt)));
+  let body='';
+  if(sub==='sched'){
+    body = scheds.length ? `<div class="list top">${scheds.slice(0,50).map(schCard).join('')}</div>` : '<div class="empty">등록된 일정이 없습니다.</div>';
+  }else if(sub==='report'){
+    body = reps.length ? `<div class="list top">${reps.slice(0,50).map(repCard).join('')}</div>` : '<div class="empty">작성된 공사일보가 없습니다.</div>';
+  }else{
+    body = '<div class="banner soft">근태·공정 상세는 날짜별 데이터 구조라 순차로 붙이고 있습니다. 곧 제공됩니다.</div><div class="empty">준비 중</div>';
+  }
+  $app().innerHTML=topBar('PJT','goBack()')+`
+    <div class="hello"><div class="name" style="font-size:21px;color:var(--ink)">${esc(s.code)}</div><div class="sub">${esc(s.client)} · ${esc(s.desc)}</div></div>
+    <div class="segs">
+      <div class="seg ${sub==='sched'?'on':''}" onclick="setSub('sched')">일정${scheds.length?' ('+scheds.length+')':''}</div>
+      <div class="seg ${sub==='report'?'on':''}" onclick="setSub('report')">공사일보${reps.length?' ('+reps.length+')':''}</div>
+      <div class="seg ${sub==='etc'?'on':''}" onclick="setSub('etc')">근태·공정</div>
     </div>
-    <div class="hint">💡 PJT 관리 섹션 홈 골격입니다. 홈에서 PJT 타일을 누르면 이 화면으로 들어옵니다. 각 현장(FAB·SUP)의 공정·근태·일정 등 세부는 순차로 실제 데이터를 붙이겠습니다.</div>
-  </div></div>
+    ${body}`;
+}
+function schCard(s){
+  return `<div class="icard"><div class="ic-top"><span class="ic-date">${esc(fmtDate(s.sdate))}${s.stime?' '+esc(s.stime):''}</span>${s.tag?`<span class="tag">${esc(s.tag)}</span>`:''}</div>
+    <div class="ic-text">${esc(s.text||s.title||'(내용 없음)')}</div>
+    ${s.pjtName||s.role?`<div class="ic-meta">${esc(s.pjtName||'')}${s.role?' · '+esc(s.role):''}</div>`:''}</div>`;
+}
+function repCard(r){
+  const c=r.content||r.data||''; const cs=typeof c==='string'?c:'';
+  return `<div class="icard"><div class="ic-top"><span class="ic-date">${esc(fmtDate(r.startDate||r.sdate||r.createdAt))}</span>${r.name?`<span class="tag">${esc(r.name)}</span>`:''}</div>
+    <div class="ic-text">${esc(r.client||r.site||'공사일보')}</div>
+    ${cs?`<div class="ic-meta">${esc(cs.slice(0,60))}${cs.length>60?'…':''}</div>`:''}</div>`;
+}
+
+function subscribe(coll){
+  onSnapshot(collection(db,coll), snap=>{ const arr=[]; snap.forEach(d=>arr.push({id:d.id,...d.data()})); data[coll]=arr; render(); },
+    err=>{ loadError=err.code||err.message; render(); });
+}
+['user_schedules','ph4_schedules','daily_report_docs','ph4_reports'].forEach(subscribe);
+
+history.replaceState({v:'home',site:null,sub:'sched'},'');
+render();
+</script>
 </body>
 </html>
