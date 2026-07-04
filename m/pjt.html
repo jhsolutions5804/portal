@@ -52,6 +52,20 @@
   .banner.soft{background:#f4f6f9;border:1px solid var(--line);color:var(--sub)}
   .divider{height:1px;background:#e4eaf2;margin:18px 22px 4px}
   .dcard{margin:16px 20px 0;background:var(--card);border:1px solid var(--line);border-radius:16px;padding:4px 16px;box-shadow:0 2px 8px rgba(30,50,80,.05)}
+  .prog-sum{display:flex;gap:8px;margin:16px 20px 0;padding:14px 12px;background:var(--card);border:1px solid var(--line);border-radius:16px;box-shadow:0 2px 8px rgba(30,50,80,.05)}
+  .prog-sum .pi{flex:1;text-align:center}
+  .prog-sum .pi+.pi{border-left:1px solid var(--line)}
+  .prog-sum .pil{font-size:10px;color:#9aa8bc;font-weight:700}
+  .prog-sum .piv{font-size:17px;font-weight:800;margin-top:3px}
+  .prog-leg{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;font-size:11px;color:var(--sub);font-weight:600;margin:12px 20px 0}
+  .pzcard{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:15px 16px;box-shadow:0 2px 8px rgba(30,50,80,.05)}
+  .pz-head{display:flex;align-items:center;gap:8px;margin-bottom:11px}
+  .pz-name{font-size:15px;font-weight:800}
+  .pz-sub{font-size:11px;color:#9aa8bc;font-weight:600}
+  .pz-pct{margin-left:auto;font-size:14px;font-weight:800;color:#1D5BA6;background:#eaf2fc;padding:3px 11px;border-radius:20px}
+  .pz-bars{display:flex;gap:5px;margin-bottom:6px}
+  .pz-lab{display:flex;gap:5px;font-size:9.5px;color:var(--sub);font-weight:600}
+  .pz-lab span{flex:1;text-align:center;white-space:nowrap}
   .drow{display:flex;align-items:flex-start;justify-content:space-between;padding:12px 0;border-bottom:1px solid #f2f5f9;gap:12px}
   .drow:last-child{border-bottom:none}
   .dk{font-size:12.5px;color:var(--sub);font-weight:600;white-space:nowrap}
@@ -63,7 +77,7 @@
 
 <script type="module">
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
-import { getFirestore, collection, onSnapshot } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+import { getFirestore, collection, onSnapshot, getDocs } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
 const firebaseConfig = {
   apiKey:"AIzaSyCyQxBJ_ftfM0ImBXubmqD5gfzFR54iPmE", authDomain:"p4ph2-fab-506a7.firebaseapp.com",
   projectId:"p4ph2-fab-506a7", storageBucket:"p4ph2-fab-506a7.firebasestorage.app",
@@ -83,6 +97,59 @@ const ZONES={
   fab:[{name:'3F FIZ',total:39},{name:'X-OB',total:19},{name:'복합3동',total:14},{name:'복합4동',total:14},{name:'W-OB',total:81},{name:'2F 제조부속실',total:16}],
   sup:[{name:'(중공업) #20Core',total:3},{name:'(물산) #13Core',total:3},{name:'(물산) #14Core',total:3},{name:'(물산) #17Core',total:2}],
 };
+// 공정 계산용 상세 데이터 (기존 PJT 모듈과 동일)
+const PROG={
+  fab:{
+    checkCols:['반입','입고검사','내진스토퍼','다이크','실링','동판','결선','시공검측'],
+    installCols:['내진스토퍼','다이크','실링','동판','결선'],
+    start:'2026-06-17',
+    zones:[
+      {id:'fiz',name:'3F FIZ',total:39,eqs:Array.from({length:39},(_,i)=>String(801+i))},
+      {id:'xob',name:'X-OB',total:19,eqs:['861','862','863','864','865','866','867','868','869','870','871','872','873','874','875','876','877','878','879']},
+      {id:'c3',name:'복합3동',total:14,eqs:['351','352','353','354','355','356','357','358','359','360','361','362','363','364']},
+      {id:'c4',name:'복합4동',total:14,eqs:['302A','302B','302C','302D','302E','302F','302G','302H','302I','302J','302K','302L','302M','302N']},
+      {id:'wob',name:'W-OB',total:81,eqs:Array.from({length:81},(_,i)=>'W-'+(101+i))},
+      {id:'mfr',name:'2F 제조부속실',total:16,eqs:['801','802','811','812','813','814','815','816','817','818','819','820','821','822','823','824']},
+    ],
+    past:{
+      '2026-06-17':{fiz:{'801_반입':true,'802_반입':true,'803_반입':true,'804_반입':true,'805_반입':true,'806_반입':true}},
+      '2026-06-18':{fiz:{'807_반입':true,'808_반입':true,'809_반입':true,'820_반입':true,'821_반입':true,'822_반입':true,'823_반입':true,'801_입고검사':true,'802_입고검사':true,'803_입고검사':true,'804_입고검사':true,'805_입고검사':true,'806_입고검사':true}},
+      '2026-06-19':{fiz:{'824_반입':true,'825_반입':true,'826_반입':true,'827_반입':true,'828_반입':true,'829_반입':true,'830_반입':true,'807_입고검사':true,'808_입고검사':true,'809_입고검사':true,'820_입고검사':true,'821_입고검사':true,'822_입고검사':true,'823_입고검사':true}},
+      '2026-06-20':{fiz:{'824_입고검사':true,'825_입고검사':true,'826_입고검사':true,'827_입고검사':true,'828_입고검사':true,'829_입고검사':true,'830_입고검사':true}},
+    },
+  },
+};
+function calcZone(z,cks,cfg){
+  let zIn=0,zAn=0,zInst=0,zChk=0,tot=0,instDone=0;
+  z.eqs.forEach(eq=>{
+    cfg.checkCols.forEach(c=>{if(cks[eq+'_'+c])tot++;});
+    if(cks[eq+'_반입'])zIn++;
+    if(cks[eq+'_입고검사'])zAn++;
+    cfg.installCols.forEach(c=>{if(cks[eq+'_'+c])zInst++;});
+    if(cks[eq+'_시공검측'])zChk++;
+    if(cfg.installCols.every(c=>cks[eq+'_'+c]))instDone++;
+  });
+  const mx=z.total*cfg.checkCols.length;
+  return {zIn,zAn,zInst,zChk,tot,mx,pct:+(tot/mx*100).toFixed(1),instDone,instBarPct:+(zInst/(z.total*cfg.installCols.length)*100).toFixed(0)};
+}
+function dateRange(start,end){ const out=[]; let d=new Date(start); const e=new Date(end); while(d<=e){ out.push(d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')); d.setDate(d.getDate()+1);} return out; }
+let progData=null, progLoaded=false, progLoadingSite=null;
+async function loadProgress(s){
+  const cfg=PROG[s]; if(!cfg){ progLoaded=true; progData={}; render(); return; }
+  if(progLoadingSite===s) return; progLoadingSite=s; progLoaded=false; render();
+  const byZone={}; cfg.zones.forEach(z=>byZone[z.id]={});
+  // 1) 하드코딩 과거(PAST) 누적
+  Object.keys(cfg.past).sort().forEach(dk=>{ Object.entries(cfg.past[dk]).forEach(([zid,ck])=>{ if(byZone[zid]) Object.assign(byZone[zid],ck); }); });
+  // 2) Firebase progress_checks_{날짜} 누적 (시작일~오늘)
+  const dates=dateRange(cfg.start, todayStr());
+  for(const dk of dates){
+    try{ const snap=await getDocs(collection(db,'progress_checks_'+dk)); snap.forEach(d=>{ const zid=d.id; const ck=(d.data()||{}).checks||{}; if(byZone[zid]) Object.assign(byZone[zid],ck); }); }catch(e){}
+  }
+  // 3) 오늘 localStorage
+  const td=todayStr();
+  cfg.zones.forEach(z=>{ try{ const t=JSON.parse(localStorage.getItem('fabls_eq_ck_'+td+'_'+z.id)||'{}'); Object.assign(byZone[z.id],t); }catch(e){} });
+  progData=byZone; progLoaded=true; progLoadingSite=null; render();
+}
 
 let data={user_schedules:[],ph4_schedules:[],daily_report_docs:[],ph4_reports:[]};
 let curView='home', site=null, sub='sched', detailId=null, loadError='';
@@ -95,8 +162,8 @@ const fmtDate=v=>{if(!v)return '';if(v.seconds)return new Date(v.seconds*1000).t
 const WD=['일','월','화','수','목','금','토'];
 
 function nav(v,s){ curView=v; if(s!==undefined)site=s; history.pushState({v,site,sub,selectedDate,detailId},''); render(); window.scrollTo(0,0); }
-window.openSite=function(s){ site=s; sub='sched'; selectedDate=todayStr(); calMonth=todayStr().slice(0,7); nav('site',s); };
-window.setSub=function(t){ sub=t; if(t==='sched'){ selectedDate=todayStr(); calMonth=todayStr().slice(0,7); } render(); };
+window.openSite=function(s){ site=s; sub='sched'; selectedDate=todayStr(); calMonth=todayStr().slice(0,7); progLoaded=false; progData=null; progLoadingSite=null; nav('site',s); };
+window.setSub=function(t){ sub=t; if(t==='sched'){ selectedDate=todayStr(); calMonth=todayStr().slice(0,7); } if(t==='progress' && !progLoaded && progLoadingSite!==site){ loadProgress(site); } render(); };
 window.selectDate=function(d){ selectedDate=d; render(); };
 window.shiftCalMonth=function(delta){ const [y,m]=calMonth.split('-').map(Number); const nm=new Date(y,m-1+delta,1); calMonth=nm.getFullYear()+'-'+String(nm.getMonth()+1).padStart(2,'0'); render(); };
 window.openSched=function(id){ detailId=id; nav('schedD',site); };
@@ -130,12 +197,7 @@ function renderSite(){
   const s=SITES[site]; if(!s){ renderHome(); return; }
   let body='';
   if(sub==='sched') body=renderCalendar(s);
-  else if(sub==='progress'){
-    const zs=ZONES[site]||[]; const tot=zs.reduce((a,z)=>a+z.total,0);
-    body=`<div class="lbl">📊 섹터 구성 · 총 ${tot}대</div>
-      <div class="list top">${zs.map(z=>`<div class="schcard" style="cursor:default"><div class="sch-body"><div class="sch-text">${esc(z.name)}</div></div><span class="tag" style="background:#e7f5ee;color:#1b8a5a">${z.total}대</span></div>`).join('')}</div>
-      <div class="banner soft">진척률(공정율)은 실제 progress_checks 데이터와 대조 검증 후 정확히 붙일 예정입니다.</div>`;
-  }
+  else if(sub==='progress') body=renderProgress();
   else body='<div class="banner soft">근태(출역·공수) 데이터를 붙이는 중입니다. 곧 제공됩니다.</div><div class="empty">준비 중</div>';
   $app().innerHTML=topBar('PJT','goBack()')+`
     <div class="hello"><div class="name" style="font-size:21px;color:var(--ink)">${esc(s.code)}</div><div class="sub">${esc(s.client)} · ${esc(s.desc)}</div></div>
@@ -147,6 +209,41 @@ function renderSite(){
     ${body}`;
 }
 
+function renderProgress(){
+  const cfg=PROG[site];
+  if(!cfg){
+    const zs=ZONES[site]||[]; const tot=zs.reduce((a,z)=>a+z.total,0);
+    return `<div class="lbl">📊 섹터 구성 · 총 ${tot}대</div>
+      <div class="list top">${zs.map(z=>`<div class="schcard" style="cursor:default"><div class="sch-body"><div class="sch-text">${esc(z.name)}</div></div><span class="tag" style="background:#e7f5ee;color:#1b8a5a">${z.total}대</span></div>`).join('')}</div>
+      <div class="banner soft">이 현장의 공정 진척은 순차로 붙일 예정입니다.</div>`;
+  }
+  if(!progLoaded) return '<div class="loading">공정 데이터 불러오는 중…</div>';
+  let grand=0,gmax=0,totIn=0,totInst=0;
+  const cards=cfg.zones.map(z=>{
+    const r=calcZone(z,(progData&&progData[z.id])||{},cfg);
+    grand+=r.tot; gmax+=r.mx; totIn+=r.zIn; totInst+=r.instDone;
+    return progZoneCard(z,r);
+  }).join('');
+  const totalPct=gmax?(grand/gmax*100).toFixed(1):'0.0';
+  const totQty=cfg.zones.reduce((a,z)=>a+z.total,0);
+  return `
+    <div class="prog-sum">
+      <div class="pi"><div class="pil">전체 물량</div><div class="piv">${totQty}대</div></div>
+      <div class="pi"><div class="pil">전체 공정율</div><div class="piv" style="color:#1D5BA6">${totalPct}%</div></div>
+      <div class="pi"><div class="pil">누적 반입</div><div class="piv">${totIn}대</div></div>
+      <div class="pi"><div class="pil">누적 설치</div><div class="piv">${totInst}대</div></div>
+    </div>
+    <div class="prog-leg"><span style="color:#1D5BA6">■</span>반입 <span style="color:#4aa3df">■</span>입고검사 <span style="color:#2e7d32">■</span>설치 <span style="color:#7c3aed">■</span>시공검측</div>
+    <div class="list top">${cards}</div>`;
+}
+function progZoneCard(z,r){
+  const bar=(pct,c)=>`<div style="flex:1"><div style="height:6px;background:#eef2f7;border-radius:3px;overflow:hidden"><div style="width:${pct}%;height:100%;background:${c}"></div></div></div>`;
+  return `<div class="pzcard">
+    <div class="pz-head"><span class="pz-name">${esc(z.name)}</span><span class="pz-sub">${z.total}대</span><span class="pz-pct">${r.pct}%</span></div>
+    <div class="pz-bars">${bar((r.zIn/z.total*100).toFixed(0),'#1D5BA6')}${bar((r.zAn/z.total*100).toFixed(0),'#4aa3df')}${bar(r.instBarPct,'#2e7d32')}${bar((r.zChk/z.total*100).toFixed(0),'#7c3aed')}</div>
+    <div class="pz-lab"><span>반입 ${r.zIn}/${z.total}</span><span>입고검사 ${r.zAn}/${z.total}</span><span>설치 ${r.instDone}/${z.total}</span><span>시공검측 ${r.zChk}/${z.total}</span></div>
+  </div>`;
+}
 function renderCalendar(s){
   const scheds=data[s.sch]||[];
   const byDate={}; scheds.forEach(x=>{const d=fmtDate(x.sdate); if(d)(byDate[d]=byDate[d]||[]).push(x);});
