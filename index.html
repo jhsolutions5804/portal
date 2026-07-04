@@ -839,8 +839,9 @@ function showAuth(id){
   window.scrollTo(0,0);
 }
 function showApp(){
-  // 모바일(<900px)은 새 모바일 화면(m/)으로, PC는 기존 사이드바 유지
-  if(window.innerWidth<900){ location.href='m/home.html'; return; }
+  // 모바일/PC 분기: 픽셀 너비가 아니라 UA로 판단. '데스크톱 사이트 보기'를 누르면
+  // UA에서 'Mobile'이 빠지므로 폴드 등에서도 PC 화면으로 정상 전환됨.
+  if(/Mobi/i.test(navigator.userAgent||'')){ location.href='m/home.html'; return; }
   $('auth-stage').style.display='none';
   $('s-app').classList.add('shown');
   window.scrollTo(0,0);
