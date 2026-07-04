@@ -114,8 +114,8 @@ const firebaseConfig = {
 const app=initializeApp(firebaseConfig); const db=getFirestore(app);
 
 const SITES={
-  fab:{code:'P4 Ph2 (FAB)',client:'귀뚜라미범양냉방',desc:'FCU 설치 · 6섹터 183대',ic:'🏭',cls:'fab',sch:'user_schedules',rep:'daily_report_docs'},
-  sup:{code:'P4 Ph4 (SUP)',client:'귀뚜라미범양냉방',desc:'EHU 설치 · 4섹터 11대',ic:'🔧',cls:'sup',sch:'ph4_schedules',rep:'ph4_reports'},
+  fab:{code:'P4 Ph2 (FAB)',client:'귀뚜라미범양냉방',desc:'FCU 설치 · 6섹터 183대',ic:'🏭',cls:'fab',sch:'user_schedules',repPrefix:'daily_reports_'},
+  sup:{code:'P4 Ph4 (SUP)',client:'귀뚜라미범양냉방',desc:'EHU 설치 · 4섹터 11대',ic:'🔧',cls:'sup',sch:'ph4_schedules',repPrefix:'ph4_daily_'},
 };
 // 일정 태그 (PC PJT홈과 동일)
 const TAGS={in:{c:'#1D5BA6',l:'반입'},inspect:{c:'#2e7d32',l:'검수'},edu:{c:'#5e35b1',l:'교육'},off:{c:'#c0392b',l:'휴무'},leave:{c:'#e67e22',l:'연차'},meeting:{c:'#5D3A00',l:'회의'},fcu:{c:'#0A3D7A',l:'설치'},safety:{c:'#8D6E00',l:'안전'},admin:{c:'#7A8AA0',l:'행정'}};
@@ -249,7 +249,19 @@ window.toggleAttend=async function(wid){
   render();
 };
 
-let data={user_schedules:[],ph4_schedules:[],daily_report_docs:[],ph4_reports:[]};
+let data={user_schedules:[],ph4_schedules:[]};
+let repCache={}; // 날짜별 업무지시/보고 (daily_reports_{날짜}/ph4_daily_{날짜})
+async function loadReports(dk){
+  const s=SITES[site]; if(!s){ return; }
+  try{
+    const snap=await getDocs(collection(db, s.repPrefix+dk));
+    const items=[];
+    snap.forEach(d=>{ const r=d.data(); if((r.text||'').trim()) items.push(r); });
+    items.sort((a,b)=>{var ta=(a.ts&&a.ts.seconds)||0,tb=(b.ts&&b.ts.seconds)||0; return ta-tb;});
+    repCache[dk]=items;
+  }catch(e){ repCache[dk]=[]; }
+  render();
+}
 let curView='home', site=null, sub='sched', detailId=null, loadError='';
 const todayStr=()=>{const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');};
 let selectedDate=todayStr(), calMonth=todayStr().slice(0,7);
@@ -260,9 +272,9 @@ const fmtDate=v=>{if(!v)return '';if(v.seconds)return new Date(v.seconds*1000).t
 const WD=['일','월','화','수','목','금','토'];
 
 function nav(v,s){ curView=v; if(s!==undefined)site=s; history.pushState({v,site,sub,selectedDate,detailId},''); render(); window.scrollTo(0,0); }
-window.openSite=function(s){ site=s; sub='sched'; selectedDate=todayStr(); calMonth=todayStr().slice(0,7); progLoaded=false; progData=null; progLoadingSite=null; attLoaded=false; attWorkers=null; attLoadingSite=null; nav('site',s); };
-window.setSub=function(t){ sub=t; if(t==='sched'){ selectedDate=todayStr(); calMonth=todayStr().slice(0,7); } if(t==='progress' && !progLoaded && progLoadingSite!==site){ loadProgress(site); } if(t==='attend' && !attLoaded && attLoadingSite!==site){ loadAtt(site); } render(); };
-window.selectDate=function(d){ selectedDate=d; render(); };
+window.openSite=function(s){ site=s; sub='sched'; selectedDate=todayStr(); calMonth=todayStr().slice(0,7); progLoaded=false; progData=null; progLoadingSite=null; attLoaded=false; attWorkers=null; attLoadingSite=null; repCache={}; nav('site',s); loadReports(todayStr()); };
+window.setSub=function(t){ sub=t; if(t==='sched'){ selectedDate=todayStr(); calMonth=todayStr().slice(0,7); if(repCache[selectedDate]===undefined) loadReports(selectedDate); } if(t==='progress' && !progLoaded && progLoadingSite!==site){ loadProgress(site); } if(t==='attend' && !attLoaded && attLoadingSite!==site){ loadAtt(site); } render(); };
+window.selectDate=function(d){ selectedDate=d; if(repCache[d]===undefined) loadReports(d); render(); };
 window.shiftCalMonth=function(delta){ const [y,m]=calMonth.split('-').map(Number); const nm=new Date(y,m-1+delta,1); calMonth=nm.getFullYear()+'-'+String(nm.getMonth()+1).padStart(2,'0'); render(); };
 window.openSched=function(id){ detailId=id; nav('schedD',site); };
 window.goBack=function(){ history.back(); };
@@ -424,15 +436,12 @@ function renderCalendar(s){
   const dayItems=(byDate[selectedDate]||[]).sort((a,b)=>(a.stime||'').localeCompare(b.stime||''));
   const [sy,sm,sd]=selectedDate.split('-');
   const selLabel=`${sm}월 ${sd}일 (${WD[new Date(sy,sm-1,sd).getDay()]})`;
-  // 업무지시/보고: 해당 날짜 문서(id===selectedDate)
-  const rep=(data[s.rep]||[]).find(r=>r.id===selectedDate);
-  let repHtml='';
-  if(rep){
-    const ins=(rep.instruction||'').trim();
-    const brf=(rep.briefText||rep.content||'').trim();
-    if(ins) repHtml+=`<div class="rep-item"><div class="rep-head"><span class="rtag ins">지시</span><span class="rep-pjt">${esc(s.code)}</span></div><div class="rep-text">${esc(ins)}</div></div>`;
-    if(brf) repHtml+=`<div class="rep-item"><div class="rep-head"><span class="rtag brf">보고</span><span class="rep-pjt">${esc(s.code)}</span></div><div class="rep-text">${esc(brf)}</div></div>`;
-  }
+  // 업무지시/보고: 해당 날짜 컬렉션(daily_reports_{날짜}/ph4_daily_{날짜})
+  const repItems=repCache[selectedDate];
+  let repHtml;
+  if(repItems===undefined){ repHtml='<div class="empty">불러오는 중…</div>'; }
+  else if(repItems.length){ repHtml=`<div class="list">${repItems.map(r=>`<div class="rep-item"><div class="rep-head"><span class="rtag ins">${esc((r.time||'')+(r.name?' '+r.name:''))}</span><span class="rep-pjt">${esc(s.code)}</span></div><div class="rep-text">${esc(r.text||'')}</div></div>`).join('')}</div>`; }
+  else { repHtml='<div class="empty">이 날 입력된 지시·보고가 없습니다.</div>'; }
   return `
     <div style="margin:14px 20px 0;background:#fff;border:1px solid #e4eaf2;border-radius:18px;padding:14px 14px 16px;box-shadow:0 2px 8px rgba(30,50,80,.05)">
       <div style="display:flex;align-items:center;justify-content:center;gap:20px;margin-bottom:12px">
@@ -447,7 +456,7 @@ function renderCalendar(s){
     ${dayItems.length?`<div class="list">${dayItems.map(schCard).join('')}</div>`:'<div class="empty">이 날 등록된 일정이 없습니다.</div>'}
     <div class="divider"></div>
     <div class="lbl">📋 업무지시 · 보고</div>
-    ${repHtml?`<div class="list">${repHtml}</div>`:'<div class="empty">이 날 입력된 지시·보고가 없습니다.</div>'}`;
+    ${repHtml}`;
 }
 function schCard(s){
   return `<div class="schcard" onclick="openSched('${s.id}')">
@@ -470,7 +479,7 @@ function subscribe(coll){
   onSnapshot(collection(db,coll), snap=>{ const arr=[]; snap.forEach(d=>arr.push({id:d.id,...d.data()})); data[coll]=arr; render(); },
     err=>{ loadError=err.code||err.message; render(); });
 }
-['user_schedules','ph4_schedules','daily_report_docs','ph4_reports'].forEach(subscribe);
+['user_schedules','ph4_schedules'].forEach(subscribe);
 
 history.replaceState({v:'home',site:null,sub:'sched'},'');
 render();
