@@ -114,7 +114,7 @@ const ZONES={
 // 공정 계산용 상세 데이터 (기존 PJT 모듈과 동일)
 const PROG={
   fab:{
-    coll:'progress_checks_', ls:'fabls_eq_ck_',
+    coll:'progress_checks_', ls:'fabls_eq_ck_', settingsKey:'p4ph2',
     checkCols:['반입','입고검사','내진스토퍼','다이크','실링','동판','결선','시공검측'],
     installCols:['내진스토퍼','다이크','실링','동판','결선'],
     start:'2026-06-17',
@@ -134,7 +134,7 @@ const PROG={
     },
   },
   sup:{
-    coll:'ph4_progress_', ls:'ph4ls_eq_ck_',
+    coll:'ph4_progress_', ls:'ph4ls_eq_ck_', settingsKey:'p4ph4',
     start:(function(){try{var v=localStorage.getItem('ph4_pjt_start_date')||'';return (v&&v<'2026-06-01')?v:'2026-06-01';}catch(e){return '2026-06-01';}})(),
     checkCols:['반입','입고검사','내진스토퍼','시공검측'],
     installCols:['내진스토퍼'],
@@ -170,7 +170,10 @@ async function loadProgress(s){
   Object.keys(cfg.past).sort().forEach(dk=>{ Object.entries(cfg.past[dk]).forEach(([zid,ck])=>{ if(byZone[zid]) Object.assign(byZone[zid],ck); }); });
   // 2) Firebase progress_checks_{날짜} 누적 (시작일~오늘). 오늘 것은 today에도 별도 저장
   const td=todayStr();
-  const dates=dateRange(cfg.start, td);
+  // 시작일: pjt_settings의 startDate를 우선 반영 (없거나 늦으면 넉넉한 기본값 유지)
+  let start=cfg.start;
+  try{ const ss=await getDoc(doc(db,'pjt_settings',cfg.settingsKey)); if(ss.exists()){ const sd=((ss.data()||{}).startDate||''); if(sd && sd<start) start=sd; } }catch(e){}
+  const dates=dateRange(start, td);
   for(const dk of dates){
     try{ const snap=await getDocs(collection(db,cfg.coll+dk)); snap.forEach(d=>{ const zid=d.id; const ck=(d.data()||{}).checks||{}; if(byZone[zid]){ Object.assign(byZone[zid],ck); if(dk===td) Object.assign(today[zid],ck); } }); }catch(e){}
   }
