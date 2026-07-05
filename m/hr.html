@@ -79,6 +79,7 @@
   <div class="phone"><div id="app" class="scr"><div class="loading">불러오는 중…</div></div></div>
 
 <script type="module">
+const _uInitial=(function(){try{var a=JSON.parse(localStorage.getItem('jh_login_perms')||'null');return (a&&a.name)?a.name.slice(0,1):'·';}catch(e){return '·';}})();
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
 import { getFirestore, collection, onSnapshot } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
 const firebaseConfig = {
@@ -120,7 +121,7 @@ function render(){
   (map[curView]||renderHome)();
 }
 function topBar(label,onclick){
-  return `<div class="top"><button class="back" onclick="${onclick||'goBack()'}">← ${label}</button><div class="avatar" onclick="goAccount()">김</div></div>`;
+  return `<div class="top"><button class="back" onclick="${onclick||'goBack()'}">← ${label}</button><div class="avatar" onclick="goAccount()">${_uInitial}</div></div>`;
 }
 
 function renderHome(){
@@ -128,7 +129,7 @@ function renderHome(){
   const otH=overtime.filter(o=>(o.yearMonth||'')===thisMonth).reduce((s,o)=>s+(Number(o.hours)||0),0);
   const lvUsed=leaves.filter(l=>(l.startDate||l.sdate||'').slice(0,7)===thisMonth).reduce((s,l)=>s+(parseFloat(l.days||l.leaveDays||0)||0),0);
   $app().innerHTML=`
-    <div class="top"><button class="back" onclick="goHome()">← 홈</button><div class="avatar" onclick="goAccount()">김</div></div>
+    <div class="top"><button class="back" onclick="goHome()">← 홈</button><div class="avatar" onclick="goAccount()">${_uInitial}</div></div>
     <div class="hello"><div class="name">인사</div><div class="sub">급여 · 계약 · 근태 · 연차</div></div>
     <div class="summary">
       <div class="s"><div class="n">${cnt}</div><div class="k">재직 인원</div></div>
@@ -216,3 +217,4 @@ render();
 </script>
 </body>
 </html>
+
