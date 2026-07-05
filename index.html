@@ -1510,7 +1510,9 @@ async function enterFromUser(user,msg){
   }
   if(!data){ await signOut(auth); if(msg) showMsg(msg,'err','등록되지 않은 계정입니다. 관리자에게 계정 생성을 요청하세요.'); return; }
   if(data.status!=='approved'){ await signOut(auth); if(msg) showMsg(msg,'err','승인되지 않은 계정입니다.'); return; }
-  me={ uid:user.uid, ...data };
+  // window.me 로 할당해야 setter(831줄)가 실행되어 jh_login_perms(모바일이 읽는 로그인 정보)가
+  // 실제 로그인한 사용자로 갱신된다. 지역변수(me=)로 할당하면 setter를 건너뛰어 이전 계정이 잔존한다.
+  window.me={ uid:user.uid, ...data };
   try{ localStorage.setItem('jh_login_name',(me.name||'').trim()); localStorage.setItem('jh_login_full',((me.name||'')+(me.rank?' '+me.rank:'')).trim()); }catch(e){}
   enterPortal();
 }
@@ -2409,7 +2411,7 @@ window.addEventListener('message', async (e) => {
   }
 });
 
-function doLogout(){ clearTimeout(_autoLogoutTimer); clearMsalCache(); signOut(auth).then(()=>{ me=null; $('login-pw').value=''; try{ localStorage.removeItem('jh_login_name'); localStorage.removeItem('jh_login_full'); }catch(e){} if(window.mbnHideNav) mbnHideNav(); showAuth('s-login'); }); }
+function doLogout(){ clearTimeout(_autoLogoutTimer); clearMsalCache(); signOut(auth).then(()=>{ me=null; $('login-pw').value=''; try{ localStorage.removeItem('jh_login_perms'); localStorage.removeItem('jh_login_name'); localStorage.removeItem('jh_login_full'); }catch(e){} if(window.mbnHideNav) mbnHideNav(); showAuth('s-login'); }); }
 // D+ 시작일 입력 토글
 function pjtToggleStartInput(key){
   const inp=document.getElementById('kpi-day-input-'+key);
@@ -2632,3 +2634,4 @@ window.mbnCloseMore=mbnCloseMore;
 </body>
 </html>
 <!-- b 1783190358 -->
+
