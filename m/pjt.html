@@ -104,6 +104,7 @@
   <div class="phone"><div id="app" class="scr"><div class="loading">불러오는 중…</div></div></div>
 
 <script type="module">
+const _uInitial=(function(){try{var a=JSON.parse(localStorage.getItem('jh_login_perms')||'null');return (a&&a.name)?a.name.slice(0,1):'·';}catch(e){return '·';}})();
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
 import { getFirestore, collection, onSnapshot, getDocs, doc, getDoc, setDoc, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
 const firebaseConfig = {
@@ -288,11 +289,11 @@ function render(){
   if(curView==='site') return renderSite();
   renderHome();
 }
-function topBar(label,onclick){ return `<div class="top"><button class="back" onclick="${onclick||'goBack()'}">← ${label}</button><div class="avatar" onclick="goAccount()">김</div></div>`; }
+function topBar(label,onclick){ return `<div class="top"><button class="back" onclick="${onclick||'goBack()'}">← ${label}</button><div class="avatar" onclick="goAccount()">${_uInitial}</div></div>`; }
 
 function renderHome(){
   $app().innerHTML=`
-    <div class="top"><button class="back" onclick="goHome()">← 홈</button><div class="avatar" onclick="goAccount()">김</div></div>
+    <div class="top"><button class="back" onclick="goHome()">← 홈</button><div class="avatar" onclick="goAccount()">${_uInitial}</div></div>
     <div class="hello"><div class="name">PJT 관리</div><div class="sub">진행 중인 프로젝트 현장 관리</div></div>
     <div class="lbl">진행 프로젝트</div>
     <div class="list top">
@@ -486,3 +487,4 @@ render();
 </script>
 </body>
 </html>
+
