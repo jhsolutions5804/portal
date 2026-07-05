@@ -50,6 +50,7 @@
   <div class="phone"><div id="app" class="scr"><div class="loading">불러오는 중…</div></div></div>
 
 <script type="module">
+const _uInitial=(function(){try{var a=JSON.parse(localStorage.getItem('jh_login_perms')||'null');return (a&&a.name)?a.name.slice(0,1):'·';}catch(e){return '·';}})();
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
 import { getFirestore, collection, onSnapshot } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
 const firebaseConfig = {
@@ -83,7 +84,7 @@ function render(){
   if(loadError){ $app().innerHTML=topBar('홈','goHome()')+`<div class="banner err">데이터를 불러오지 못했습니다: ${esc(loadError)}<br>포털 로그인 세션이 필요할 수 있습니다.</div>`; return; }
   ({org:renderOrg,admin:renderAdmin,adminD:renderAdminDetail}[curView]||renderOrg)();
 }
-function topBar(label,onclick){ return `<div class="top"><button class="back" onclick="${onclick||'goBack()'}">← ${label}</button><div class="avatar" onclick="goAccount()">김</div></div>`; }
+function topBar(label,onclick){ return `<div class="top"><button class="back" onclick="${onclick||'goBack()'}">← ${label}</button><div class="avatar" onclick="goAccount()">${_uInitial}</div></div>`; }
 
 /* 조직도 — 부서별 그룹 */
 function renderOrg(){
@@ -139,3 +140,4 @@ render();
 </script>
 </body>
 </html>
+
