@@ -142,6 +142,7 @@
   <div id="toast"></div>
 
 <script type="module">
+const _uInitial=(function(){try{var a=JSON.parse(localStorage.getItem('jh_login_perms')||'null');return (a&&a.name)?a.name.slice(0,1):'·';}catch(e){return '·';}})();
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
 import { getFirestore, collection, onSnapshot } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
 
@@ -212,7 +213,7 @@ function render(){
 
 /* ---------- 공통 상단 ---------- */
 function topBar(label){
-  return `<div class="top"><button class="back" onclick="goBack()">← ${label}</button><div class="avatar" onclick="goAccount()">김</div></div>`;
+  return `<div class="top"><button class="back" onclick="goBack()">← ${label}</button><div class="avatar" onclick="goAccount()">${_uInitial}</div></div>`;
 }
 
 /* ---------- 기획 홈 ---------- */
@@ -222,7 +223,7 @@ function renderHome(){
   const estCnt=estimates.filter(e=>(e.date||'').slice(0,7)===thisMonth&&isActive(e)).length;
   const waitCnt=settlements.filter(s=>s.docType==='invoice'&&s.status!=='done'&&setActive(s)).length;
   $app().innerHTML=`
-    <div class="top"><button class="back" onclick="location.href='home.html'">← 홈</button><div class="avatar" onclick="goAccount()">김</div></div>
+    <div class="top"><button class="back" onclick="location.href='home.html'">← 홈</button><div class="avatar" onclick="goAccount()">${_uInitial}</div></div>
     <div class="hello"><div class="name">기획</div><div class="sub">영업 · 정산 · 회계</div></div>
     <div class="summary">
       <div class="s"><div class="n">${runCnt}</div><div class="k">진행 프로젝트</div></div>
@@ -452,3 +453,4 @@ render();
 </script>
 </body>
 </html>
+
