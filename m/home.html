@@ -111,7 +111,7 @@
           <span class="dot"></span>
           <b>JH Solutions</b>
         </div>
-        <div class="avatar" onclick="location.href='account.html'" style="cursor:pointer">김</div>
+        <div class="avatar" id="mbAvatar" onclick="location.href='account.html'" style="cursor:pointer">·</div>
       </div>
 
       <div class="hello">
@@ -190,6 +190,9 @@
 <script>
 (function(){
   var auth=null; try{ auth=JSON.parse(localStorage.getItem('jh_login_perms')||'null'); }catch(e){}
+  // 상단 아바타: 로그인 사용자 이름 첫 글자로 표시 (기존 '김' 하드코딩 제거)
+  var _av=document.getElementById('mbAvatar');
+  if(_av) _av.textContent=(auth&&auth.name)?auth.name.slice(0,1):'·';
   var perms=(auth&&auth.perms)||{}, admin=(auth&&auth.admin)||false;
   function can(k){ return admin || !!perms[k]; }
   // 권한 없는 섹션 잠금
