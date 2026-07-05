@@ -68,6 +68,7 @@
   <div class="phone"><div id="app" class="scr"><div class="loading">불러오는 중…</div></div></div>
 
 <script type="module">
+const _uInitial=(function(){try{var a=JSON.parse(localStorage.getItem('jh_login_perms')||'null');return (a&&a.name)?a.name.slice(0,1):'·';}catch(e){return '·';}})();
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
 import { getFirestore, collection, onSnapshot } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
 const firebaseConfig = {
@@ -109,14 +110,14 @@ function render(){
     resign:()=>renderStub('퇴직원서'),cert:()=>renderStub('재직증명서'),purchase:()=>renderStub('구매품의서'),expense:()=>renderStub('지출결의서')};
   (map[curView]||renderHome)();
 }
-function topBar(label,onclick){ return `<div class="top"><button class="back" onclick="${onclick||'goBack()'}">← ${label}</button><div class="avatar" onclick="goAccount()">김</div></div>`; }
+function topBar(label,onclick){ return `<div class="top"><button class="back" onclick="${onclick||'goBack()'}">← ${label}</button><div class="avatar" onclick="goAccount()">${_uInitial}</div></div>`; }
 
 function renderHome(){
   const allDocs=[...dailies,...leaves];
   const waitCnt=allDocs.filter(d=>isWait(d.status)).length;
   const okCnt=allDocs.filter(d=>isOk(d.status)).length;
   $app().innerHTML=`
-    <div class="top"><button class="back" onclick="goHome()">← 홈</button><div class="avatar" onclick="goAccount()">김</div></div>
+    <div class="top"><button class="back" onclick="goHome()">← 홈</button><div class="avatar" onclick="goAccount()">${_uInitial}</div></div>
     <div class="hello"><div class="name">전자결재</div><div class="sub">업무일지 · 연차 · 구매품의 · 지출결의</div></div>
     <div class="summary">
       <div class="s"><div class="n wait">${waitCnt}</div><div class="k">결재 대기</div></div>
@@ -213,3 +214,4 @@ render();
 </script>
 </body>
 </html>
+
