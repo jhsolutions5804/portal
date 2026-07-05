@@ -178,7 +178,7 @@
       </div>
 
       <div class="out">
-        <button>로그아웃</button>
+        <button id="mbLogoutBtn" type="button">로그아웃</button>
       </div>
 
       <div class="hint">
@@ -208,7 +208,32 @@
   var dEl=document.querySelector('.hello .date');
   if(dEl){ var d=new Date(), wd=['일','월','화','수','목','금','토'][d.getDay()];
     dEl.textContent=d.getFullYear()+'년 '+(d.getMonth()+1)+'월 '+d.getDate()+'일 '+wd+'요일'; }
+
+  // ── 로그아웃 처리 (localStorage + Firebase 세션 완전 정리) ──
+  // 기존: 버튼에 핸들러가 없어 로그아웃이 동작하지 않고, 이전 로그인 계정이
+  // 그대로 남아 다른 사용자에게 자동 승계되던 문제를 해결한다.
+  var _outBtn=document.getElementById('mbLogoutBtn');
+  if(_outBtn){
+    _outBtn.addEventListener('click', function(){
+      if(!confirm('로그아웃 하시겠습니까?')) return;
+      // 1) 포털 로그인 정보 삭제
+      try{
+        localStorage.removeItem('jh_login_perms');
+        localStorage.removeItem('jh_login_name');
+        localStorage.removeItem('jh_login_full');
+      }catch(e){}
+      // 2) Firebase Auth 세션(IndexedDB) 삭제 → 재접속 시 자동 로그인 방지
+      var _moved=false;
+      function _go(){ if(_moved) return; _moved=true; location.replace('../index.html'); }
+      try{
+        var _req=indexedDB.deleteDatabase('firebaseLocalStorageDb');
+        _req.onsuccess=_go; _req.onerror=_go; _req.onblocked=_go;
+      }catch(e){ _go(); }
+      setTimeout(_go, 1000); // 안전망: IndexedDB 삭제가 지연/차단돼도 이동 보장
+    });
+  }
 })();
 </script>
 </body>
 </html>
+
