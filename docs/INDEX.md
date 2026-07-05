@@ -1,6 +1,6 @@
 # JH Solutions 포털 — 문서 인덱스
 
-> 최초 작성: 2026-06-26 · 최종 수정: 2026-07-04(r9a) · 파일명 표기 실제 파일 정합화 · 작성: 춘식이(Claude)
+> 최초 작성: 2026-06-26 · 최종 수정: 2026-07-04(r10) · 모바일 UI 통합(v2.0.0) 반영 · 작성: 춘식이(Claude)
 
 ---
 
@@ -72,7 +72,21 @@
 | 파일명 | 내용 |
 |--------|------|
 | `7_0_log_2026-07-02_session.md` | **2026-07-02 세션 종합 로그** (운영 배포·Firebase 격리·트러블슈팅) |
-| `7_1_log_portal_r4a.md` ~ `7_6_log_org_portal_admin_r3.md` | 모듈별 개발 로그 (portal·gihoek·hr·edoc·pjt·조직/portal관리) |
+| `7_1_log_portal_r4a.md` ~ `7_7_log_mobile_r1.md` | 모듈별 개발 로그 (portal·gihoek·hr·edoc·pjt·조직/portal관리·모바일통합) |
+
+---
+
+## 8. 모바일 (m/)
+
+| 문서 | 내용 |
+|---|---|
+| `8_0_mobile_r1.md` | 모바일 UI 통합 — UA 분기, m/ 앱 7종, PJT 모바일(공정·일정·근태), **업무지시/보고 데이터 구조 확정본** |
+
+---
+
+## 세션 요약 — 2026-07-04 (r10)
+
+**모바일 UI 통합 (v2.0.0)**. PC/모바일 UA 기준 분기(PC 무변경) + `m/` 앱 7종(home·gihoek·hr·edoc·admin·account·pjt). PJT 모바일: 공정 실연동(FAB/SUP, calcZone PC값 일치), 일정 캘린더(오늘 자동선택·날짜별 일정+업무지시/보고), 근태(날짜이동·출역토글). 공정 시작일 `pjt_settings`에서 자동조회. **업무지시/보고 경로 정정**: `daily_report_docs`→실제 `daily_reports_{날짜}`/`ph4_daily_{날짜}`(text/name/time/ts). `preview/` 정리. 백업 `backup/v2.0.0/`. **미진행**: 하루 넘기는 일정 완료체크 단일화(→ `7_7_log_mobile_r1.md`).
 
 ---
 
