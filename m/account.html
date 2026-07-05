@@ -35,6 +35,7 @@
   .logout button:active{background:#fdf0f0}
   .loading{text-align:center;padding:50px;color:#9aa8bc;font-size:13px;font-weight:600}
 </style>
+<script src="auth-guard.js"></script>
 </head>
 <body>
   <div class="phone"><div id="app" class="scr"><div class="loading">불러오는 중…</div></div></div>
@@ -90,7 +91,7 @@ function render(){
       <div class="lbl">접근 권한</div>
       <div class="permrow">${me.admin?'<span class="permchip on">전체 (관리자)</span>':perms.map(([k,on])=>`<span class="permchip ${on?'on':''}">${on?'✓ ':''}${k}</span>`).join('')}</div>`
     :'<div class="banner info">로그인한 이름과 일치하는 포털 계정을 찾지 못했습니다. 계정 정보는 관리자에게 문의해 주세요.</div>'}
-    <div class="logout"><button onclick="goHome()">홈으로</button></div>`;
+    <div class="logout"><button onclick="jhLogout({confirm:true})">로그아웃</button><button onclick="goHome()" style="color:var(--sub);margin-top:10px">홈으로</button></div>`;
 }
 
 function sub(coll,setter){
@@ -102,3 +103,4 @@ render();
 </script>
 </body>
 </html>
+
