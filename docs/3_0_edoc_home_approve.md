@@ -1,6 +1,7 @@
 # 3.0. 전자결재 — 홈 · 결재함
 
-> Firestore 컬렉션: `edoc_daily`, `edoc_leave`, `edoc_resign`, `edoc_cert`, `edoc_purchase`, `edoc_expense`, `portal_users`
+> Firestore 컬렉션: `edoc_daily`, `edoc_leave`, `edoc_resign`, `edoc_cert`, `edoc_purchase`, `edoc_expense`, `edoc_overtime`, `portal_users`
+> 최종 수정: 2026-07-06 (초과근로 결재 추가 · v2.1.0)
 > 최초 작성: 2026-07-01 · 작성: 춘식이(Claude)
 
 ---
@@ -23,6 +24,7 @@
 | cert | 재직증명서 | `renderDocMain('cert')` |
 | purchase | 구매품의서 | `renderDocMain('purchase')` |
 | expense | 지출결의서 | `renderDocMain('expense')` |
+| overtime | 초과근로 | `renderOvertimeMain()` (→ `3_4_edoc_overtime`) |
 
 ---
 
