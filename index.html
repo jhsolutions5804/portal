@@ -841,7 +841,10 @@ function showAuth(id){
 function showApp(){
   // 모바일/PC 분기: 픽셀 너비가 아니라 UA로 판단. '데스크톱 사이트 보기'를 누르면
   // UA에서 'Mobile'이 빠지므로 폴드 등에서도 PC 화면으로 정상 전환됨.
-  if(/Mobi/i.test(navigator.userAgent||'')){ location.href='m/home.html'; return; }
+  if(/Mobi/i.test(navigator.userAgent||'')){
+    var _rt=''; try{ _rt=sessionStorage.getItem('jh_return_to')||''; sessionStorage.removeItem('jh_return_to'); sessionStorage.removeItem('jh_gate_redir'); }catch(e){}
+    location.href = _rt ? ('m/'+_rt) : 'm/home.html'; return;
+  }
   $('auth-stage').style.display='none';
   $('s-app').classList.add('shown');
   window.scrollTo(0,0);
@@ -2366,6 +2369,14 @@ onAuthStateChanged(auth, async user=>{
   if(user && !me){ try{ await enterFromUser(user,null); }catch(_){} }
   if(!user && !me){ showAuth('s-login'); }
 });
+// 인증 콜백이 지연/미호출되어 로딩(splash)에 갇히는 것 방지 (fallback)
+setTimeout(function(){
+  var _sp=$('splash');
+  if(_sp && _sp.style.display!=='none'){
+    _sp.style.display='none';
+    if(!me){ try{ showAuth('s-login'); }catch(e){} }
+  }
+}, 6000);
 
 
 /* ── 자동 로그아웃 (30분 무동작) ── */
