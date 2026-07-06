@@ -839,11 +839,16 @@ function showAuth(id){
   window.scrollTo(0,0);
 }
 function showApp(){
-  // 모바일/PC 분기: 픽셀 너비가 아니라 UA로 판단. '데스크톱 사이트 보기'를 누르면
-  // UA에서 'Mobile'이 빠지므로 폴드 등에서도 PC 화면으로 정상 전환됨.
+  // 모바일 서브페이지 게이트에서 넘어온 경우: UA와 무관하게 원래 페이지로 복귀
+  var _rt=''; try{ _rt=sessionStorage.getItem('jh_return_to')||''; }catch(e){}
+  if(_rt){
+    try{ sessionStorage.removeItem('jh_return_to'); sessionStorage.removeItem('jh_gate_redir'); }catch(e){}
+    location.href = 'm/'+_rt; return;
+  }
+  // 복귀 경로가 없으면 UA로 모바일/PC 분기. '데스크톱 사이트 보기' 시 'Mobile'이 빠져 PC로 정상 전환.
   if(/Mobi/i.test(navigator.userAgent||'')){
-    var _rt=''; try{ _rt=sessionStorage.getItem('jh_return_to')||''; sessionStorage.removeItem('jh_return_to'); sessionStorage.removeItem('jh_gate_redir'); }catch(e){}
-    location.href = _rt ? ('m/'+_rt) : 'm/home.html'; return;
+    try{ sessionStorage.removeItem('jh_gate_redir'); }catch(e){}
+    location.href='m/home.html'; return;
   }
   $('auth-stage').style.display='none';
   $('s-app').classList.add('shown');
