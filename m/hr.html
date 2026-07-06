@@ -82,7 +82,7 @@
 <script type="module">
 const _uInitial=(function(){try{var a=JSON.parse(localStorage.getItem('jh_login_perms')||'null');return (a&&a.name)?a.name.slice(0,1):'·';}catch(e){return '·';}})();
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
-import { getFirestore, collection, onSnapshot } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+import { getFirestore, collection, onSnapshot, getDocs } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
 const firebaseConfig = {
   apiKey:"AIzaSyCyQxBJ_ftfM0ImBXubmqD5gfzFR54iPmE", authDomain:"p4ph2-fab-506a7.firebaseapp.com",
   projectId:"p4ph2-fab-506a7", storageBucket:"p4ph2-fab-506a7.firebasestorage.app",
@@ -117,9 +117,51 @@ const ROSTER_VIEWS={roster:'근로자 명부',payslip:'급여명세서',labor:'�
 
 function render(){
   if(loadError){ $app().innerHTML=topBar('인사')+`<div class="banner err">데이터를 불러오지 못했습니다: ${esc(loadError)}<br>포털 로그인 세션이 필요할 수 있습니다.</div>`; return; }
+  if(['labor','annual','payslip'].includes(curView)) return renderDocList(curView);
   if(ROSTER_VIEWS[curView]) return renderRoster(curView);
   const map={home:renderHome,overtime:renderOvertime,leave:renderLeave,workerD:renderWorkerDetail};
   (map[curView]||renderHome)();
+}
+// ===== 계약서/급여명세서 목록 (서브컬렉션 순회 로드) =====
+let docCache={labor:null, annual:null, payslip:null}, docLoading={};
+async function loadDocs(kind){
+  if(docCache[kind]!==null || docLoading[kind]) return;
+  if(!workers.length){ return; } // 근로자 로드 후 재호출됨
+  docLoading[kind]=true;
+  const out=[];
+  try{
+    for(const w of workers){
+      if(kind==='payslip'){
+        const snap=await getDocs(collection(db,`payslips/${w.id}/months`));
+        snap.forEach(d=>out.push({worker:w, ym:d.id, ...d.data()}));
+      } else {
+        const path=kind==='labor'?`labor_contracts/${w.id}/contracts`:`annual_contracts/${w.id}/contracts`;
+        const snap=await getDocs(collection(db,path));
+        snap.forEach(d=>out.push({worker:w, cid:d.id, ...d.data()}));
+      }
+    }
+  }catch(e){ console.error('문서 로드 오류',kind,e); }
+  docCache[kind]=out; docLoading[kind]=false; render();
+}
+function renderDocList(kind){
+  const LABEL={labor:'근로계약서', annual:'연봉계약서', payslip:'급여명세서'};
+  if(docCache[kind]===null){
+    loadDocs(kind);
+    $app().innerHTML=topBar('인사')+`<div class="hello"><div class="name">${LABEL[kind]}</div></div><div class="loading">불러오는 중…</div>`;
+    return;
+  }
+  const items=docCache[kind];
+  let cards;
+  if(kind==='payslip'){
+    cards=[...items].sort((a,b)=>String(b.ym||'').localeCompare(String(a.ym||''))).map(it=>
+      `<div class="icard"><div class="ibody"><div class="ititle">${esc(it.worker.name||'-')} <span class="pill">${esc(it.ym||'')}</span></div><div class="imeta">${esc(it.worker.dept||'')}</div></div><div class="iamt">${won(it.netPay||it.totalPay||0)}</div></div>`).join('');
+  } else {
+    cards=[...items].sort((a,b)=>String(b.startDate||b.contractDate||'').localeCompare(String(a.startDate||a.contractDate||''))).map(it=>
+      `<div class="icard"><div class="ibody"><div class="ititle">${esc(it.worker.name||'-')} ${it.worker.rank?`<span class="pill">${esc(it.worker.rank)}</span>`:''}</div><div class="imeta">${esc((it.startDate||it.contractDate||'')+(it.endDate?' ~ '+it.endDate:''))}</div></div>${it.salary?`<div class="iamt">${won(it.salary)}</div>`:''}</div>`).join('');
+  }
+  $app().innerHTML=topBar('인사')+`
+    <div class="hello rowend"><div><div class="name">${LABEL[kind]}</div><div class="sub">전체 ${items.length}건</div></div></div>
+    ${items.length?`<div class="list">${cards}</div>`:`<div class="empty">작성된 ${LABEL[kind]}가 없습니다.</div>`}`;
 }
 function topBar(label,onclick){
   return `<div class="top"><button class="back" onclick="${onclick||'goBack()'}">← ${label}</button><div class="avatar" onclick="goAccount()">${_uInitial}</div></div>`;
@@ -200,8 +242,7 @@ function renderWorkerDetail(){
     </div>
     <div class="lbl">기본 정보</div>
     <div class="dcard">${info.map(([k,v])=>`<div class="drow"><span class="dk">${k}</span><span class="dv">${esc(v)}</span></div>`).join('')}</div>
-    ${ots.length?`<div class="lbl">초과근로 내역 (${ots.length})</div><div class="list">${ots.map(o=>`<div class="icard"><div class="ibody"><div class="ititle"><span class="pill">${esc(o.yearMonth||'')}</span> ${esc(o.hours||0)}시간</div></div><div class="iamt">${won(o.amount||0)}</div></div>`).join('')}</div>`:''}
-    <div class="banner info" style="margin-top:20px">급여명세서·근로계약서·연봉계약서·퇴직금 정산 등 문서 상세는 순차로 붙일 예정입니다.</div>`;
+    ${ots.length?`<div class="lbl">초과근로 내역 (${ots.length})</div><div class="list">${ots.map(o=>`<div class="icard"><div class="ibody"><div class="ititle"><span class="pill">${esc(o.yearMonth||'')}</span> ${esc(o.hours||0)}시간</div></div><div class="iamt">${won(o.amount||0)}</div></div>`).join('')}</div>`:''}`;
 }
 
 /* Firestore 구독 */
@@ -218,4 +259,5 @@ render();
 </script>
 </body>
 </html>
+
 
