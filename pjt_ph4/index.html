@@ -741,7 +741,7 @@ body{font-family:-apple-system,'Apple SD Gothic Neo','Pretendard',sans-serif;bac
 
     <!-- SETTINGS (설정) -->
     <div id="tab-report" style="display:none">
-      <div style="padding:16px;color:#888;font-size:13px">공사일보 (재작업 중)</div>
+      <iframe id="report-frame" title="공사일보" style="width:100%;min-height:82vh;border:none;display:block;background:#f3f5f8"></iframe>
     </div>
     <div id="tab-settings" style="display:none">
       <div style="max-width:640px;margin:0 auto">
@@ -2806,6 +2806,7 @@ function switchTab(name,btn){
   if(name==='progress')initProgress();
   if(name==='attend')  renderAttend();
   if(name==='settings')loadPjtSettings();
+  if(name==='report'){ var _rf=document.getElementById('report-frame'); if(_rf && !_rf.getAttribute('src')) _rf.setAttribute('src','../daily-report/ph4.html'); }
 }
 
 function switchTabPC(name,btn){
