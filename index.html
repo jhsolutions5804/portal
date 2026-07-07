@@ -839,21 +839,10 @@ function showAuth(id){
   window.scrollTo(0,0);
 }
 function showApp(){
-  // 모바일 서브페이지 게이트에서 넘어온 경우: UA와 무관하게 원래 페이지로 복귀
-  var _rt=''; try{ _rt=sessionStorage.getItem('jh_return_to')||''; }catch(e){}
-  if(_rt){
-    try{ sessionStorage.removeItem('jh_return_to'); sessionStorage.removeItem('jh_gate_redir'); }catch(e){}
-    location.href = 'm/'+_rt; return;
-  }
-  // 복귀 경로가 없으면 UA로 모바일/PC 분기. '데스크톱 사이트 보기' 시 'Mobile'이 빠져 PC로 정상 전환.
-  if(/Mobi/i.test(navigator.userAgent||'')){
-    try{ sessionStorage.removeItem('jh_gate_redir'); }catch(e){}
-    location.href='m/home.html'; return;
-  }
+  if(/Mobi/i.test(navigator.userAgent||'')){ location.href='m/home.html'; return; }
   $('auth-stage').style.display='none';
   $('s-app').classList.add('shown');
   window.scrollTo(0,0);
-  // 모바일 하단 탭바 표시 (PC에서는 display:flex가 CSS로 none됨)
   if(window.mbnShowNav) mbnShowNav();
 }
 function showView(v){
@@ -2374,14 +2363,6 @@ onAuthStateChanged(auth, async user=>{
   if(user && !me){ try{ await enterFromUser(user,null); }catch(_){} }
   if(!user && !me){ showAuth('s-login'); }
 });
-// 인증 콜백이 지연/미호출되어 로딩(splash)에 갇히는 것 방지 (fallback)
-setTimeout(function(){
-  var _sp=$('splash');
-  if(_sp && _sp.style.display!=='none'){
-    _sp.style.display='none';
-    if(!me){ try{ showAuth('s-login'); }catch(e){} }
-  }
-}, 6000);
 
 
 /* ── 자동 로그아웃 (30분 무동작) ── */
