@@ -466,7 +466,7 @@ window.saveReport = async ()=>{
   const orig=btn.innerHTML; btn.innerHTML='저장 중...'; btn.disabled=true;
   try{
     const dk=selKey||( selDate?selDate.toISOString().slice(0,10):'unknown' );
-    await setDoc(doc(db,'ph4_daily_report_docs',dk),{
+    await setDoc(doc(db,'ph4_reports',dk),{
       ...d, dateKey:dk, savedAt:serverTimestamp()
     });
     btn.innerHTML='✓ 저장 완료!'; btn.style.background='#2e7d32';
