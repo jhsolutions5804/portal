@@ -445,7 +445,6 @@ body{font-family:-apple-system,'Apple SD Gothic Neo','Pretendard',sans-serif;bac
     <button class="pc-tnav-btn" data-tab="calendar" onclick="switchTabPC('calendar',this)">🗓️ 캘린더</button>
     <button class="pc-tnav-btn" data-tab="attend" onclick="switchTabPC('attend',this)">👷 근태</button>
     <button class="pc-tnav-btn" data-tab="progress" onclick="switchTabPC('progress',this)">📊 공정</button>
-    <button class="pc-tnav-btn" data-tab="report" onclick="switchTabPC('report',this)">📋 공사일보</button>
     <button class="pc-tnav-btn" data-tab="settings" onclick="switchTabPC('settings',this)">⚙️ 설정</button>
   </div>
   <div class="pc-topnav-right">
@@ -466,7 +465,7 @@ body{font-family:-apple-system,'Apple SD Gothic Neo','Pretendard',sans-serif;bac
         <div class="logo-sub" id="hdr-sub-mo">귀뚜라미범양냉방 · EHU 설치</div>
       </div>
       <span class="date-badge" id="today-badge"></span>
-      <a href="#" onclick="goHomeTab('report');return false;" style="font-size:12px;color:#1D5BA6;background:#e8f0fb;padding:5px 11px;border-radius:8px;text-decoration:none;font-weight:600;white-space:nowrap;">📋 공사일보</a>
+      <a href="#" onclick="window.open('../daily-report/ph4.html','_blank');return false;" style="font-size:12px;color:#1D5BA6;background:#e8f0fb;padding:5px 11px;border-radius:8px;text-decoration:none;font-weight:600;white-space:nowrap;">📋 공사일보</a>
     </div>
     <div class="tab-bar">
       <button class="tab active" onclick="switchTab('today',this)">오늘</button>
@@ -474,7 +473,6 @@ body{font-family:-apple-system,'Apple SD Gothic Neo','Pretendard',sans-serif;bac
       <button class="tab" onclick="switchTab('calendar',this)">캘린더</button>
       <button class="tab" onclick="switchTab('attend',this)">근태</button>
       <button class="tab" onclick="switchTab('progress',this)">공정</button>
-      <button class="tab" onclick="switchTab('report',this)">일보</button>
       <button class="tab" onclick="switchTab('settings',this)">설정</button>
     </div>
   </div>
@@ -525,7 +523,7 @@ body{font-family:-apple-system,'Apple SD Gothic Neo','Pretendard',sans-serif;bac
               <div class="sci">📅</div>
               <div><div class="sct">오늘 일정</div><div class="scd">일정 확인 및 보고</div></div>
             </div>
-            <div class="home-sc" onclick="goHomeTab('report')">
+            <div class="home-sc" onclick="window.open('../daily-report/ph4.html','_blank')">
               <div class="sci">📋</div>
               <div><div class="sct">공사일보 작성</div><div class="scd">오늘 공사일보 작성</div></div>
             </div>
@@ -740,9 +738,6 @@ body{font-family:-apple-system,'Apple SD Gothic Neo','Pretendard',sans-serif;bac
     </div>
 
     <!-- SETTINGS (설정) -->
-    <div id="tab-report" style="display:none">
-      <iframe id="report-frame" title="공사일보" style="width:100%;min-height:82vh;border:none;display:block;background:#f3f5f8"></iframe>
-    </div>
     <div id="tab-settings" style="display:none">
       <div style="max-width:640px;margin:0 auto">
         <div class="home-card">
@@ -2780,7 +2775,7 @@ function hideFixedItem(dateKey,text){
 }
 
 function switchTab(name,btn){
-  var ALL_TABS=['home','today','twoweek','calendar','progress','attend','report','settings'];
+  var ALL_TABS=['home','today','twoweek','calendar','progress','attend','settings'];
   // 알 수 없는 탭 이름(예: 포털 서브탭 key)이 들어오면 home으로 폴백 (빈 화면 방지)
   if(ALL_TABS.indexOf(name)<0) name='home';
   // grid 레이아웃 탭 목록 (CSS에 grid 선언 있는 탭)
@@ -2806,7 +2801,6 @@ function switchTab(name,btn){
   if(name==='progress')initProgress();
   if(name==='attend')  renderAttend();
   if(name==='settings')loadPjtSettings();
-  if(name==='report'){ var _rf=document.getElementById('report-frame'); if(_rf && !_rf.getAttribute('src')) _rf.setAttribute('src','../daily-report/ph4.html'); }
 }
 
 function switchTabPC(name,btn){
