@@ -146,9 +146,6 @@ textarea { resize:vertical; min-height:90px; line-height:1.6; }
     <div class="card-label"><span class="num">3</span> 작성자</div>
     <select id="author">
       <option value="">작성자 선택</option>
-      <option value="김종화 차장">김종화 차장</option>
-      <option value="윤석원 과장">윤석원 과장</option>
-      <option value="김영서 사원">김영서 사원</option>
     </select>
   </div>
 
@@ -489,18 +486,17 @@ window.savePDF=()=>{
 document.getElementById('datePopup').addEventListener('click',e=>{ if(e.target===document.getElementById('datePopup'))closePicker(); });
 document.getElementById('previewModal').addEventListener('click',e=>{ if(e.target===document.getElementById('previewModal'))closePreview(); });
 
-// 로그인 계정 → 작성자 자동 반영 (포털과 같은 origin의 localStorage 공유)
-(function(){
+// 작성자 목록: portal_users(포털 직원)에서 로드 + 로그인 계정 자동 선택
+(async function(){
   try{
+    var sel=document.getElementById('author'); if(!sel) return;
+    var snap=await getDocs(collection(db,'portal_users'));
+    var names=[];
+    snap.forEach(function(d){ var u=d.data(); if(u&&u.name){ names.push((u.name+' '+(u.rank||'')).trim()); } });
+    names.sort(function(a,b){ return a.localeCompare(b,'ko'); });
+    names.forEach(function(nm){ var op=document.createElement('option'); op.value=nm; op.textContent=nm; sel.appendChild(op); });
     var ln=localStorage.getItem('jh_login_full')||localStorage.getItem('jh_login_name')||'';
-    if(ln){
-      var sel=document.getElementById('author');
-      if(sel){
-        var exists=Array.from(sel.options).some(function(o){return o.value===ln;});
-        if(!exists){ var op=document.createElement('option'); op.value=ln; op.textContent=ln; sel.appendChild(op); }
-        sel.value=ln;
-      }
-    }
+    if(ln && Array.from(sel.options).some(function(o){return o.value===ln;})) sel.value=ln;
   }catch(e){}
 })();
 </script>
