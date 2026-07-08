@@ -491,11 +491,14 @@ document.getElementById('previewModal').addEventListener('click',e=>{ if(e.targe
   try{
     var sel=document.getElementById('author'); if(!sel) return;
     var snap=await getDocs(collection(db,'portal_users'));
-    var names=[];
-    snap.forEach(function(d){ var u=d.data(); if(u&&u.name){ names.push((u.name+' '+(u.rank||'')).trim()); } });
+    var ln=localStorage.getItem('jh_login_full')||localStorage.getItem('jh_login_name')||'';
+    var lnName=ln?ln.split(' ')[0]:'';
+    var byName={};
+    snap.forEach(function(d){ var u=d.data(); if(u&&u.name){ byName[u.name]=(u.name+' '+(u.rank||'')).trim(); } });
+    if(ln && lnName) byName[lnName]=ln;   // 같은 이름은 로그인 계정(직급)으로 통일 → 중복 제거
+    var names=Object.keys(byName).map(function(n){ return byName[n]; });
     names.sort(function(a,b){ return a.localeCompare(b,'ko'); });
     names.forEach(function(nm){ var op=document.createElement('option'); op.value=nm; op.textContent=nm; sel.appendChild(op); });
-    var ln=localStorage.getItem('jh_login_full')||localStorage.getItem('jh_login_name')||'';
     if(ln && Array.from(sel.options).some(function(o){return o.value===ln;})) sel.value=ln;
   }catch(e){}
 })();
