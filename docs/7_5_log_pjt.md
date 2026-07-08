@@ -21,6 +21,7 @@
 | `59d814f1c6` | 2026-07-03 | 공정표 PPT 섹터별 상세 6P 추가 (전일/금일/누계/증감 연동) |
 | `16e9ada97f` | 2026-07-03 | 공정표 상세 설치 진행도 instBarPct 반영 (2p와 동일) |
 | `285f6ee10c` | 2026-07-03 | 공정표 상세 헤더에 섹터 전체 공정율(+전일대비) 추가 |
+| `a0942203` | 2026-07-08 | 공사일보 조회 상세에 수정/삭제 (`setDoc merge`·`deleteDoc`) |
 
 ## 커밋 이력 (SUP)
 
@@ -34,10 +35,30 @@
 | `4daed7ef` | 2026-06-26 | fix: via=portal 수신 시 iframe 풀스크린 레이아웃 |
 | `2c7efc94` | 2026-06-26 | fix(C안): 홈탭 모바일CSS + D+ Firestore 저장/읽기 |
 | `137d7f36` | 2026-06-26 | 완결: 모바일 최종 정리 |
+| `18febd57` | 2026-07-08 | 공사일보 조회 상세에 수정/삭제 (컬렉션 `ph4_reports`) |
 
 ---
 
 ## 주요 변경 상세
+
+### 공사일보 조회 수정/삭제 (2026-07-08) — FAB `a0942203` · SUP `18febd57`
+
+- 공사일보 조회 상세 모달 하단에 ✏️수정 / 🗑삭제 버튼 추가 (기존 조회·PDF 유지)
+- 수정: 편집 폼(`editDRDetail`) → `_fbUpdateReportDoc`(`setDoc merge`+`updatedAt`) → 즉시 반영, `cancelDREdit` 원본 복귀
+- 삭제: `deleteDRDetail` → confirm → `_fbDeleteReportDoc`(`deleteDoc`) → 목록 복귀
+- 편집 필드: 작성자·금일작업·명일예정·투입인원·사용장비·특이사항. 현장명·작성일자(문서 키)는 고정
+- 뷰/편집 버튼 토글(`toggleDRBtns`), XSS 이스케이프(`_drEsc`) 적용
+- 컬렉션: FAB `daily_report_docs` / SUP `ph4_reports`
+- 검증: jsdom 흐름 FAB·SUP 각 19/19 통과
+
+### 홈 일정 상세/등록/수정/삭제 (2026-07-08) — 홈 `ae103662` (포털 `index.html`)
+
+- 포털 홈 우측 상세 패널 일정 클릭 → 상세 모달(`openHomeSchedDetail`)
+- `＋ 일정 등록`·수정·삭제(`openHomeSchedForm`/`saveHomeSched`/`deleteHomeSched`): 신규 `addDoc`, 수정 `setDoc merge`(컬렉션·id 고정), 삭제 `deleteDoc`
+- 저장/삭제 후 `loadPjtCalendar`+`pjtCalSelectDay` 자동 새로고침
+- 컬렉션: `user_schedules`(FAB) / `ph4_schedules`(SUP), 필드는 PJT 앱 일정과 동일(양방향 호환)
+- 캐시 `_pjtCalCache`에 문서 `id`·`col` 추가(수정/삭제 식별). PC 전용(모바일 리다이렉트)
+- 검증: jsdom 흐름 prod·test 각 29/29 통과, 본섭 배포 전 충돌·스코프·z-index·모바일 파급 검토 통과
 
 ### PJT-PPT: 공정표 PPT 섹터별 상세 6P (2026-07-03)
 
