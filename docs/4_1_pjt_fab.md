@@ -2,7 +2,7 @@
 
 > 앱: `portal/pjt/index.html` · 워커 컬렉션: `pjt_workers_fab`
 > Firestore: `user_schedules`, `daily_reports_{날짜}`, `daily_report_docs`, `pjt_workers_fab`, `edoc_leave`
-> 최초 작성: 2026-07-01 · 최종 개정: 2026-07-02 (4.4.0) · 작성: 춘식이(Claude)
+> 최초 작성: 2026-07-01 · 최종 개정: 2026-07-08 (4.5.0) · 작성: 춘식이(Claude)
 
 ---
 
@@ -16,6 +16,15 @@
 
 - **홈**: 프로젝트 대시보드, 진입 메뉴 카드
 - **오늘**: 업무보고(`daily_reports_{날짜}`, 날짜별 컬렉션 분리) + 일일 보고서 문서(`daily_report_docs/{dateKey}`)
+
+### 공사일보 조회 수정/삭제 (4.5.0 신규)
+
+- 공사일보 조회 상세 모달(`openDRDetail` → `renderDRView`) 하단에 **✏️ 수정 / 🗑 삭제** 버튼 추가 (기존 조회·PDF 유지)
+- **수정**(`editDRDetail`): 편집 폼 전환 → `saveDRDetail`이 `_fbUpdateReportDoc`(= `setDoc merge` + `updatedAt`) 호출 → 즉시 상세 반영. `cancelDREdit`로 원본 복귀
+- **삭제**(`deleteDRDetail`): confirm 후 `_fbDeleteReportDoc`(= `deleteDoc`) → 목록 자동 복귀
+- 수정 가능 필드: 작성자·금일작업·명일예정·투입인원·사용장비·특이사항. **현장명·작성일자는 문서 키(날짜) 근거라 고정**
+- 뷰/편집 버튼 그룹 토글(`toggleDRBtns`), XSS 방지 이스케이프(`_drEsc`) 적용
+- 컬렉션: `daily_report_docs` (문서 ID = 날짜키)
 
 ---
 
