@@ -1,7 +1,7 @@
 # 4.0. PJT 관리 — 홈
 
 > 포털 메뉴: `pjt`(P4 Ph2 FAB), `p4ph4`(P4 Ph4 SUP)
-> 최초 작성: 2026-07-01 · 최종 개정: 2026-07-02 (4.4.0) · 작성: 춘식이(Claude)
+> 최초 작성: 2026-07-01 · 최종 개정: 2026-07-08 (4.5.0) · 작성: 춘식이(Claude)
 
 ---
 
@@ -48,6 +48,23 @@ PJT 관리는 진행 중인 현장 프로젝트별 워크스페이스를 제공�
   - 데이터: 일정 `user_schedules`(p4ph2) + `ph4_schedules`(p4ph4), 업무지시 `daily_report_docs` + `ph4_reports`(문서 ID = 날짜)
 - **컨테이너**: 전체 폭 사용(`width:100%`), 좌측 사이드바 옆부터 화면 우측까지 (여백 축소)
 - **레이아웃 구현 주의**: 캘린더 격자(요일·날짜 7열)는 미디어쿼리 클래스 대신 **요소 인라인 스타일**로 `display:grid; grid-template-columns:repeat(7,1fr)` 고정 → 화면 폭·미디어쿼리 무관하게 항상 정상 표시 (이력: 클래스가 특정 조건에서 미적용되던 문제 회피)
+
+---
+
+## 홈 일정 상세/등록/수정/삭제 (4.5.0 신규)
+
+> 포털 홈 우측 상세 패널(`pjt-cal-detail`)에서 일정을 직접 조회·관리. 별도 PJT 앱 진입 없이 홈에서 완결.
+
+- **상세 조회**: 우측 패널의 각 일정 클릭(`openHomeSchedDetail`) → 상세 모달(`home-sched-detail-modal`). 카테고리·일정·기간·장소·참석자·등록자·프로젝트 표시
+- **등록**: 우측 패널 상단 `＋ 일정 등록`(`openHomeSchedForm('new', dk)`) → 폼 모달(`home-sched-form-modal`). 프로젝트 선택·내용·카테고리(칩)·시작/종료 일시(date+time)·장소·참석자·등록자
+- **수정**: 상세 모달 `✏️ 수정`(`editHomeSchedFromDetail` → `openHomeSchedForm('edit')`). 값 채워 열림, 저장 시 원본 갱신. **프로젝트(컬렉션)는 안전상 고정**
+- **삭제**: 상세 모달 `🗑 삭제`(`deleteHomeSched`). 확인창 후 삭제
+- **저장 로직**: 신규 `addDoc` / 수정 `setDoc(merge)` / 삭제 `deleteDoc`. 저장/삭제 후 `loadPjtCalendar()` + `pjtCalSelectDay()` 자동 새로고침
+- **컬렉션**: 선택 PJT에 따라 `user_schedules`(p4ph2) / `ph4_schedules`(p4ph4)
+- **필드**: `reg`·`text`·`place`·`att`·`tag`·`tagLabel`·`sdate`·`edate`·`stime`·`etime`·`isTodo`·`savedAt` — **PJT 앱 일정과 완전 동일** → 홈·PJT 앱 양방향 호환
+- **캐시**: `_pjtCalCache`에 문서 `id`·`col` 저장(수정/삭제 대상 식별용). 기존 소비처는 `tag`·`stime`만 읽어 영향 없음
+- **카테고리**: 반입·검수·교육·회의·설치·안전·휴무·연차·행정 (`HOME_SCHED_CATS`, 홈 캘린더 태그색과 동일)
+- **적용 범위**: PC 전용(모바일은 `m/home.html` 리다이렉트). 모달 z-index 40(기존 프로필 모달과 동일)
 
 ---
 
