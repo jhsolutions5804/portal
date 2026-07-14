@@ -211,3 +211,17 @@ pjt_settings/{pjtKey}:   // pjtKey = 'p4ph2' | 'p4ph4'
 | `index.html` (홈 하이브리드·메뉴반영·DB패널·빈항목) | `a613673755` |
 
 - 테섭 검증 완료분만 이식. `index.html`은 TEST 배너 제거 + `portal-test/`→`portal/` 8건 치환 후 이식 (기능만 반영)
+
+
+---
+
+## 2026-07-14 · 공사일보 작성자 드롭다운 버그 수정 (4.5.1)
+
+| 이슈 | 원인 | 해결 |
+|------|------|------|
+| `daily-report/*.html` 작성자 드롭다운 비어있음 + 자동선택 안 됨 | standalone 창은 Firebase Auth 컨텍스트 없음 → `portal_users` `getDocs` 조회 실패, 기존 `catch(e){}`가 무음 처리해 로그인 계정 자동선택 로직도 같이 무력화 | Firestore 조회 실패해도 `localStorage` 로그인 계정을 항상 옵션 추가+자동선택하도록 분리. 실패 시 `console.warn` 로그 추가 |
+
+- 대상: `daily-report/index.html`(FAB) · `daily-report/ph4.html`(SUP)
+- 검증: node --check + jsdom 3시나리오(정상/조회실패/빈컬렉션) 전부 통과
+- 배포: urgent hotfix로 test 생략, production 직접 반영 (대표님 명시 승인)
+- 커밋: `daily-report/index.html` `b1d29403` / `daily-report/ph4.html` `be34b077`
