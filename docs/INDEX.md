@@ -158,3 +158,20 @@
 
 **운영 커밋**: index `ae103662` (test `5b847db2`)
 **검증**: node --check + jsdom 흐름 prod·test 각 29/29, 본섭 안전성 검토(식별자/스코프/캐시파급/z-index/모바일) 통과
+
+
+---
+
+## 세션 요약 — 2026-07-14 (r1)
+
+**공사일보 작성자 드롭다운 버그 수정 (urgent hotfix, production 직접 배포)**
+
+| 영역 | 버전 | 주요 변경 |
+|------|------|-----------|
+| PJT 공사일보(standalone) | **8_4 r1** | 작성자 드롭다운 비어있던 버그 수정 — standalone 창 Auth 미존재로 Firestore 조회 실패해도 로그인 계정 항상 추가+자동선택 |
+| PJT 문서 | 4_1·4_2 → **4.5.1** | FAB·SUP 문서에 원인·수정 내역 반영 |
+| 백업 | v2.3.0 → **v2.4.0** | daily-report/index.html · ph4.html |
+
+**운영 커밋**: daily-report/index.html `b1d29403` / daily-report/ph4.html `be34b077` / index.html(ver 주석) `252237b4`
+**검증**: node --check + jsdom 3시나리오(정상조회/조회실패/빈컬렉션) 전부 통과
+**비고**: 대표님 실사용 중 차단 이슈로 테스트서버 단계 생략, 명시 승인 하 production 직접 배포
