@@ -2,7 +2,7 @@
 
 > 앱: `portal/pjt/index.html` · 워커 컬렉션: `pjt_workers_fab`
 > Firestore: `user_schedules`, `daily_reports_{날짜}`, `daily_report_docs`, `pjt_workers_fab`, `edoc_leave`
-> 최초 작성: 2026-07-01 · 최종 개정: 2026-07-08 (4.5.0) · 작성: 춘식이(Claude)
+> 최초 작성: 2026-07-01 · 최종 개정: 2026-07-14 (4.5.1) · 작성: 춘식이(Claude)
 
 ---
 
@@ -25,6 +25,13 @@
 - 수정 가능 필드: 작성자·금일작업·명일예정·투입인원·사용장비·특이사항. **현장명·작성일자는 문서 키(날짜) 근거라 고정**
 - 뷰/편집 버튼 그룹 토글(`toggleDRBtns`), XSS 방지 이스케이프(`_drEsc`) 적용
 - 컬렉션: `daily_report_docs` (문서 ID = 날짜키)
+
+### 작성자 드롭다운 버그 수정 (4.5.1)
+
+- **증상**: `daily-report/index.html`(공사일보 작성, standalone 창)에서 작성자 선택이 비어있고 로그인 계정 자동 선택도 안 됨
+- **원인**: standalone 창은 메인 포털의 Firebase Auth 컨텍스트가 없어 `portal_users` 컬렉션 `getDocs` 조회가 실패 → 기존 코드는 `catch(e){}`로 조용히 무시해 드롭다운이 완전히 빈 채로 남음
+- **수정**: Firestore 조회는 try/catch로 감싸 실패 시 `console.warn` 로그만 남기고, 조회 성공/실패와 무관하게 `localStorage`(`jh_login_full`/`jh_login_name`)의 로그인 계정은 항상 옵션에 추가 + 자동 선택
+- 대상 파일: `daily-report/index.html`(FAB) · `daily-report/ph4.html`(SUP) 동일 수정
 
 ---
 
