@@ -2,7 +2,7 @@
 
 > 앱: `portal/pjt/index.html` · 워커 컬렉션: `pjt_workers_fab`
 > Firestore: `user_schedules`, `daily_reports_{날짜}`, `daily_report_docs`, `pjt_workers_fab`, `edoc_leave`
-> 최초 작성: 2026-07-01 · 최종 개정: 2026-07-14 (4.5.1) · 작성: 춘식이(Claude)
+> 최초 작성: 2026-07-01 · 최종 개정: 2026-07-20 (4.5.2) · 작성: 춘식이(Claude)
 
 ---
 
@@ -51,6 +51,14 @@
 - **월간 일정 CRUD 추가**: 우측 패널에 `＋ 이 날 일정 등록` 버튼(선택 날짜 자동 입력) + 사용자 등록 일정 탭 시 수정·삭제(`openUsDetail`). 고정 일정은 읽기 전용 유지
 - **년월 점프 추가**: 좌측 상단 `yyyy년 mm월` 클릭 시 월 선택기(`openCalMonthPicker`/`pickCalMonth`)로 원하는 시점 이동
 - **일정 등록자 자동 반영 (격리/로그인 연동)**: 등록창(`openUsForm`) 등록자 칸을 로그인 계정으로 자동 채움 — `localStorage.jh_login_full || jh_login_name` 우선, 없으면 기존 방식 폴백. 포털 로그인 시 계정명을 같은 origin localStorage에 저장
+
+### 자정 넘기는 일정 시작일에만 표시 (4.5.2)
+
+- **배경**: 다중일 일정(`sdate`≠`edate`)은 기존에 start/mid/end로 매일 렌더됨. 하지만 "19:00~다음날 05:00"처럼 저녁에 시작해 자정을 넘겨 새벽에 끝나는 일정도 동일하게 처리되어 다음날에도 중복 표시되는 문제가 있었음
+- **판별 로직**(`_usItemsForKey`): 종료일이 시작일의 정확히 다음날이고, 종료시각(`etime`)이 시작시각(`stime`)보다 빠르거나 같으면 "자정 넘김"으로 판단 → 표시상으로만 종료일을 시작일과 동일하게 압축해 시작일에만 노출
+- 3박4일 출장처럼 진짜 여러 날짜에 걸친 일정(종료시각이 시작시각보다 늦은 경우)은 이 조건에 해당하지 않아 기존처럼 각 날짜에 계속 표시됨
+- 상세보기/수정(`openUsDetail`/`_detailEdit`)에는 원본 종료일·시간이 그대로 보존되어 정확한 일시 정보 확인·수정 가능
+- 대상 파일: `pjt/index.html`(FAB) · `pjt_ph4/index.html`(SUP) 동일 수정, 모바일(`m/pjt.html`)은 애초에 다중일 렌더링을 하지 않아 해당 없음
 
 ### user_schedules 컬렉션
 ```js
