@@ -1,7 +1,7 @@
-# 3.4. 전자결재 — 초과근로 결재 (r1)
+# 3.4. 전자결재 — 초과근로 결재 (r2)
 
 > Firestore 컬렉션: `edoc_overtime`, `overtime`, `annual_contracts/{workerId}/contracts`, `workers`
-> 최초 작성: 2026-07-06 · 작성: 춘식이(Claude) · 릴리스: v2.1.0
+> 최초 작성: 2026-07-06 · 최종 수정: 2026-07-21(r2, 사유 필드 추가) · 작성: 춘식이(Claude) · 릴리스: v2.1.0 → v2.1.1
 
 ---
 
@@ -20,6 +20,7 @@
   hours,                 // 초과근로 시간
   rate,                  // 통상임금(원/h)
   amount,                // 수당 = round(rate × hours)
+  reason,                // 사유 (선택 입력, 2026-07-21 추가)
   yearMonth,             // date.slice(0,7)
   authorUid, authorName, authorDept, authorRank,
   approvalLine: [작성, 결재(김종화 차장), 회람(김민서 대리)],
@@ -60,6 +61,7 @@
 else if (newStatus === 'approved' && dtype === 'overtime' && !rawData.linkedToOvertime) {
   await addDoc(collection(db, 'overtime'), {
     date, name, rank, workerId, hours, amount, rate,
+    reason: rawData.reason||'',
     yearMonth: date.slice(0,7), savedAt: serverTimestamp()
   });
   await setDoc(doc(db, 'edoc_overtime', docId), { linkedToOvertime: true }, { merge:true });
@@ -73,12 +75,16 @@ else if (newStatus === 'approved' && dtype === 'overtime' && !rawData.linkedToOv
 
 ## UI
 
-- `EDOC_TABS`·`DOC_CONFIG`·사이드바·탭바에 `overtime` 등록. `DOC_CONFIG.overtime.fields`: 근로자·일자·시간·통상임금·수당.
+- `EDOC_TABS`·`DOC_CONFIG`·사이드바·탭바에 `overtime` 등록. `DOC_CONFIG.overtime.fields`: 근로자·일자·시간·통상임금·수당·**사유**(2026-07-21 추가).
+- **초과근로 작성**(`renderOvertimeWrite`) 폼: 일자 → 근로자 선택 시 통상임금 자동 표시 → 시간 입력 시 수당 자동 → **사유**(선택, 텍스트영역).
 - **임베드 대응**: `.portal-embed`에서 탭바/사이드바가 숨겨지므로, **전자결재 홈에 `goTab('overtime')` 진입 버튼**을 별도 배치.
-- 목록(`renderOvertimeMain`): 카드 클릭 → `docDetail(d, 'overtime')`로 상세+승인/반려. 뒤로가기는 `renderOvertimeMain`.
+- 목록(`renderOvertimeMain`): 카드 클릭 → `docDetail(d, 'overtime')`로 상세+승인/반려. 뒤로가기는 `renderOvertimeMain`. 상세 화면에 사유 표시.
 - 작성(`renderOvertimeWrite`): 날짜 → 근로자 선택 시 통상임금 자동 표시 → 시간 입력 시 수당 자동.
 
 ---
 
 ## 관련 커밋 (2026-07-06)
 과제⑤ 통합(초과근로 탭·통상임금·자동연동) → 홈 진입버튼 추가(임베드 대응) → 카드 클릭 상세(docDetail 연결) → 본섭 배포(d04fa60).
+
+## 관련 커밋 (2026-07-21)
+초과근로 상신 폼·상세보기·인사 자동연동에 **사유(reason)** 필드 추가 (선택 입력). `hr/2_4_hr_overtime` 문서 동시 갱신.
