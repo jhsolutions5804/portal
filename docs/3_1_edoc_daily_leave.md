@@ -1,7 +1,7 @@
 # 3.1. 전자결재 — 업무일지 · 연차신청서 (+ 결재 공통 구조)
 
 > Firestore 컬렉션: `edoc_daily`, `edoc_leave`
-> 최초 작성: 2026-07-01 · 작성: 춘식이(Claude)
+> 최초 작성: 2026-07-01 · 최종 개정: 2026-07-20 (r1 · 업무일지 임시저장/반려 상태 수정 기능) · 작성: 춘식이(Claude)
 
 ---
 
@@ -46,7 +46,8 @@ edoc_daily/{auto-id}:
   issue:        string,        // 이슈·특이사항
   authorUid, authorEmail, authorName, authorDept, authorRank,
   approvalLine: [...],         // 작성 / 결재(김종화) / 수신(송지훈) 고정
-  createdAt:    serverTimestamp
+  createdAt:    serverTimestamp,   // 최초 등록 시에만 기록 (수정 시 유지)
+  updatedAt:    serverTimestamp    // 수정 저장 시에만 기록 (신규 등록 시 없음)
 }
 ```
 
@@ -54,6 +55,15 @@ edoc_daily/{auto-id}:
 - 제목·오늘 업무 필수 (상신 시)
 - 결재 라인 고정: 결재=김종화(부사장), 수신=송지훈(대표)
 - 💾 임시저장(draft) / 📨 상신(pending)
+
+### 수정 (임시저장/반려 상태, r1 — 2026-07-20)
+- `renderDailyDetail`에서 작성자 본인 + `status==='draft'` 또는 `'rejected'`일 때 "✏️ 수정" 버튼 노출 (`canEdit`)
+- 버튼 클릭 시 `renderDailyWrite(d)`로 기존 문서 전체를 넘겨 수정모드 진입 — 제목·일자·프로젝트·작성자정보·업무내용이 모두 미리 채워짐
+- 수정모드에서는 화면 상단에 "임시저장 상태 수정 중" 배지 표시, 뒤로가기 시 상세화면으로 복귀
+- 저장 시(`dailySave`) `window._dailyEditId`가 설정돼 있으면 신규 등록(`addDoc`) 대신 기존 문서에 `setDoc(..., {merge:true})`로 덮어씀 — 문서 중복 생성 없음
+- 최초 `createdAt`은 보존하고, 수정 시에는 `updatedAt`만 추가로 기록
+- 회수(`docRecall`) → 상태가 `draft`로 전환된 문서를 이 경로로 열어 수정 후 재상신 가능
+- 신규 작성(`renderDailyWrite()`, 인자 없음)은 기존과 동일하게 동작 (하위호환)
 
 ### 열람 권한 (N6-1)
 - `portal_users/{uid}.dailyViewTargets` 기반 (→ 3.0 문서 참조)
