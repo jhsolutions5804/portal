@@ -113,3 +113,32 @@
 
 ### Main 이식
 - `edoc/index.html` 커밋 `af5384ea6f` — test 전용 요소 없어 그대로 이식
+
+---
+
+## 2026-07-20 세션 — 업무일지 임시저장/반려 상태 수정 기능 추가
+
+> 문서 버전: 3.1 → **r1**
+
+### 배경 (원인 분석)
+- 업무일지 상세화면(`renderDailyDetail`)에는 애초에 "수정" 버튼 자체가 없었음
+- 작성화면(`renderDailyWrite`)도 항상 신규 등록(`addDoc`)만 지원 → 회수 후 임시저장 상태가 되어도 수정할 방법이 없었음
+- 참고로 일반 문서 상세(`renderDocDetail`, leave 외 타입)도 수정 버튼을 누르면 "삭제 후 재작성해 주세요" 안내만 뜨는 구조 — 업무일지는 이번 건에서 leave처럼 실제 인라인 수정을 지원하도록 별도 구현
+
+### 변경 내용
+| 코드 | 내용 |
+|------|------|
+| `renderDailyDetail` | 기존에 계산만 되고 미사용이던 `canEdit`(작성자+draft/rejected)을 이용해 "✏️ 수정" 버튼 추가 |
+| `renderDailyWrite(existingDoc)` | 인자로 기존 문서를 받으면 제목·일자·프로젝트·작성자정보·업무내용을 모두 미리 채우는 수정모드로 동작. 헤더에 "임시저장 상태 수정 중" 배지, 뒤로가기 시 상세화면 복귀. 인자 없이 호출(기존 "작성" 버튼)하면 기존과 동일하게 신규 작성 모드 |
+| `dailySave(status)` | `window._dailyEditId` 설정 여부로 신규(`addDoc`)/수정(`setDoc merge`) 분기. 수정 시 `createdAt` 보존, `updatedAt`만 추가 기록. 저장 후 `_dailyEditId` 초기화 |
+
+### 검증
+- `node --check` (import 구문 제거 후) 전체 스크립트 문법 통과
+- 기존 "작성" 버튼 호출부(`renderDailyWrite()` 무인자)와 하위호환 확인
+- 특수문자(따옴표) 포함 데이터의 onclick 속성 이스케이프 정상 동작 확인 (기존 `printDocA4`와 동일 패턴 재사용)
+- portal-test 우선 배포 → 대표님 실사용 확인("ㅇㅋ") → production 배포
+
+### 운영 커밋
+- `edoc/index.html` `86e4caaf` (test: `8a879856`)
+- `index.html` (버전주석) — 동일 세션 내 갱신
+- 백업: `backup/v2.6.0/edoc/index.html`
