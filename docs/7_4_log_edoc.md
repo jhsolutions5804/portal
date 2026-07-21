@@ -142,3 +142,40 @@
 - `edoc/index.html` `86e4caaf` (test: `8a879856`)
 - `index.html` (버전주석) — 동일 세션 내 갱신
 - 백업: `backup/v2.6.0/edoc/index.html`
+
+---
+
+## 2026-07-21 세션 — 초과근로 상신 사유(reason) 필드 추가
+
+> 문서 버전: 3.4 → **r2**
+
+### 배경
+- 대표님 요청: "초과근로 상신 시 사유 작성할 수 있게"
+- 최초 시도로 `hr/index.html`(인사 앱의 관리자 직접입력용 초과근로 탭)을 먼저 수정했으나, 실제 요청은 **전자결재의 초과근로 상신 화면**(`renderOvertimeWrite`, 결재라인 있는 "상신" 폼)이었음 — 스크린샷으로 확인 후 정정
+- 두 화면 모두 최종적으로 사유 필드를 추가함 (인사 직접입력분·전자결재 상신분 모두 지원)
+
+### 변경 내용 — `edoc/index.html`
+| 코드 | 내용 |
+|------|------|
+| `DOC_CONFIG.overtime.fields` | `{ key:'reason', label:'사유', type:'text' }` 추가 → `docDetail` 상세보기에 자동 표시 |
+| `renderOvertimeWrite()` | "초과근로 정보" 카드에 `fcField('사유', <textarea id="ot-reason">)` 추가 (선택 입력) |
+| `overtimeSave()` | `reason` 값을 읽어 trim 후 `edoc_overtime` 문서에 저장 |
+| `docApprove()` (승인 시 인사 연동 블록) | `overtime` 컬렉션에 addDoc 할 때 `reason: rawData.reason||''` 포함 |
+
+### 변경 내용 — `hr/index.html` (선행 작업, 함께 배포)
+- 초과근로 탭 PC/모바일 입력폼·수정폼에 사유(선택) 텍스트영역 추가
+- PC 상세 테이블 / 모바일 직원별 조회 / 전체현황 날짜별 상세 테이블에 사유 컬럼 추가 (긴 텍스트는 말줄임 + 툴팁)
+- `otEsc()` 헬퍼 추가 (사유 등 자유 입력 텍스트 HTML 이스케이프)
+
+### 설계 판단
+- 사유는 **선택 입력**(필수 아님)으로 처리 — 기존 빠른 입력 흐름을 막지 않기 위함
+- 기존 `overtime`/`edoc_overtime` 문서에는 `reason` 필드가 없으나, 화면에서 값이 없으면 "-"로 표시되므로 별도 마이그레이션 불필요
+
+### 검증
+- `node --check`로 각 파일의 비-module 스크립트(hr) / module 스크립트(edoc, `.mjs`로 추출) 문법 검증 통과
+- portal-test 우선 배포 → 대표님 실사용 확인("확인됐어") → production 배포
+
+### 운영 커밋
+- portal-test: `hr/index.html` `b22d444`, `edoc/index.html` `859877f`
+- production: `hr/index.html` `bc130cd`, `edoc/index.html` `820f134`, `index.html`(버전주석) `5ed6897`
+- 백업: `backup/v2.6.1/hr/index.html`, `backup/v2.6.1/edoc/index.html`
