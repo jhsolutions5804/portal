@@ -189,5 +189,5 @@
 | PJT 문서 | 4_1·4_2 → **4.5.2** | FAB·SUP 문서에 판별 로직·검증 내역 반영 |
 | 백업 | v2.4.0 → **v2.5.0** | pjt/index.html · pjt_ph4/index.html |
 
-**배포 순서**: portal-test 선배포 → 대표님 실사용 확인("테섭에 문제 없네") → production 배포
+**배포 순서**: portal-test 선배포 → 대표님 실사용 확인("테섭에 문제 없네") → production 배포 → 대표님 production 반영 확인("반영 확인했어") 완료
 **검증**: node --check + 단위 테스트 6시나리오(자정넘김/다중일/컨퍼런스/엣지/단일일/Todo) 전부 통과
