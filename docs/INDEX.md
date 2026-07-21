@@ -227,3 +227,16 @@
 **운영 커밋**: `hr/index.html` `bc130cd` / `edoc/index.html` `820f134` / `index.html`(버전주석) `5ed6897`
 **상세**: `8_7_log_overtime_reason.md`
 **미해결**: `hr/2_4_hr_overtime_r2.md`(중복 문서, `hr/` 폴더 내 위치) 정리 필요 — 정식 위치는 `docs/`
+
+---
+
+## 세션 요약 — 2026-07-21 (r2)
+
+**`hr/` 폴더 내 중복 문서 정리 (코드 변경 없음, 문서 전용)**
+
+- 대표님 질문("hr에도 초과근로, edoc에도 초과근로 있는데 1:1 매칭 아니냐")을 계기로 `hr/2_4_hr_overtime_r2.md` ↔ `docs/2_4_hr_overtime_r2.md` 중복 여부를 커밋 이력으로 전수 추적
+- 결론: `hr/` 폴더 안 2개 파일(`2_4_hr_overtime_r2.md`, `7_3_log_hr_r5.md`)은 2026-06-26~27, `docs/` 폴더 중앙집중 체계로 넘어가기 전(2026-06-29 분할 기점) 코드 옆에 만들어둔 **초기 사본**이며 이후 방치됨. 전자결재(`docs/3_4_edoc_overtime_r1.md`)와는 무관 — 이미 별도 문서로 정확히 분리되어 있었음
+- 두 파일에만 있던 고유 내용(초과근로 PC 레이아웃 다이어그램·함수표, 2026-06-24~27 초기 커밋 이력)을 `docs/7_9_archive_hr_duplicate_cleanup.md`로 보존 후 `hr/` 폴더의 두 파일 삭제
+
+**변경 파일**: `docs/7_9_archive_hr_duplicate_cleanup.md`(신규) · `hr/2_4_hr_overtime_r2.md`(삭제) · `hr/7_3_log_hr_r5.md`(삭제)
+**영향**: 코드(index.html 등) 변경 없음 — 순수 문서 정리, 배포 리스크 없음
