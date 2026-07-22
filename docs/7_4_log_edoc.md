@@ -179,3 +179,30 @@
 - portal-test: `hr/index.html` `b22d444`, `edoc/index.html` `859877f`
 - production: `hr/index.html` `bc130cd`, `edoc/index.html` `820f134`, `index.html`(버전주석) `5ed6897`
 - 백업: `backup/v2.6.1/hr/index.html`, `backup/v2.6.1/edoc/index.html`
+
+---
+
+## 2026-07-23 세션 — 초과근로 결재 목록 "본인 작성분만 표시" 필터 추가
+
+### 배경
+대표님 스크린샷 확인 결과, "초과근로 결재" 탭(`renderOvertimeMain`)에 결재자 본인이 상신하지 않은 **다른 직원의 상신 건**(이한영, 정다애 등)까지 전부 노출되고 있었음. 요청: "내 것 말고 다른 사람 것 안 보이게 해줘"
+
+### 원인
+`renderOvertimeMain()`이 `edoc_overtime` 컬렉션 전체를 필터 없이 조회 → 전 직원의 상신 건이 모두에게 노출됨. (다른 문서함(`renderDocList`)은 admin/posted/authorUid/approvalLine 기준의 `canView` 필터가 있었지만, 초과근로 전용 목록에는 애초에 필터 로직이 없었음)
+
+### 수정
+```js
+const myUid=(_user&&_user.uid)||'';
+docs=docs.filter(d=>d.authorUid===myUid);
+```
+- `renderOvertimeMain()`에서 조회 직후 `authorUid`가 현재 로그인 uid와 일치하는 문서만 남기도록 필터 추가
+- admin 예외 없이 무조건 본인분만 표시 (요청이 "다른 사람 것 안 보이게"로 명확했음)
+- 결재가 필요한 문서(타인이 상신 + 나에게 결재 요청된 건)는 별도의 **결재함**(`renderApproveBox`, `goTab('approve')`)에서 그대로 처리 가능 — 이 탭은 영향 없음, 확인 완료
+
+### 검증
+- `node --check`로 모듈 스크립트(.mjs 추출) 문법 검증 통과
+- 대표님 지시로 테스트서버 생략, **본섭 직접 배포**
+
+### 운영 커밋
+- production: `edoc/index.html` `a6893b9`, `index.html`(버전주석) 
+- 백업: `backup/v2.6.2/edoc/index.html`
