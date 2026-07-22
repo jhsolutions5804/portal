@@ -48,3 +48,26 @@
 - portal-test: `hr/index.html` `b22d444`, `edoc/index.html` `859877f`
 - production: `hr/index.html` `bc130cd`, `edoc/index.html` `820f134`, `index.html`(버전주석) `5ed6897`
 - 백업: `backup/v2.6.1/hr/index.html`, `backup/v2.6.1/edoc/index.html`
+
+---
+
+## 2026-07-22: 급여명세서 상여금/특별상여/기타수당 입력 커서 초기화 버그 수정
+
+### 증상
+PC 급여명세서 작성 화면에서 상여금(초과근로)·특별상여·기타수당 입력란에 숫자를 타이핑할 때 한 글자마다 입력창 포커스가 풀려 매번 다시 클릭해야 하는 문제.
+
+### 원인
+`renderPayslipPCRight()` 내 `inp()` 헬퍼가 해당 3개 필드에 `oninput`을 사용 → 키 입력마다 `panel.innerHTML` 전체 재생성 → input DOM 교체로 포커스 소실. 같은 화면의 기본급·4대보험·기숙사 필드는 이미 `onchange`를 사용해 문제 없었음.
+
+### 수정
+`inp()` 헬퍼의 이벤트를 `onchange`로 통일 (다른 필드와 동일 패턴). 변경은 파일 내 정확히 1줄.
+
+### 검증
+- diff로 변경 범위가 의도한 1줄만인지 확인
+- `<script>` 5개 블록 전체 `node --check` 문법 검증 통과
+
+### 운영 커밋 (production 직접 배포 — 대표님 승인)
+- `hr/index.html`: `9ad3f5d`
+- `index.html`(버전주석 갱신, hr payslip 2.6.2): `a8a300f`
+- 문서: `docs/2_5_hr_payslip_r3.md` r5 갱신: `ac62731`
+- 백업: `backup/v2.6.2/hr_index_20260722.html`: `7cf9652`
