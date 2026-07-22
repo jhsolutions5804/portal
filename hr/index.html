@@ -1752,7 +1752,7 @@ window.renderPayslipPCRight = () => {
   const won = v => Number(v||0).toLocaleString()+'원';
   const inp = (id, val, ph='0') =>
     `<input type="number" id="${id}" value="${val||''}" placeholder="${ph}"
-      oninput="ps.${id.replace('ps-','')}=this.value;renderPayslipPCRight()"
+      onchange="ps.${id.replace('ps-','')}=this.value;renderPayslipPCRight()"
       style="width:100%;padding:6px 10px;border:1px solid #DDE3EE;border-radius:7px;font-size:13px;box-sizing:border-box;">`;
 
   panel.innerHTML = `
