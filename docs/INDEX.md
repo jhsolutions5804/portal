@@ -258,3 +258,18 @@
 **검증**: diff로 변경 1줄 확인, script 5블록 전체 node --check 문법 통과
 **운영 커밋**: `hr/index.html` `9ad3f5d` / `index.html`(버전주석) `a8a300f`
 **상세**: `8_8_log_payslip_input_fix.md`
+
+---
+
+## 세션 요약 — 2026-07-23 (r1)
+
+**초과근로 결재 목록에 "본인 작성분만" 표시 필터 추가 (본섭 직접 배포)**
+
+- 문제: `edoc/index.html`의 "초과근로 결재" 탭이 전 직원 상신 건을 필터 없이 모두 노출
+- 수정: `renderOvertimeMain()`에 `authorUid` 일치 필터 추가 — 본인이 상신한 건만 표시
+- 결재 처리는 기존대로 별도 **결재함** 탭에서 정상 동작 (영향 없음)
+- 대표님 지시로 테스트서버 생략, production 직접 배포
+
+**운영 커밋**: `edoc/index.html` `a6893b9` · `index.html`(버전주석) build 20260723
+**백업**: `backup/v2.6.2/edoc/index.html`
+**상세**: `8_8_log_overtime_own_only.md`
