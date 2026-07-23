@@ -1,7 +1,7 @@
 # 1.4. 기획 — 정산
 
 > Firestore 컬렉션: `gihoek_settlements`
-> 최초 작성: 2026-07-01 · 작성: 춘식이(Claude)
+> 최초 작성: 2026-07-01 · 최종 수정: 2026-07-23(r2) · 작성: 춘식이(Claude)
 
 ---
 
@@ -83,3 +83,10 @@ gihoek_settlements/{id}:
 - `acctMonthOf(s)`: 저장된 `acctMonth` 우선 → 없으면 payDate→issueDate→baseMonth 폴백(하위호환)
 - 발행 시 `acctMonth` 저장. 상세보기에서 표시 + 수정 버튼(`editAcctMonth`, YYYY-MM prompt)
 - 회계 반영(`paymentAsExpense`)은 `acctMonth` 기준으로 해당 월 집계
+
+
+---
+
+## UI — 금액 입력 포맷 (r2, 2026-07-23)
+
+기술인력 단가, 직접입력 정산 품목(단가·금액) 입력창에 실시간 콤마 포맷(`fmtMoney(el)`) 적용(1000단위마다 `,`). 상세: `7_2_log_gihoek_r5.md`
