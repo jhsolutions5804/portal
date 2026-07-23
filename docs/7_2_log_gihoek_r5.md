@@ -150,3 +150,30 @@ function ctSnap(cid, name){
 
 ### Main 이식
 - `gihoek/index.html` 커밋 `45e36db07f` — test 전용 요소 없어 그대로 이식
+
+
+---
+
+## 2026-07-23 세션 — 금액 입력창 1000단위 콤마 포맷 적용
+
+### 배경
+대표님 지시: "포탈 내 모든 금액 입력·출력은 1000단위마다 콤마(,) 표시" (전 모듈 공통 UI 컨벤션)
+
+### 변경 내용
+견적 품목(단가·금액), 합계금액 직접수정, 기술인력 단가, 직접입력 정산(단가·금액) — 총 6곳의 입력창을 `type="number"` → `type="text" inputmode="numeric"`로 전환하고 실시간 콤마 포맷 헬퍼 `window.fmtMoney(el)` 추가.
+
+기존 저장/계산 로직(`num(v)` — `parseFloat(String(v).replace(/[^0-9.\-]/g,''))`)이 콤마를 포함한 문자열도 안전하게 파싱하는 구조였기 때문에, 입력창을 텍스트로 바꾸는 것만으로 저장값 손상 없이 콤마 표시가 가능했음(별도 파싱 로직 수정 불필요).
+
+수량(qty)류 입력창(품목 수량 등)은 금액이 아니므로 그대로 `type="number"` 유지.
+
+### 검증
+- `node --check`로 script 블록 전체 문법 검증 통과
+- `fmtMoney`/`num` 함수 단위 테스트(콤마 삽입/제거 왕복) 통과
+
+### 배포
+- portal-test 선배포 → 대표님 확인("오케이") → production 배포
+- production: `gihoek/index.html` 배포 완료, Pages 빌드 `built` 확인
+
+### 문서
+- `docs/1_3_gihoek_estimate_r3.md` r4 갱신
+- `docs/1_4_gihoek_settle.md` r2 갱신
