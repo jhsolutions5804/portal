@@ -1,7 +1,7 @@
 # 3.3. 전자결재 — 퇴직원서 · 재직증명서 · 구매품의서 · 지출결의서
 
 > Firestore 컬렉션: `edoc_resign`, `edoc_cert`, `edoc_purchase`, `edoc_expense`
-> 최초 작성: 2026-07-01 · 작성: 춘식이(Claude)
+> 최초 작성: 2026-07-01 · 최종 수정: 2026-07-23(r2) · 작성: 춘식이(Claude)
 
 ---
 
@@ -98,3 +98,10 @@ yyyymmdd + 이름 + 문서명   (예: 20260701 정다애 지출결의서)
 - `+ 링크 추가` 버튼으로 행 무제한 추가, `−` 버튼으로 삭제 (`addUrlRow`)
 - 저장: `.url-input` 값들을 배열로 수집(빈 값 제외)
 - 출력(`fmtDocVal`): URL 배열이면 전체 주소 대신 "링크"(1개)/"링크1·링크2…"(복수) 하이퍼링크로 표시, 새 탭 열림
+
+
+---
+
+## UI — 금액 입력 포맷 (r2, 2026-07-23)
+
+구매품의서 단가(`unitPrice`)·지출결의서 금액(`amount`) 필드를 `DOC_CONFIG`에서 `type:'money'`로 신설. 렌더러는 텍스트+실시간 콤마(`fmtMoney`), `docSave`는 콤마 제거 후 숫자로 저장, 상세보기(`docDetail`)도 `Number(v).toLocaleString('ko-KR')+'원'` 형식으로 표시. 상세: `7_4b_log_edoc.md`
