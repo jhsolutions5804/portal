@@ -71,3 +71,33 @@ PC 급여명세서 작성 화면에서 상여금(초과근로)·특별상여·�
 - `index.html`(버전주석 갱신, hr payslip 2.6.2): `a8a300f`
 - 문서: `docs/2_5_hr_payslip_r3.md` r5 갱신: `ac62731`
 - 백업: `backup/v2.6.2/hr_index_20260722.html`: `7cf9652`
+
+
+---
+
+## 2026-07-23 세션 — 금액 입력창 1000단위 콤마 포맷 적용
+
+### 배경
+대표님 지시: "포탈 내 모든 금액 입력·출력은 1000단위마다 콤마(,) 표시" (전 모듈 공통 UI 컨벤션)
+
+### 변경 내용
+급여명세서(payslip) 관련 입력창 9곳을 `type="number"` → `type="text" inputmode="numeric"` + 실시간 콤마 포맷(`fmtMoney(el)`)으로 전환:
+- PC 우측 패널(`renderPayslipPCRight`): 지급내역(기본급·고정연장·고정야간·주휴수당), 공제내역(국민연금·건강보험·장기요양·고용보험·소득세·지방소득세), 상여금·특별상여·기타수당(`inp()` 헬퍼), 기숙사공제
+- 급여작성 단계식 폼(`renderPayslipWriteForm`): 상여금·특별성과급·특근수당·기숙사공제, 일용직/연봉직 시급(`laborForm2.hourly`/`annualForm2.hourly`)
+
+파싱은 기존 `Number(this.value)`(콤마 포함 시 `NaN` 발생 위험) 대신 전역 헬퍼 `window.numClean(v)`로 통일 — `parseFloat` + 콤마·비숫자 문자 제거 방식이라 안전.
+
+일부 필드(`ps.specialBonus`, `ps.dormitory`)는 기존에 `Number()` 없이 원시 문자열을 그대로 저장하던 부분도 이번에 `numClean()`으로 함께 정리(사소한 기존 결함 동반 수정).
+
+수량·공수·시간·일수 계열 입력창은 금액이 아니므로 그대로 유지.
+
+### 검증
+- `node --check`로 script 5블록 전체 문법 검증 통과
+- `fmtMoney`/`numClean` 함수 단위 테스트 통과
+
+### 배포
+- portal-test 선배포(기존 test 원본과의 사소한 코드 차이 — `inp()` 이벤트가 prod는 `onchange`, test는 `oninput` — 보존한 채로 개별 패치 적용) → 대표님 확인("오케이") → production 배포
+- production: `hr/index.html` 배포 완료, Pages 빌드 `built` 확인
+
+### 문서
+- `docs/2_5_hr_payslip_r3.md` r6 갱신
