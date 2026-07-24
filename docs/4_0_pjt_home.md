@@ -1,7 +1,7 @@
 # 4.0. PJT 관리 — 홈
 
-> 포털 메뉴: `pjt`(P4 Ph2 FAB), `p4ph4`(P4 Ph4 SUP)
-> 최초 작성: 2026-07-01 · 최종 개정: 2026-07-08 (4.5.0) · 작성: 춘식이(Claude)
+> 포털 메뉴: `pjt`(P4 Ph2 FAB), `p4ph4`(P4 Ph4 SUP), `reg_*`(경량 PJT, 동적), `pjt_manday`(월간 공수)
+> 최초 작성: 2026-07-01 · 최종 개정: 2026-07-24 (5.0.0) · 작성: 춘식이(Claude)
 
 ---
 
@@ -11,20 +11,36 @@ PJT 관리는 진행 중인 현장 프로젝트별 워크스페이스를 제공�
 
 ---
 
-## 프로젝트 목록 (PJT_APPS)
+## 프로젝트 목록 (PJT_SUBTABS)
 
-| key | 명칭 | 현장 | 앱 경로 | 워커 컬렉션 |
+| key | 명칭 | 종류 | 앱 경로 | 워커 컬렉션 |
 |-----|------|------|---------|-------------|
-| `p4ph2` | P4 Ph2 (FAB) | 귀뚜라미범양냉방 · FCU 설치 | `portal/pjt/` | `pjt_workers_fab` |
-| `p4ph4` | P4 Ph4 (SUP) | 귀뚜라미범양냉방 · EHU 설치 | `portal/pjt_ph4/` | `pjt_workers_ph4` |
+| `pjt_home` | PJT 홈 | 고정 | (포털 내장) | - |
+| `p4ph2` | P4 Ph2 (FAB) | 고정 | `portal/pjt/` | `pjt_workers_fab` |
+| `p4ph4` | P4 Ph4 (SUP) | 고정 | `portal/pjt_ph4/` | `pjt_workers_ph4` |
+| `reg_{id}` | 신규 등록 PJT (경량) | 동적 | `portal/pjt_light/?pjtId={id}` | `pjt_registry/{id}/workers` |
+| `pjt_manday` | 월간 공수 | 고정(항상 최하단) | `portal/pjt_manday/` | (마스터 명부 참조) |
+
+> 상세는 4.1(FAB), 4.2(SUP), 4.3(경량 PJT), 4.4(월간 공수·마스터 명부) 문서 참조.
 
 ---
 
-## 공통 구조
+## 신규 PJT 자동 편입 (5.0.0 신규)
+
+- **등록**: PJT 홈 우측 상단 `＋ 신규 PJT` → `pjt_registry` 컬렉션에 문서 생성(`saveNewPjt`). 워크스페이스 URL을 비워두면 자동으로 경량 PJT 워크스페이스(`pjt_light/`) 연결
+- **자동 편입**: `syncPjtRegistrySubtabs()`가 로그인 시·PJT홈 진입 시·등록/종료/재개 시 `pjt_registry`의 `active` 문서를 `PJT_SUBTABS` 배열에 자동 추가 → 사이드바 메뉴 + 상단 카드(KPI: 공정율·D+·누적공수)에 P4 Ph2/Ph4와 동일하게 표시
+- **삽입 위치**: 신규 항목은 항상 `pjt_manday`(월간 공수) **바로 앞**에 삽입 — 월간 공수는 항상 최하단 고정
+- **KPI 소스**: 경량 PJT(`reg_*`)는 `pjt_registry/{id}` 문서의 `progress`/`manday`/`startDate` 필드를 직접 읽음 (FAB/SUP처럼 zone 기반 계산 없음). `progress`/`manday`는 경량 워크스페이스의 품목 체크·근태공수 저장 시 자동 갱신(`recalcProgress`/`recalcTotalManday`)
+- **관리자 설정**: 카드 ⚙️ 버튼 → `openPjtSettings('reg_{id}', name)` — 기본정보 수정 + 종료 처리(`endPjtFromSettings`). 진행률/누적공수는 워크스페이스에서 자동계산되므로 읽기 전용
+- **종료 시**: `pjt_registry` 문서 `status:'ended'` → 카드·사이드바에서 자동 제거, PJT 홈 하단 "종료된 프로젝트" 목록으로 이동(재개 가능)
+
+---
+
+## 공통 구조 (FAB/SUP)
 
 두 프로젝트 앱(FAB/SUP)은 **동일한 코드 베이스**이며, 차이는 워커 컬렉션명과 localStorage 키(`fabls_`/`ph4ls_`)뿐이다. 각 앱은 6개 탭으로 구성된다: 홈 · 오늘 · 주간 · 캘린더 · 근태 · 공정 · 설정.
 
-> 상세는 4.1(FAB), 4.2(SUP) 문서 참조. 두 앱이 동일 구조이므로 4.1을 기준 문서로 한다.
+> ⚠️ **공수/출역 컬렉션은 FAB·SUP가 서로 다름 (공유 아님)**: FAB는 `worker_manday`/`worker_attendance`, SUP는 `ph4_manday`/`ph4_attendance`. 과거 "공유 컬렉션"으로 잘못 가정했던 이력 있음 — 월간 공수 집계 시 반드시 각 컬렉션을 별도로 읽어야 함(4.4 참조).
 
 ---
 
