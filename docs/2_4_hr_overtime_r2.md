@@ -1,7 +1,7 @@
 # 2.4. 인사 — 초과근로
 
 > Firestore 컬렉션: `overtime/{auto-id}`
-> 최초 작성: 2026-06-26 · 최종 수정: 2026-07-21(r3) · 작성: 춘식이(Claude)
+> 최초 작성: 2026-06-26 · 최종 수정: 2026-07-24(r4, edoc 자동 재동기화 self-heal 추가) · 작성: 춘식이(Claude)
 
 ---
 
@@ -40,7 +40,7 @@
 
 ---
 
-## 전자결재 초과근로 승인 자동 연동 (2026-07-06, v2.1.0 / 2026-07-21 reason 필드 추가)
+## 전자결재 초과근로 승인 자동 연동 (2026-07-06, v2.1.0 / 2026-07-21 reason 필드 추가 / 2026-07-24 self-heal 추가)
 
 전자결재 초과근로(`edoc_overtime`)가 **승인되면** 이 `overtime` 컬렉션에 자동 등록된다. (PC·모바일 공통)
 
@@ -49,4 +49,15 @@
 - 중복 방지: `edoc_overtime` 문서에 `linkedToOvertime:true` 플래그
 - 통상임금 rate·수당 amount는 전자결재 작성 시 통상임금 계산으로 이미 확정(→ `3_4_edoc_overtime` 참조)
 - 사유(`reason`)는 전자결재 상신 폼에서 입력한 값이 그대로 복사된다.
+
+### 자동 재동기화(self-heal) — `window.otSyncFromEdoc()` (2026-07-24)
+
+`docApprove()`의 즉시연동이 실패하거나 누락되는 경우(원인 미상 사례 발생, `3_4_edoc_overtime` 참조)를 대비해,
+**인사 → 초과근로 탭에 진입할 때마다** 자동으로 아래를 수행한다.
+
+1. `edoc_overtime`에서 `status==='approved' && !linkedToOvertime`인 문서를 전부 조회
+2. 있으면 `overtime`에 추가 + 해당 `edoc_overtime` 문서에 `linkedToOvertime:true` 마킹
+3. 없으면 아무 동작 안 함 (매번 호출돼도 idempotent, 중복 등록 없음)
+
+별도 조작·스크립트 실행 없이 인사 앱의 초과근로 탭을 여는 것만으로 누락 건이 자동 복구된다.
 
