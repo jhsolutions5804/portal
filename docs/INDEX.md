@@ -374,3 +374,17 @@
 **백업**: `backup/v2.6.4/hr/index.html` (v2.6.3은 원상복구)
 **상세**: `8_9_log_overtime_selfheal.md`
 **미해결 과제**: edoc 결재함 `DOC_TYPES`에 `overtime` 추가 여부 결정 필요
+
+---
+
+## 세션 요약 — 2026-07-24 (r2)
+
+**폴더블(Z Fold 등) 펼침 시 PC 화면 유지 (본섭 직접 배포)**
+
+- 문제: `showApp()`이 User-Agent만으로 PC/모바일 판단 → 폴더블 펼쳐도 항상 모바일 화면으로 이동
+- 수정: UA + 화면폭(900px) 동시 판단으로 변경. `localStorage` 기반 수동 PC/모바일 전환 버튼도 양쪽에 추가
+- 데스크톱/일반 폰 사용자는 기존과 동일하게 동작 — "모바일 UA + 넓은 화면"(폴더블 펼침 등) 케이스만 새로 PC 유지
+
+**운영 커밋**: `index.html` `65f33d8` · `m/home.html` `0623d31`
+**백업**: `backup/v2.6.6/`
+**상세**: `8_10_log_foldable.md`
