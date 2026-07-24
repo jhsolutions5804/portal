@@ -653,16 +653,19 @@ body{font-family:-apple-system,'Apple SD Gothic Neo','Pretendard',sans-serif;bac
           </div>
           <!-- 기술인 명단 관리 패널 -->
           <div id="worker-mgmt-panel" style="display:none;margin-bottom:12px;background:#f9fafc;border-radius:10px;padding:12px 14px;border:1px solid #e5e5e5">
-            <div style="font-size:12px;font-weight:600;color:#555;margin-bottom:8px">현재 투입 기술인</div>
+            <div style="font-size:12px;font-weight:600;color:#555;margin-bottom:8px">현재 투입 기술인 <span style="font-weight:400;color:#9AAABF">(생년월일은 여러 PJT 겸직 인원의 공수를 한 사람으로 합산하는 데 쓰입니다)</span></div>
             <div id="worker-mgmt-list" style="margin-bottom:10px"></div>
-            <div style="display:flex;gap:6px;align-items:center">
-              <input id="worker-add-name" type="text" placeholder="이름" style="flex:1;padding:7px 10px;border:1px solid #dde4ef;border-radius:8px;font-size:13px;font-family:inherit">
+            <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+              <select id="worker-add-master" style="flex:1;min-width:160px;padding:7px 10px;border:1px solid #dde4ef;border-radius:8px;font-size:13px;font-family:inherit">
+                <option value="">-- 마스터 명부에서 선택 --</option>
+              </select>
               <select id="worker-add-role" style="padding:7px 8px;border:1px solid #dde4ef;border-radius:8px;font-size:12px;font-family:inherit">
                 <option value="">기술인</option>
                 <option value="팀장">팀장</option>
               </select>
               <button onclick="addWorkerFromUI()" style="padding:7px 14px;background:#1D5BA6;color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap">추가</button>
             </div>
+            <div style="font-size:11px;color:#9AAABF;margin-top:6px">목록에 없는 새 인원은 사이드바 [PJT 관리 → 월간 공수]에서 먼저 등록해주세요.</div>
           </div>
           <div id="att-worker-list"></div>
           <div class="att-pc-kongsu">
@@ -936,11 +939,16 @@ window._fbLoadWorkers = async function(){
     const snap = await getDocs(query(collection(db, WORKERS_COLLECTION), orderBy('order','asc')));
     if(snap.empty) return false; // 데이터 없으면 하드코딩 fallback
     window._dynamicWorkers = snap.docs.map(d=>Object.assign({id:d.id},d.data()));
+    _showDebugBadge();
     return true;
   }catch(e){ return false; }
 };
+let _lastSaveInfo='';
+function _showDebugBadge(){ /* 디버그 뱃지 비활성화 (진단 완료, 프로덕션 노출 방지) */ }
+window._showDebugBadge=_showDebugBadge;
+window._setLastSaveInfo=function(s){ _lastSaveInfo=s; };
 
-window._fbAddWorker = async function(name, role){
+window._fbAddWorker = async function(name, role, birth){
   try{
     // 현재 최대 번호 계산
     const snap = await getDocs(collection(db, WORKERS_COLLECTION));
@@ -948,10 +956,30 @@ window._fbAddWorker = async function(name, role){
     snap.docs.forEach(d=>{ const n=parseInt(d.id.replace('w','')); if(n>maxNum) maxNum=n; });
     const newId = 'w'+(maxNum+1);
     const order = snap.docs.length + 1;
-    await setDoc(doc(db, WORKERS_COLLECTION, newId), {id:newId, name, role:role||'', order, active:true, createdAt:serverTimestamp()});
+    await setDoc(doc(db, WORKERS_COLLECTION, newId), {id:newId, name, role:role||'', birth:birth||'', order, active:true, createdAt:serverTimestamp()});
     await window._fbLoadWorkers();
     if(typeof renderAttend==='function') renderAttend();
   }catch(e){ alert('추가 실패: '+e.message); }
+};
+
+window._fbAddWorkerFromMaster = async function(masterId, role){
+  try{
+    const masterSnap = await getDoc(doc(db,'master_workers',masterId));
+    if(!masterSnap.exists()){ alert('마스터 명부에서 해당 인원을 찾을 수 없습니다.'); return; }
+    const m=masterSnap.data();
+    const snap = await getDocs(collection(db, WORKERS_COLLECTION));
+    const order = snap.docs.length + 1;
+    await setDoc(doc(db, WORKERS_COLLECTION, masterId), {id:masterId, name:m.name, role:role||'', birth:m.birth||'', masterId, order, active:true, createdAt:serverTimestamp()});
+    await window._fbLoadWorkers();
+    if(typeof renderAttend==='function') renderAttend();
+  }catch(e){ alert('추가 실패: '+e.message); }
+};
+
+window._fbUpdateWorkerBirth = async function(workerId, birth){
+  try{
+    await setDoc(doc(db, WORKERS_COLLECTION, workerId), {birth}, {merge:true});
+    await window._fbLoadWorkers();
+  }catch(e){ alert('생년월일 저장 실패: '+e.message); }
 };
 
 window._fbDeleteWorker = async function(workerId){
@@ -2419,6 +2447,9 @@ var TECHS = WORKERS.filter(w=>w.id!=='w1');
 window._refreshWorkerArrays = function(){
   WORKERS = getWorkers();
   TECHS = WORKERS.filter(w=>w.id!=='w1');
+  // 명단이 갱신됐는데 이미 그려진 근태/공수 화면이 예전 상태로 남아있던 문제 수정: 강제 재렌더
+  if(typeof window._renderWorkerUI==='function') window._renderWorkerUI();
+  if(typeof window._renderMandayUI==='function') window._renderMandayUI();
 };
 
 // ===================================================
@@ -2440,6 +2471,7 @@ window.setMandayInput=function(workerId,dateKey,raw){
   const inp=document.querySelector('#att-worker-list .md-input[data-wid="'+workerId+'"]');
   if(inp) inp.value = v ? v.toFixed(1) : '';
   if(window._fbSetManday) window._fbSetManday(dateKey,m);
+  if(typeof window._setLastSaveInfo==='function'){ window._setLastSaveInfo('마지막 저장: workerId='+workerId+' date='+dateKey+' value='+v); }
 };
 
 // ===================================================
@@ -2591,6 +2623,7 @@ window.setAllManday=function(dateKey,value){
   window._mandayCache[dateKey]=m; // 낙관적 반영
   if(window._renderMandayUI) window._renderMandayUI();
   if(window._fbSetManday) window._fbSetManday(dateKey,m);
+  if(typeof window._setLastSaveInfo==='function'){ window._setLastSaveInfo('마지막 일괄저장: date='+dateKey+' value='+v+' ids='+_ws.map(w=>w.id).join(',')); }
 };
 window.applyAllManday=function(dateKey){
   const inp=document.getElementById('att-bulk-md');
@@ -2771,8 +2804,25 @@ window.toggleWorkerMgmt = function(){
   if(!p) return;
   var showing = p.style.display!=='none';
   p.style.display = showing ? 'none' : 'block';
-  if(!showing) renderWorkerMgmtList();
+  if(!showing){ renderWorkerMgmtList(); loadMasterOptions(); }
 };
+
+async function loadMasterOptions(){
+  var sel=document.getElementById('worker-add-master');
+  if(!sel) return;
+  try{
+    const {getDocs,collection}=await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+    const snap=await getDocs(collection(window._fbDb,'master_workers'));
+    const already=new Set(getWorkers().map(w=>w.id));
+    let opts='<option value="">-- 마스터 명부에서 선택 --</option>';
+    snap.forEach(function(d){
+      if(already.has(d.id)) return; // 이미 이 PJT에 등록된 사람은 제외
+      const m=d.data();
+      opts+='<option value="'+d.id+'">'+m.name+' ('+(m.birth||'생년월일 없음')+')</option>';
+    });
+    sel.innerHTML=opts;
+  }catch(e){ console.warn('마스터 명부 로드 실패', e); }
+}
 
 function renderWorkerMgmtList(){
   var el=document.getElementById('worker-mgmt-list');
@@ -2780,14 +2830,21 @@ function renderWorkerMgmtList(){
   var ws=getWorkers();
   if(!ws.length){ el.innerHTML='<div style="font-size:12px;color:#86868b">명단이 없습니다</div>'; return; }
   el.innerHTML=ws.map(function(w){
+    var birthPart = w.birth
+      ? '<span style="font-size:10px;color:#9AAABF;margin-left:6px">'+w.birth+'</span>'
+      : '<input type="date" class="birth-fix-input" data-wid="'+w.id+'" style="font-size:12px;padding:4px 7px;border:1px solid #ffd699;border-radius:6px;margin-left:6px;background:#fff8ea;min-width:138px" title="생년월일 미입력 — 입력하면 다른 PJT 공수와 합산됩니다">';
     return '<div style="display:flex;align-items:center;justify-content:space-between;padding:6px 0;border-bottom:1px solid #f0f0f0">'
-      +'<span style="font-size:13px;color:#1d1d1f">'+(w.role?'<span style="font-size:10px;color:#86868b;margin-right:4px">['+w.role+']</span>':'')+w.name+'</span>'
+      +'<span style="font-size:13px;color:#1d1d1f;display:flex;align-items:center">'+(w.role?'<span style="font-size:10px;color:#86868b;margin-right:4px">['+w.role+']</span>':'')+w.name+birthPart+'</span>'
       +'<button class="del-worker-btn" data-wid="'+w.id+'" style="font-size:11px;padding:3px 8px;background:#fff;border:1px solid #ffb3b3;border-radius:6px;color:#c0392b;cursor:pointer">삭제</button>'
     +'</div>';
   }).join('');
   // 삭제 버튼 이벤트
   el.querySelectorAll('.del-worker-btn').forEach(function(btn){
     btn.addEventListener('click',function(){deleteWorkerFromUI(this.dataset.wid);});
+  });
+  // 생년월일 미입력 인원 인라인 입력 이벤트
+  el.querySelectorAll('.birth-fix-input').forEach(function(inp){
+    inp.addEventListener('change',function(){ updateWorkerBirthFromUI(this.dataset.wid, this.value); });
   });
 }
 
@@ -2803,21 +2860,33 @@ function _waitForFb(fnName, maxWait){
 }
 
 window.addWorkerFromUI = async function(){
-  var name=document.getElementById('worker-add-name').value.trim();
+  var masterId=document.getElementById('worker-add-master').value;
   var role=document.getElementById('worker-add-role').value;
-  if(!name){ alert('이름을 입력하세요.'); return; }
+  if(!masterId){ alert('마스터 명부에서 인원을 선택하세요.'); return; }
   var btn=event&&event.target?event.target:null;
   if(btn){ btn.disabled=true; btn.textContent='추가 중...'; }
   try{
-    await _waitForFb('_fbAddWorker', 6000);
-    await window._fbAddWorker(name, role);
-    document.getElementById('worker-add-name').value='';
+    await _waitForFb('_fbAddWorkerFromMaster', 6000);
+    await window._fbAddWorkerFromMaster(masterId, role);
     if(window._refreshWorkerArrays) window._refreshWorkerArrays();
     renderWorkerMgmtList();
+    loadMasterOptions();
   }catch(e){
     alert('Firebase 연결을 확인해 주세요. 네트워크 또는 권한 문제일 수 있습니다.');
   }finally{
     if(btn){ btn.disabled=false; btn.textContent='추가'; }
+  }
+};
+
+window.updateWorkerBirthFromUI = async function(wid, birth){
+  if(!birth) return;
+  try{
+    await _waitForFb('_fbUpdateWorkerBirth', 6000);
+    await window._fbUpdateWorkerBirth(wid, birth);
+    if(window._refreshWorkerArrays) window._refreshWorkerArrays();
+    renderWorkerMgmtList();
+  }catch(e){
+    alert('생년월일 저장에 실패했습니다.');
   }
 };
 
@@ -2887,15 +2956,16 @@ function renderAttend(){
 
   // ── 기술인 출역 현황 (Firebase 실시간) ──
   function renderWorkerList(){
+    const _ws=getWorkers(); // WORKERS 모듈변수는 갱신 타이밍이 어긋날 수 있어 항상 최신값을 직접 조회
     const checks=window._fbGetWorkerChecks?window._fbGetWorkerChecks(dateKey):[];
     document.getElementById('att-worker-count').textContent=
-      `출역 ${checks.length}명 / 전체 ${WORKERS.length}명`;
-    const _allChecked=WORKERS.length>0 && WORKERS.every(w=>checks.includes(w.id));
+      `출역 ${checks.length}명 / 전체 ${_ws.length}명`;
+    const _allChecked=_ws.length>0 && _ws.every(w=>checks.includes(w.id));
     const _bulkBtn='<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px;flex-wrap:wrap">'
       +'<button onclick="toggleAllWorkers(\''+dateKey+'\')" style="font-size:12px;font-weight:600;padding:7px 14px;border-radius:8px;border:1px solid '+(_allChecked?'#c0392b':'#1D5BA6')+';background:'+(_allChecked?'#fdecea':'#e8f0fb')+';color:'+(_allChecked?'#c0392b':'#1D5BA6')+';cursor:pointer;white-space:nowrap">'+(_allChecked?'✕ 전체 출역 해제':'✓ 전체 출역 체크')+'</button>'
       +'<div style="display:flex;align-items:center;gap:6px"><span style="font-size:12px;color:#86868b;white-space:nowrap">전체 공수</span><input type="number" id="att-bulk-md" step="0.5" min="0" max="3" placeholder="1.0" style="width:58px;font-size:13px;padding:6px 8px;border:1px solid #d1d1d6;border-radius:8px;text-align:center;box-sizing:border-box" onkeydown="if(event.key===\'Enter\'){applyAllManday(\''+dateKey+'\');}"><button onclick="applyAllManday(\''+dateKey+'\')" style="font-size:12px;font-weight:600;padding:7px 12px;border-radius:8px;border:1px solid #1D5BA6;background:#1D5BA6;color:#fff;cursor:pointer;white-space:nowrap">일괄 적용</button></div>'
       +'</div>';
-    document.getElementById('att-worker-list').innerHTML=_bulkBtn+WORKERS.map(w=>{
+    document.getElementById('att-worker-list').innerHTML=_bulkBtn+_ws.map(w=>{
       const checked=checks.includes(w.id);
       const md=getMandayMap(dateKey)[w.id]||0;
       return`<div style="display:flex;align-items:center;gap:10px;padding:9px 12px;background:#f5f5f7;border-radius:10px;margin-bottom:6px;cursor:pointer;-webkit-user-select:none;user-select:none"
