@@ -161,3 +161,38 @@ Azure AD 앱 등록 및 코드 구현 완료. 실제 메일 로드 여부 미확
 
 ### 이미 섞인 데이터
 - 격리 전 테섭에서 발생한 본섭 반영분은 구분 불가로 그대로 둠 (사용자 판단)
+
+---
+
+## 2026-07-24 세션 — 폴더블(Z Fold 등) 펼침 시 PC 화면 유지
+
+### 배경
+대표님(Z Fold7 사용) — "펼치면 PC 환경으로 보이게 못하나? 조회가 안 되잖아"
+
+### 원인
+`showApp()`이 `navigator.userAgent`에 "Mobi" 포함 여부만으로 PC/모바일을 결정하고 있었음. 폴더블을 펼쳐도 Android 브라우저 UA는 여전히 "Mobile"을 포함하므로, 화면을 아무리 넓게 펼쳐도 항상 `m/home.html`(경량 모바일 앱)로 강제 이동되고 있었음.
+
+### 수정 — `index.html`
+```js
+var isMobileUA = /Mobi/i.test(navigator.userAgent||'');
+var isNarrow = window.innerWidth < 900;
+if (forceMobile || (isMobileUA && isNarrow && !forcePC)) { location.href='m/home.html'; return; }
+```
+- UA만이 아니라 **화면 폭(900px 기준, hr/edoc 내부 분기와 동일)**을 함께 판단
+- `localStorage` 기반 수동 오버라이드(`jh_force_pc`/`jh_force_mobile`) 추가 — 자동판단이 기기별로 안 맞을 경우 대비
+- PC 사이드바에 "📱 모바일 화면으로 보기", `m/home.html`에 "🖥️ PC 화면으로 전환" 버튼 추가 (`switchToMobile()`/`switchToPC()`)
+
+### 안전성 검토 (배포 전 대표님 재확인 요청에 대한 답변)
+- 데스크톱 브라우저(비-모바일 UA): 폭 체크 자체가 적용 안 됨 → 기존과 100% 동일
+- 일반 폰(좁은 화면): 조건 그대로 만족 → 기존과 동일하게 모바일로 이동
+- 새로 바뀌는 케이스는 "모바일 UA + 900px 이상" 하나뿐 (의도한 변경)
+- 신규 localStorage 키·함수명 기존 코드와 충돌 없음 확인
+- `m/home.html` 기존 로직(로그인·권한잠금·로그아웃)은 손대지 않고 배너 1개만 추가, 문법 검증 통과
+
+### 검증
+- `node --check`: `index.html`(module + 일반 script 2블록), `m/home.html` 모두 통과
+- 대표님 승인("ㅇㅇ") 후 **테스트서버 생략, 본섭 직접 배포**
+
+### 운영 커밋
+- production: `index.html` `65f33d8`(로직) → 버전주석 갱신 커밋, `m/home.html` `0623d31`
+- 백업: `backup/v2.6.6/index.html`, `backup/v2.6.6/m/home.html`
