@@ -27,3 +27,42 @@
 
 ### 문서
 - `docs/3_3_edoc_docs.md` r2 갱신
+
+---
+
+## 2026-07-24 세션 — 구매품의서/지출결의서 품목 다중입력 + 개별 링크
+
+### 요청
+대표님 지시:
+1. 지출결의서에 구매 링크 추가 (기존엔 구매품의서에만 참고링크 있었음)
+2. 품의서·결의서 모두 구매 품목·수량을 여러 개 입력 가능하게
+3. 품목/수량/단가를 폼 하단으로 이동, 가로 배치
+4. 품목별로 개별 링크 추가 가능하게
+
+### 변경 내용
+`DOC_CONFIG`에 신규 필드 타입 `'items'` 도입 (품목명·수량·단가·링크를 한 행으로 묶어 다중 입력):
+- **구매품의서(`purchase`)**: 기존 단일 `item`/`qty`/`unitPrice`/`refUrls`(다중 링크, 품목과 분리) 필드를 모두 제거하고 `items` 필드 하나로 통합. 필드 순서도 공급업체→목적→필요일→**품목(하단)**으로 재배치
+- **지출결의서(`expense`)**: 기존 필드(지출일/구분/금액/거래처/목적/증빙)는 그대로 두고 `items` 필드를 하단에 신설 — 총 지출 금액(`amount`, 수기)은 유지하면서 품목별 상세·링크만 추가
+
+구현:
+- `renderDocWrite`: `f.type==='items'` 분기 추가 — 헤더 라벨(품목명/수량/단가/링크) + 행 컨테이너 + `+ 품목 추가` 버튼
+- `window.addItemRow(key, values)` 신설 — 품목명(text)·수량(number)·단가(money, `fmtMoney` 실시간 콤마)·링크(url) 4칸 가로 배치 행 생성, `−` 버튼으로 개별 삭제
+- `docSave`: `f.type==='items'` 분기 — `.item-row`를 순회해 `{name, qty, unitPrice, amount:qty×unitPrice, link}` 배열로 수집, 4값 모두 빈 행은 제외
+- `window.fmtItemsTable(items)` 신설 — 상세보기/인쇄(A4)에서 품명·수량·단가·금액·링크 표 + 합계 행으로 렌더링. `docDetail`, `printDocA4` 양쪽에 적용
+- `window.getItemsForDisplay(d, dtype)` 신설 — **하위호환**: `items` 도입 이전(레거시 `item`/`qty`/`unitPrice`/`refUrls` 구조)에 저장된 구매품의서를 조회할 때, 레거시 필드로 1행짜리 items를 구성해 동일한 표로 표시(읽기 전용 변환, 저장 구조는 건드리지 않음)
+
+### 검증
+- `node --check`로 모듈 스크립트 전체 문법 검증 통과
+- jsdom으로 품목 행 추가/입력값 수집(수량×단가 자동계산)/빈 행 제외/삭제 동작 테스트 → PASS
+- `fmtItemsTable` 렌더링(품목명·링크 표시, 합계 정확) 테스트 → PASS
+- `getItemsForDisplay` 레거시 문서 하위호환(1행 변환) / 신규 구조 우선 사용 / 필드 없는 경우 빈 배열 테스트 → PASS
+
+### 배포
+- 테스트서버 원본(`portal-test`)이 production과 미세하게 다름(초과근로 목록 `authorUid` 필터 라인 부재) — 기존 차이 보존한 채 테섭 원본에 동일 패치 개별 적용 후 배포
+- 대표님 확인("확인했어") → production 배포 승인
+- production: `edoc/index.html` 배포 완료
+- `index.html` 버전주석 갱신: build 20260724, `edoc 3.2r2` → `edoc 3.3`
+- 백업: `backup/v2.6.4/edoc/index.html` (변경 전 원본)
+
+### 문서
+- `docs/3_3_edoc_docs.md` r3 갱신 (items 필드 구조, 하위호환 로직 반영)
