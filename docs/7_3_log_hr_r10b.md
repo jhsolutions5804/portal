@@ -101,3 +101,33 @@ PC 급여명세서 작성 화면에서 상여금(초과근로)·특별상여·�
 
 ### 문서
 - `docs/2_5_hr_payslip_r3.md` r6 갱신
+
+---
+
+## 초과근로 — edoc 승인건 자동 재동기화(self-heal) 추가 (2026-07-24)
+
+### 배경
+대표님이 며칠 전 전자결재에서 이한영·정다애 초과근로 2건을 승인했는데 인사 `overtime` 컬렉션에 반영이 안 됐다고 보고. Firestore를 Claude 환경에서 직접 조회할 수 없어(googleapis.com 네트워크 차단) 근본 원인은 특정하지 못함. 대표님이 비개발자라 로컬 진단 스크립트 실행도 어려워하심 → **원인 규명보다 자동 복구를 우선**하기로 판단.
+
+### 조치
+1. `scripts/check_overtime_link.py` 진단 스크립트 작성·업로드 (참고용으로 남겨둠, 필수 사용처 아님)
+2. `hr/index.html`에 `window.otSyncFromEdoc()` 신규 추가
+   - `edoc_overtime`에서 `status==='approved' && !linkedToOvertime`인 문서 조회
+   - 있으면 `overtime`에 추가 + `linkedToOvertime:true` 마킹
+   - `window.renderOvertimeMain()`을 async로 변경, 진입 시마다 `await otSyncFromEdoc()` 선실행
+   - 콘솔 로그만 남기고 alert 없음(조용히 처리) — 대표님은 그냥 화면을 열기만 하면 됨
+
+### 부수 발견 (해결 안 됨, 문서에 기록)
+- `edoc/index.html`의 결재함(`loadApproveData`) `DOC_TYPES`에 `'overtime'` 누락 — 결재함에는 초과근로가 원래도 안 뜨는 상태. 다음 세션에서 추가 여부 결정 필요 (`docs/3_4_edoc_overtime_r1.md` 참조)
+
+### 사고: 백업 버전 충돌 및 복구
+`backup/v2.6.3/hr/index.html`에 새 백업을 올리려다, **다른 세션에서 이미 같은 버전 번호(v2.6.3)를 hr payslip 기능에 사용 중**이던 기존 백업을 실수로 덮어씀. 즉시 git blob API로 원본(sha `63c8c5f871f673f2a217bac1567fcc77fa290c51`)을 복구하고, 이번 백업은 `backup/v2.6.4/hr/index.html`로 재배치함.
+> 교훈: `backup/vX.X.X/` 버전 번호는 여러 세션이 동시에 채번하고 있어 겹칠 수 있다. **새 백업 경로에 PUT하기 전 반드시 GET으로 기존 파일 존재 여부를 먼저 확인**할 것 (신규 파일이라고 가정하고 sha=None으로 바로 쓰지 말 것).
+
+### 검증
+- `node --check`로 비-모듈 스크립트 문법 검증 통과
+- 대표님 승인("응 적용해")으로 **테스트서버 생략, 본섭 직접 배포**
+
+### 운영 커밋
+- production: `hr/index.html` `d6db6b0`, `index.html`(버전주석)
+- 백업: `backup/v2.6.4/hr/index.html` (v2.6.3은 원상복구)
