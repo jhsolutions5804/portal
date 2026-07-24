@@ -511,6 +511,9 @@
       </button>
       <button class="sb-logout" onclick="doLogout()">로그아웃</button>
     </div>
+    <div style="padding:6px 14px 12px;">
+      <button onclick="switchToMobile()" style="width:100%; font-size:11px; color:#9fbbe0; background:none; border:1px solid rgba(255,255,255,.2); border-radius:8px; padding:6px 9px; cursor:pointer;">📱 모바일 화면으로 보기</button>
+    </div>
   </aside>
 
   <div class="main">
@@ -921,12 +924,28 @@ function showAuth(id){
   window.scrollTo(0,0);
 }
 function showApp(){
-  if(/Mobi/i.test(navigator.userAgent||'')){ location.href='m/home.html'; return; }
+  var forcePC = false, forceMobile = false;
+  try{
+    forcePC = localStorage.getItem('jh_force_pc') === '1';
+    forceMobile = localStorage.getItem('jh_force_mobile') === '1';
+  }catch(e){}
+  var isMobileUA = /Mobi/i.test(navigator.userAgent||'');
+  var isNarrow = window.innerWidth < 900;
+  // 폰(Z Fold 등 폴더블 포함)이면서 화면이 좁을 때만 모바일로 전환.
+  // 펼친 화면처럼 넓으면 PC 화면 유지. localStorage로 수동 강제 전환도 가능.
+  if (forceMobile || (isMobileUA && isNarrow && !forcePC)) { location.href='m/home.html'; return; }
   $('auth-stage').style.display='none';
   $('s-app').classList.add('shown');
   window.scrollTo(0,0);
   if(window.mbnShowNav) mbnShowNav();
 }
+window.switchToMobile = function(){
+  try{
+    localStorage.setItem('jh_force_mobile','1');
+    localStorage.removeItem('jh_force_pc');
+  }catch(e){}
+  location.href='m/home.html';
+};
 function showView(v){
   $('view-home').classList.toggle('off', v!=='home');
   $('view-embed').classList.toggle('on', v==='embed');
