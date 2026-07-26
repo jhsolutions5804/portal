@@ -1,7 +1,7 @@
 # 4.0. PJT 관리 — 홈
 
-> 포털 메뉴: `pjt`(P4 Ph2 FAB), `p4ph4`(P4 Ph4 SUP), `reg_*`(경량 PJT, 동적), `pjt_manday`(월간 공수)
-> 최초 작성: 2026-07-01 · 최종 개정: 2026-07-24 (5.0.0) · 작성: 춘식이(Claude)
+> 포털 메뉴: `pjt`(P4 Ph2 FAB), `p4ph4`(P4 Ph4 SUP), `reg_*`(경량 PJT, 동적), `pjt_manday`(월간 공수), `pjt_ended`(종료 PJT)
+> 최초 작성: 2026-07-01 · 최종 개정: 2026-07-26 (5.1.0) · 작성: 춘식이(Claude)
 
 ---
 
@@ -19,9 +19,23 @@ PJT 관리는 진행 중인 현장 프로젝트별 워크스페이스를 제공�
 | `p4ph2` | P4 Ph2 (FAB) | 고정 | `portal/pjt/` | `pjt_workers_fab` |
 | `p4ph4` | P4 Ph4 (SUP) | 고정 | `portal/pjt_ph4/` | `pjt_workers_ph4` |
 | `reg_{id}` | 신규 등록 PJT (경량) | 동적 | `portal/pjt_light/?pjtId={id}` | `pjt_registry/{id}/workers` |
-| `pjt_manday` | 월간 공수 | 고정(항상 최하단) | `portal/pjt_manday/` | (마스터 명부 참조) |
+| `pjt_manday` | 월간 공수 | 고정(최하단에서 두번째) | `portal/pjt_manday/` | (마스터 명부 참조) |
+| `pjt_ended` | 종료 PJT | 고정(항상 최하단) | (포털 내장 뷰) | - |
 
 > 상세는 4.1(FAB), 4.2(SUP), 4.3(경량 PJT), 4.4(월간 공수·마스터 명부) 문서 참조.
+
+---
+
+## 프로젝트 종료·재개 (5.1.0 신규 — FAB/SUP까지 확장)
+
+기존에는 경량 PJT(`reg_*`)만 종료 가능했으나, 5.1.0부터 **FAB/SUP를 포함한 모든 고정 PJT도 종료 가능**하도록 확장했다.
+
+- **원본 보존**: `PJT_FIXED_BASE` 상수에 P4 Ph2/Ph4의 원본 정의(명칭·이모지·설명·URL)를 별도 보관 → 종료로 `PJT_SUBTABS`에서 제거돼도 재개 시 이 원본으로 정확히 복원
+- **상태 저장**: FAB/SUP는 `pjt_settings/{key}.status`(`'active'`\|`'ended'`), 경량 PJT는 기존과 동일하게 `pjt_registry/{id}.status`
+- **동기화**: `syncPjtSubtabsFromSettings()`가 로그인 시·PJT홈 진입 시 `PJT_FIXED_BASE` 각 항목의 `pjt_settings` 상태를 확인 → 종료면 `PJT_SUBTABS`에서 제거, 활성인데 목록에 없으면 원본에서 복원(월간공수 앞에 삽입)
+- **종료 진입점**: 카드 ⚙️ 설정 모달의 "종료" 버튼 — `pjt_home`/`pjt_manday`/`pjt_ended`를 제외한 모든 PJT에 노출(`canEnd` 조건)
+- **종료 PJT 전용 뷰**: 사이드바 `🗄️ 종료 PJT`(항상 최하단) 클릭 → `showPjtEndedView()` → FAB/SUP(`pjt_settings` ended) + 경량 PJT(`pjt_registry` ended) 전체를 한 화면에 모아 표시. 재개 가능(`reopenFixedPjt`/`reopenPjt`), 경량 PJT는 완전삭제(`deletePjtPermanently`, 관리자 전용·이중확인)도 가능
+- **기존 PJT 홈의 "종료된 프로젝트" 섹션은 이 전용 뷰로 완전히 이전**(중복 제거). 데이터(품목·근태·공수·일정·공사일보)는 종료/재개와 무관하게 항상 보존됨
 
 ---
 
