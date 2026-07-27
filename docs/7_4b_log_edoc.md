@@ -96,3 +96,25 @@
 
 ### 문서
 - `docs/3_0_edoc_home_approve.md` r2 갱신 (홈 대시보드 구조, `edocShowList` 연결점 문서화 — 기존 문서가 2026-07-06 이후 갱신 안 돼 있어 현행화 겸함)
+
+---
+
+## 2026-07-27 — via=portal 우회 접근 버그 수정
+
+### 발단
+- 대표님 지시로 pjt_manday에 페이지 자체 접근 검증을 추가하던 중, 다른 서브 메뉴들도 전수 점검 → edoc에 로그인 검증 로직 자체는 있지만 `?via=portal` 파라미터가 있으면 승인·권한(`perms.edoc`) 여부와 무관하게 무조건 `enterApp()`으로 입장시키는 우회 버그 발견
+
+### 수정
+- `onAuthStateChanged` 콜백을 하나로 통합 — via=portal 여부와 무관하게 항상 `portal_users/{uid}.status==='approved' && (admin || perms.edoc)`를 확인한 뒤에만 입장 허용
+- via=portal일 때는 검증 통과 후 `portal-embed` 클래스만 추가로 적용(포털 임베드 스타일용) — 그 외 검증 로직은 직접 접근과 완전히 동일
+- 검증 실패 시 무조건 `show('denied')`
+
+### 검증
+- `node --check` 문법 통과
+
+### 배포
+- 대표님 지시로 portal-test 생략, production 직접 배포
+- 커밋: `edoc/index.html`
+- 백업: `backup/v5.1.4/edoc/index.html` (수정 전 원본)
+
+
