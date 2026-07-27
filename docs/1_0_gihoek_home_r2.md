@@ -1,9 +1,16 @@
 # 1.0. 기획 홈
 
 > `portal/gihoek/index.html` · URL: `.../portal/gihoek/?via=portal`
-> 최초 작성: 2026-06-26 · 최종 수정: 2026-06-29(r2) · 작성: 춘식이(Claude)
+> 최초 작성: 2026-06-26 · 최종 수정: 2026-07-27(via=portal 우회 버그 수정, r3) · 작성: 춘식이(Claude)
 
 ---
+
+## 접근 검증 (2026-07-27)
+
+- `onAuthStateChanged` 콜백에서 항상 `portal_users/{uid}` 문서를 조회해 `status==='approved' && (admin===true || perms.plan===true)`를 확인한 뒤에만 데이터 구독(`onSnapshot`)을 시작 — via=portal 여부와 무관하게 동일 기준 적용
+- ⚠️ 과거엔 `?via=portal`이면 검증 없이 즉시 splash를 제거하고 견적/정산/거래처/지출 전체를 `onSnapshot`으로 구독하던 우회 버그가 있었음(주소창에 `?via=portal`만 붙이면 승인·권한 여부와 무관하게 회사 재무 데이터 전체 노출). 이번 수정으로 검증 통과 전에는 화면 표시도, 데이터 구독도 시작되지 않도록 통합함
+- via=portal일 때는 검증 통과 후 splash 제거·`portal-embed` 클래스 추가 후 onSnapshot 직접 등록, 직접 접근 시엔 `startApp()`(거래처 시드/이전 로직 포함) 호출 — 이 초기화 방식 차이만 유지
+
 
 ## KPI 카드 구성
 
@@ -70,3 +77,4 @@
 - `gihoek_settlements` → KPI 갱신
 
 > ⚠️ 각 구독에서 `curTab==='home'` 체크 후 `renderPlanHome()` 재호출 필요
+
