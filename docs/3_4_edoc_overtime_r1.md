@@ -1,7 +1,7 @@
-# 3.4. 전자결재 — 초과근로 결재 (r5)
+# 3.4. 전자결재 — 초과근로 결재 (r6)
 
 > Firestore 컬렉션: `edoc_overtime`, `overtime`, `annual_contracts/{workerId}/contracts`, `workers`
-> 최초 작성: 2026-07-06 · 최종 수정: 2026-07-26(r5, 관리자 대신승인 버그 수정 — 진짜 근본 원인) · 작성: 춘식이(Claude) · 릴리스: v2.1.0 → v2.1.1 → v2.6.2 → v2.6.4 → v2.6.7
+> 최초 작성: 2026-07-06 · 최종 수정: 2026-07-26(r6, 목록 노출 로직을 canView 표준 패턴으로 재수정) · 작성: 춘식이(Claude) · 릴리스: v2.1.0 → v2.1.1 → v2.6.2 → v2.6.4 → v2.6.7
 
 ---
 
@@ -107,7 +107,7 @@ const canApprove = isMyTurn || (_isAdmin && (d.status==='pending'||d.status==='r
 - `EDOC_TABS`·`DOC_CONFIG`·사이드바·탭바에 `overtime` 등록. `DOC_CONFIG.overtime.fields`: 근로자·일자·시간·통상임금·수당·**사유**(2026-07-21 추가).
 - **초과근로 작성**(`renderOvertimeWrite`) 폼: 일자 → 근로자 선택 시 통상임금 자동 표시 → 시간 입력 시 수당 자동 → **사유**(선택, 텍스트영역).
 - **임베드 대응**: `.portal-embed`에서 탭바/사이드바가 숨겨지므로, **전자결재 홈에 `goTab('overtime')` 진입 버튼**을 별도 배치.
-- 목록(`renderOvertimeMain`): **본인이 작성한 문서만 표시**(`d.authorUid === 현재 로그인 uid` 필터, 2026-07-23 추가). 카드 클릭 → `docDetail(d, 'overtime')`로 상세+승인/반려. 뒤로가기는 `renderOvertimeMain`. 상세 화면에 사유 표시.
+- 목록(`renderOvertimeMain`): 2026-07-23엔 "본인 작성분만" 필터를 걸었으나, 이 때문에 관리자/결재자가 **본인이 작성하지 않은 결재 대상 문서를 볼 수 없어 결재가 아예 불가능해지는 회귀**가 발생함(2026-07-26 발견). `renderDocList`와 동일한 `canView` 표준 패턴으로 재수정: 관리자(전체) / 본인 작성 / 결재라인에 uid·이름으로 지정된 건만 노출. 카드 클릭 → `docDetail(d, 'overtime')`로 상세+승인/반려. 뒤로가기는 `renderOvertimeMain`. 상세 화면에 사유 표시.
   - ⚠️ 다른 사람이 상신한 초과근로를 결재/확인해야 하는 경우는 이 목록이 아니라 **결재함(`renderApproveBox`, `goTab('approve')`)**에서 처리한다. 이 목록은 어디까지나 "내가 상신한 것" 트래킹용.
 - 작성(`renderOvertimeWrite`): 날짜 → 근로자 선택 시 통상임금 자동 표시 → 시간 입력 시 수당 자동.
 
