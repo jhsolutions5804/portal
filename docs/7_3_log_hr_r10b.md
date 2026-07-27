@@ -131,3 +131,34 @@ PC 급여명세서 작성 화면에서 상여금(초과근로)·특별상여·�
 ### 운영 커밋
 - production: `hr/index.html` `d6db6b0`, `index.html`(버전주석)
 - 백업: `backup/v2.6.4/hr/index.html` (v2.6.3은 원상복구)
+
+---
+
+## 초과근로 — 결재목록 노출 수정 + 클릭 상세보기 모달 추가 (2026-07-26)
+
+### 배경
+① 07-26 `docApprove()` 버그 수정 후, 대표님이 대기중 4건을 재승인 → 인사 반영 정상 확인됨.
+② 근데 "인사 → 초과근로"에서 사유가 말줄임(ellipsis)으로 잘려 보인다는 피드백. 스크린샷에서 `18:00~21:00 노사협의체 사진 촬영으로 현장 입문/`처럼 긴 사유가 잘려서 안 보였음.
+
+### 수정 1 — `edoc/index.html`: 초과근로 결재 목록 노출 조건
+07-23에 추가한 "본인 작성분만 표시" 필터가 관리자/결재자의 결재 업무 자체를 막고 있었음(대표님이 결재하려는데 목록이 텅 빔). 다른 문서함(`renderDocList`)과 동일한 `canView` 패턴으로 통일:
+```js
+if (_isAdmin) return true;
+if (d.authorUid === myUid) return true;
+const line = d.approvalLine || [];
+return line.some(s => s.uid === myUid || (!s.uid && s.name === myName && s.role !== '회람' && s.role !== '수신' && s.role !== '작성'));
+```
+관리자(전체) / 본인 작성 / 결재라인에 이름·uid로 지정된 건만 노출 — "다른 사람 정보 안 보이게"라는 원 요청과 "결재자는 결재할 수 있어야 한다"는 요구를 모두 충족.
+
+### 수정 2 — `hr/index.html`: 클릭 상세보기 모달
+- `otEsc` 헬퍼 옆에 `window.otShowDetail(rowId)` + `_otDetailCache` 전역 캐시 추가
+- PC 상세(`otPcShowPersonDetail`) / 모바일 직원별 조회(`otLoadPersonDetail`) / 전체현황 상세(`otLoadSummary`) 세 테이블 모두 행에 `onclick="otShowDetail('${r.id}')"` 연결, 렌더 시점에 `_otDetailCache[r.id]=r`로 캐시
+- 수정·삭제 버튼은 `event.stopPropagation()`으로 분리해 모달과 충돌 안 나게 처리
+- 모달: 이름/날짜/시간/수당 + 사유 전문(`white-space:pre-wrap`), 배경 클릭 또는 ✕로 닫힘
+
+### 검증
+- `node --check` 통과 (edoc, hr 각각)
+
+### 운영 커밋
+- production: `edoc/index.html` `c82e787`(목록 노출 수정), `hr/index.html` `28eccd6`(상세보기 모달), `index.html`(버전주석)
+- 백업: `backup/v2.6.8/hr/index.html`
