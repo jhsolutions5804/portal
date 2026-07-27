@@ -1,7 +1,7 @@
-# 3.4. 전자결재 — 초과근로 결재 (r4)
+# 3.4. 전자결재 — 초과근로 결재 (r5)
 
 > Firestore 컬렉션: `edoc_overtime`, `overtime`, `annual_contracts/{workerId}/contracts`, `workers`
-> 최초 작성: 2026-07-06 · 최종 수정: 2026-07-24(r4, hr 자동 재동기화 self-heal 추가) · 작성: 춘식이(Claude) · 릴리스: v2.1.0 → v2.1.1 → v2.6.2 → v2.6.4
+> 최초 작성: 2026-07-06 · 최종 수정: 2026-07-26(r5, 관리자 대신승인 버그 수정 — 진짜 근본 원인) · 작성: 춘식이(Claude) · 릴리스: v2.1.0 → v2.1.1 → v2.6.2 → v2.6.4 → v2.6.7
 
 ---
 
@@ -70,6 +70,23 @@ else if (newStatus === 'approved' && dtype === 'overtime' && !rawData.linkedToOv
 
 - 결재자(김종화)가 승인 → 다음 결재자 없음 → 문서 `approved` → 훅 발동 → 인사 `overtime`에 기록.
 - `linkedToOvertime` 플래그로 재승인 시 **중복 등록 방지**.
+
+### 🎯 진짜 근본 원인 규명 및 수정 (2026-07-26)
+
+2026-07-24 self-heal(자동 재동기화)을 추가했음에도 정다애·이한영 건이 계속 인사에 반영되지 않아, 진단 페이지(`debug/overtime_check.html`, 읽기 전용)를 만들어 실제 Firestore 데이터를 직접 확인함. **`edoc_overtime` 문서 4건이 모두 `status: 'pending'`(승인 안 됨) 상태로 남아있었음** — self-heal은 `status==='approved'`인 문서만 다루므로 애초에 대상이 아니었던 것. 즉 self-heal은 정상 동작했지만, **승인 자체가 Firestore에 반영되지 않는 더 근본적인 버그**가 있었음.
+
+**원인**: `docDetail()`의 승인 버튼 노출 조건(`canApprove`)에는 관리자 예외가 있었음:
+```js
+const canApprove = isMyTurn || (_isAdmin && (d.status==='pending'||d.status==='reviewing'));
+```
+하지만 실제 처리 로직인 `docApprove()` 내부의 `isMyStep()`에는 이 관리자 예외가 없어서, 결재라인에 지정된 사람(예: 김종화) 본인이 아닌 **관리자 계정(대표님)이 대신 승인**하면 "내 결재 차례"를 하나도 찾지 못해 `approvalLine`이 전혀 갱신되지 않았고, 그 상태로 저장을 시도하다 실패한 것으로 추정됨(정확한 실패 지점은 Firestore 보안 규칙 검증 로그가 없어 100% 특정은 못했으나, 증상과 코드 분석이 정확히 일치함).
+
+**수정** — `docApprove()`의 `isMyStep` 로직을 순번 기반 단일 단계 타겟팅으로 재작성:
+1. 1순위: `uid`/이름이 정확히 일치하는, 순번상 차례가 된 단계
+2. 2순위: 그래도 없으면 **관리자는 순번상 차례가 된 단계를 대신 승인 가능**
+3. `targetIdx`를 단 하나만 확정해서, 다단계 결재라인(결재1→결재2 등)에서 관리자가 대신 승인해도 **여러 단계가 한 번에 승인 처리되는 사고를 방지**함 (`origLine.indexOf(s)===targetIdx`로 정확히 하나만 매칭)
+
+**진단 도구**: `debug/overtime_check.html` — ID/PW 로그인 후 `edoc_overtime`·`overtime` 컬렉션 전체를 표로 보여주는 읽기 전용 페이지. Firestore를 Claude 환경에서 직접 조회할 수 없고, 대표님이 비개발자라 로컬 스크립트 실행도 어려운 상황에서 "링크만 열면 바로 확인 가능"하도록 만듦. 최초엔 Google 로그인으로 잘못 만들어 한 번 수정함(포털은 ID/PW 로그인 방식).
 
 ### ⚠️ 자동연동 실패 사례 및 self-heal 대응 (2026-07-24)
 
