@@ -206,3 +206,51 @@ docs=docs.filter(d=>d.authorUid===myUid);
 ### 운영 커밋
 - production: `edoc/index.html` `a6893b9`, `index.html`(버전주석) 
 - 백업: `backup/v2.6.2/edoc/index.html`
+
+---
+
+## 2026-07-26 세션 — 관리자 대신승인 시 결재 안 되는 진짜 근본 원인 발견·수정
+
+### 배경
+07-24 self-heal 추가에도 불구하고 대표님이 여전히 정다애·이한영 초과근로가 인사에 안 보인다고 재보고. Firestore 직접 조회 불가 + 로컬 스크립트 실행도 어려워하심 → **읽기 전용 진단 웹페이지**(`debug/overtime_check.html`)를 만들어 대표님이 링크만 열면 데이터를 볼 수 있게 함.
+
+### 진단 페이지 삽질
+1차: Google 로그인 버튼으로 만들었다가 "로그인이 안 된다"는 피드백 받음 → 포털이 실제로는 **ID/PW 로그인**(`signInWithEmailAndPassword`, `@jhsol.kr` 도메인)이라는 걸 재확인하고 로그인 폼을 ID/PW로 교체.
+
+### 실제 원인 발견
+진단 페이지에서 대표님이 스크린샷 전송 → `edoc_overtime` 문서 4건이 전부 `status: 'pending'`(승인 안 됨)으로 남아있는 게 확인됨. self-heal은 `status==='approved'`만 다루므로 애초에 대상이 아니었던 것 — **승인 자체가 Firestore에 반영이 안 되고 있었음**.
+
+코드 재검토 결과:
+- `docDetail()`의 `canApprove`: `isMyTurn || (_isAdmin && ...)` — 관리자 예외 있음 (버튼은 보임)
+- `docApprove()`의 `isMyStep()`: uid/이름 일치만 체크, **관리자 예외 없음** — 관리자(대표님 계정)가 결재라인에 지정된 "김종화" 본인이 아니라서 대신 승인해도 어떤 단계도 매칭 안 됨 → `approvalLine` 갱신 안 된 채 저장 시도 → 실패 → `status`는 계속 `pending`
+
+### 수정 — `edoc/index.html`의 `docApprove()`
+`isMyStep` 로직을 순번 기반 단일 단계 타겟팅으로 재작성:
+```js
+const isEligibleRole = (s) => s.role !== '회람' && s.role !== '수신' && s.role !== '작성';
+const prevStepsDone = (idx) => origLine.slice(0, idx).every(p =>
+  p.role === '작성' || p.status === 'approved' || p.status === 'done'
+);
+let targetIdx = origLine.findIndex((s, i) =>
+  isEligibleRole(s) && s.status === 'pending' && prevStepsDone(i) &&
+  (s.uid === myUid || (!s.uid && s.name === approverName))
+);
+if (targetIdx < 0 && _isAdmin) {
+  targetIdx = origLine.findIndex((s, i) => isEligibleRole(s) && s.status === 'pending' && prevStepsDone(i));
+}
+const isMyStep = (s) => origLine.indexOf(s) === targetIdx && targetIdx >= 0;
+```
+- 1순위: 정확히 내 uid/이름과 일치 + 순번상 차례
+- 2순위: 관리자는 순번상 차례가 된 단계를 대신 승인 가능
+- `targetIdx`를 단 하나로 고정 — 다단계 결재라인(결재1→결재2, `구매품의서` 등에서 사용 중 확인됨)에서 관리자가 대신 승인할 때 **여러 단계가 한 번에 승인되는 사고를 방지**
+
+이 버그는 초과근로뿐 아니라 **모든 문서 타입(dtype)에서 관리자가 대신 결재할 때 공통으로 발생하던 문제**였음. `docs/3_0_edoc_home_approve.md`에 범용 결재 로직 문서로 별도 기록.
+
+### 검증
+- `node --check`(module 스크립트) 통과
+- 대표님께 재승인 요청 (배포 후 확인 예정)
+
+### 운영 커밋
+- production: `edoc/index.html` `4f0eace`, `index.html`(버전주석)
+- 백업: `backup/v2.6.7/edoc/index.html`
+- 신규 진단 도구: `debug/overtime_check.html` (읽기 전용, ID/PW 로그인 후 edoc_overtime·overtime 컬렉션 표시)
