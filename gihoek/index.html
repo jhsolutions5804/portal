@@ -215,44 +215,40 @@ const SEED_COMPANIES=[
   {id:'sj',    company:'에스제이',   ceo:'서민우', bizno:'', tel:'010-8456-1098', email:'seoyo20@naver.com', address:'', roleSupplier:false, roleClient:true},
 ];
 
-// via=portal이면 Firebase Auth 대기 없이 즉시 앱 표시
+// via=portal이어도 승인/권한 검증 전에는 화면 표시·데이터 구독을 시작하지 않는다.
+// ⚠️ 과거엔 via=portal일 때 splash를 즉시 없애고 검증 없이 바로 onSnapshot을 등록해,
+//    주소창에 ?via=portal만 붙이면 승인·권한 여부와 무관하게 전체 견적/정산/거래처 데이터가 그대로 노출되는 우회 경로였음(2026-07-27 수정).
 const _viaPortal = new URLSearchParams(location.search).get('via') === 'portal';
-if (_viaPortal) {
-  // 1) 즉시 splash 제거
-  $('splash').style.display = 'none';
-  $('app').style.display = 'block';
-  document.documentElement.classList.add('portal-embed');
 
-  // 2) onAuthStateChanged — 인증 완료 후 onSnapshot 등록 + 렌더
-  onAuthStateChanged(auth, async user => {
-    if (!user) return;
-    try {
-      const ps = await getDoc(doc(db,'portal_users',user.uid));
-      if (ps.exists()) me = { uid:user.uid, ...ps.data() };
-    } catch(e) {}
-    // onSnapshot 등록 (startApp 대신 직접)
-    onSnapshot(collection(db,'gihoek_projects'), s=>{ projects=[]; s.forEach(d=>projects.push({id:d.id,...d.data()})); projects.sort((a,b)=>(a.createdAt?.seconds||0)-(b.createdAt?.seconds||0)); if(curTab==='pjt'&&!detailId&&!pjtForm) renderPjt(); else if(curTab==='home') renderPlanHome(); });
-    onSnapshot(collection(db,'gihoek_estimates'), s=>{ estimates=[]; s.forEach(d=>estimates.push({id:d.id,...d.data()})); estimates.sort((a,b)=>{ const dc=(b.date||'').localeCompare(a.date||''); if(dc) return dc; return (b.createdAt?.seconds||0)-(a.createdAt?.seconds||0); }); if(curTab==='pjt'&&detailId) pjtDetail(detailId); else if(curTab==='pjt'&&!pjtForm) renderPjt(); if(curTab==='est'&&!estDraft&&!viewEstId) renderEst(); else if(curTab==='home') renderPlanHome(); });
-    onSnapshot(collection(db,'gihoek_settlements'), s=>{ settlements=[]; s.forEach(d=>settlements.push({id:d.id,...d.data()})); if(curTab==='pjt') { detailId?pjtDetail(detailId):renderPjt(); } else if(curTab==='settle'&&!settleDraft&&!viewSetId) renderSettle(); else if(curTab==='acct') renderAcct(); else if(curTab==='home') renderPlanHome(); });
-    onSnapshot(collection(db,'gihoek_companies'), s=>{ companies=[]; s.forEach(d=>companies.push({id:d.id,...d.data()})); companies.sort((a,b)=>(a.company||'').localeCompare(b.company||'')); if(curTab==='comp'&&!compForm) renderComp(); });
-    onSnapshot(collection(db,'gihoek_expenses'), s=>{ expenses=[]; s.forEach(d=>expenses.push({id:d.id,...d.data()})); if(curTab==='acct') renderAcct(); });
-    const t0 = new URLSearchParams(location.search).get('tab');
-    if (t0 && ['home','pjt','comp','est','settle','acct'].includes(t0)) tab(t0);
-    else renderPlanHome();
-  });
-
-} else {
-  // 직접 접근 시 기존 Firebase Auth 방식
-  onAuthStateChanged(auth, async user=>{
-    if(!user){ showDenied('로그인이 필요합니다','포털에서 로그인 후 기획 메뉴로 접속해 주세요.'); return; }
-    try{
-      const ps=await getDoc(doc(db,'portal_users',user.uid));
-      if(ps.exists()){ const d=ps.data();
-        if(d.status==='approved' && (d.admin===true || (d.perms&&d.perms.plan===true))){ me={uid:user.uid,...d}; await startApp(); return; } }
-    }catch(e){}
-    showDenied('접근 권한이 없습니다','기획 메뉴 접근 권한이 없습니다. 관리자에게 요청해 주세요.');
-  });
-}
+onAuthStateChanged(auth, async user => {
+  if (!user) { showDenied('로그인이 필요합니다','포털에서 로그인 후 기획 메뉴로 접속해 주세요.'); return; }
+  try {
+    const ps = await getDoc(doc(db,'portal_users',user.uid));
+    if (ps.exists()) {
+      const d = ps.data();
+      if (d.status==='approved' && (d.admin===true || (d.perms && d.perms.plan===true))) {
+        me = { uid:user.uid, ...d };
+        if (_viaPortal) {
+          $('splash').style.display = 'none';
+          $('app').style.display = 'block';
+          document.documentElement.classList.add('portal-embed');
+          onSnapshot(collection(db,'gihoek_projects'), s=>{ projects=[]; s.forEach(d=>projects.push({id:d.id,...d.data()})); projects.sort((a,b)=>(a.createdAt?.seconds||0)-(b.createdAt?.seconds||0)); if(curTab==='pjt'&&!detailId&&!pjtForm) renderPjt(); else if(curTab==='home') renderPlanHome(); });
+          onSnapshot(collection(db,'gihoek_estimates'), s=>{ estimates=[]; s.forEach(d=>estimates.push({id:d.id,...d.data()})); estimates.sort((a,b)=>{ const dc=(b.date||'').localeCompare(a.date||''); if(dc) return dc; return (b.createdAt?.seconds||0)-(a.createdAt?.seconds||0); }); if(curTab==='pjt'&&detailId) pjtDetail(detailId); else if(curTab==='pjt'&&!pjtForm) renderPjt(); if(curTab==='est'&&!estDraft&&!viewEstId) renderEst(); else if(curTab==='home') renderPlanHome(); });
+          onSnapshot(collection(db,'gihoek_settlements'), s=>{ settlements=[]; s.forEach(d=>settlements.push({id:d.id,...d.data()})); if(curTab==='pjt') { detailId?pjtDetail(detailId):renderPjt(); } else if(curTab==='settle'&&!settleDraft&&!viewSetId) renderSettle(); else if(curTab==='acct') renderAcct(); else if(curTab==='home') renderPlanHome(); });
+          onSnapshot(collection(db,'gihoek_companies'), s=>{ companies=[]; s.forEach(d=>companies.push({id:d.id,...d.data()})); companies.sort((a,b)=>(a.company||'').localeCompare(b.company||'')); if(curTab==='comp'&&!compForm) renderComp(); });
+          onSnapshot(collection(db,'gihoek_expenses'), s=>{ expenses=[]; s.forEach(d=>expenses.push({id:d.id,...d.data()})); if(curTab==='acct') renderAcct(); });
+          const t0 = new URLSearchParams(location.search).get('tab');
+          if (t0 && ['home','pjt','comp','est','settle','acct'].includes(t0)) tab(t0);
+          else renderPlanHome();
+        } else {
+          await startApp();
+        }
+        return;
+      }
+    }
+  } catch(e) {}
+  showDenied('접근 권한이 없습니다','기획 메뉴 접근 권한이 없습니다. 관리자에게 요청해 주세요.');
+});
 function showDenied(t,s){ $('splash').style.display='none'; $('app').style.display='none'; $('denied-t').textContent=t; $('denied-s').textContent=s; $('denied').style.display='block'; }
 
 async function startApp(){
@@ -1468,3 +1464,4 @@ window.tab=tab;
 
 </body>
 </html>
+
