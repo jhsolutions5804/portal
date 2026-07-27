@@ -1,7 +1,7 @@
 # 3.0. 전자결재 — 홈 · 결재함
 
 > Firestore 컬렉션: `edoc_daily`, `edoc_leave`, `edoc_resign`, `edoc_cert`, `edoc_purchase`, `edoc_expense`, `edoc_overtime`, `portal_users`
-> 최종 수정: 2026-07-24 (전자결재 홈 하단 패널 전체목록 연결 · r2)
+> 최종 수정: 2026-07-26 (docApprove 관리자 대신승인 버그 수정 · r3)
 > 최초 작성: 2026-07-01 · 작성: 춘식이(Claude)
 
 ---
@@ -49,6 +49,21 @@
 - 전환: `switchApproveSubTab(sub)`, 데이터 로드: `loadApproveData()`, 렌더: `renderApproveListUI()`
 - 완결 판단: `status`가 `approved` / `rejected` / `posted`
 - 문서 클릭 → `openDocFromHome(d)` → 상세 진입
+
+### 🐛 미해결 — 결재함에 초과근로 누락 (2026-07-23 발견)
+
+`loadApproveData()`가 조회하는 `DOC_TYPES` 배열에 `'overtime'`이 빠져있음. `TYPE_LABEL`에는 `overtime:'초과근로'`가 이미 등록돼 있어 원래 의도는 결재함 노출이었던 것으로 보이나, 실제로는 `edoc_overtime` 컬렉션을 아예 조회하지 않아 결재함에 절대 나타나지 않는다. 현재는 "전자결재 → 초과근로" 전용 탭(`renderOvertimeMain`)에서만 승인 가능. `DOC_TYPES`에 `'overtime'` 추가 여부는 다음 세션 과제로 남김.
+
+---
+
+## 승인 처리 — `docApprove()` (범용, 모든 dtype 공통)
+
+문서 상세(`docDetail`)의 승인/반려 버튼에서 호출. **승인 버튼이 보이는 조건과, 실제 결재라인을 갱신하는 조건이 서로 다른 로직으로 구현되어 있었다가 2026-07-26에 통일함.**
+
+- 버튼 노출(`docDetail`의 `canApprove`): `isMyTurn`(결재라인에 내 uid/이름이 있고 내 차례) **OR** `_isAdmin && (status pending/reviewing)` — 관리자는 결재라인에 없어도 버튼이 보임
+- 실제 처리(`docApprove`의 대상 단계 결정): 2026-07-26 이전에는 uid/이름 일치만 확인하고 **관리자 예외가 없어서**, 관리자가 대신 승인하면 결재라인이 하나도 갱신 안 된 채 저장을 시도하다 실패 → 문서가 계속 `pending`으로 남는 버그가 있었음(`3_4_edoc_overtime` r5 참조, 실제 발생 사례로 발견·수정)
+- **수정 후**: `docApprove()`도 순번 기반으로 "이전 단계가 모두 끝난, 차례가 된 단 하나의 단계"를 먼저 uid/이름으로 찾고, 없으면 관리자가 그 단계를 대신 처리하도록 통일. 다단계 결재라인(결재1→결재2 등)에서 관리자가 눌러도 한 단계씩만 처리되도록 `targetIdx`를 하나로 고정해 다단계 동시승인 사고를 방지함.
+- 최종 결재자 판단(`isLastApprover`), 게시 가능 여부(`canPost`), 회수(`canRecall`), 수정(`canEdit`) 등 나머지 권한 로직은 `docDetail()`에 그대로 있음 — 상세는 코드 참조.
 
 ---
 
