@@ -2097,12 +2097,24 @@ window.docApprove = async function(docId, dtype, newStatus, docData) {
     const rawData = typeof docData === 'string' ? JSON.parse(docData) : (docData||{});
     const origLine = rawData.approvalLine || [];
 
-    // 내 단계 매칭: uid 일치 OR (uid 비어있고 이름 일치)
-    const isMyStep = (s) => {
-      if (s.role === '회람' || s.role === '수신' || s.role === '작성') return false;
-      if (s.status !== 'pending') return false;
-      return s.uid === myUid || (!s.uid && s.name === approverName);
-    };
+    // 결재 처리 대상 단계를 정확히 하나만 찾는다 (다단계 결재라인에서 관리자 대신승인 시 여러 단계가
+    // 한번에 승인되는 것을 방지하기 위해, "이전 단계가 모두 완료된" 순번상 내 차례인 단계만 매칭한다).
+    const isEligibleRole = (s) => s.role !== '회람' && s.role !== '수신' && s.role !== '작성';
+    const prevStepsDone = (idx) => origLine.slice(0, idx).every(p =>
+      p.role === '작성' || p.status === 'approved' || p.status === 'done'
+    );
+    // 1순위: uid/이름이 정확히 내 것과 일치하는, 순번상 차례가 된 단계
+    let targetIdx = origLine.findIndex((s, i) =>
+      isEligibleRole(s) && s.status === 'pending' && prevStepsDone(i) &&
+      (s.uid === myUid || (!s.uid && s.name === approverName))
+    );
+    // 2순위: 관리자는 본인이 결재라인에 없어도, 순번상 차례가 된 단계를 대신 승인 가능
+    if (targetIdx < 0 && _isAdmin) {
+      targetIdx = origLine.findIndex((s, i) =>
+        isEligibleRole(s) && s.status === 'pending' && prevStepsDone(i)
+      );
+    }
+    const isMyStep = (s) => origLine.indexOf(s) === targetIdx && targetIdx >= 0;
 
     const line = origLine.map(s => {
       if (!isMyStep(s)) return s;
