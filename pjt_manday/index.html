@@ -1,4 +1,4 @@
-<!DOCTYPE html><!-- build: 20260727b · ver: 1.0.2 · 월간 공수 집계 (전체 PJT 통합) · r2: 페이지 자체에 로그인+관리자 검증 추가(URL 직접 접근 차단), ?admin=1 파라미터 기반 급여 노출 제거 -->
+<!DOCTYPE html><!-- build: 20260727c · ver: 1.1.0 · 월간 공수 집계 (전체 PJT 통합) · r3: 팀별 합계를 개인별 단가 합산 대신 팀 단가(teamRate) × 팀 총공수로 계산, 팀별 합계에서 개인별 금액 표시 제거 -->
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
@@ -521,21 +521,36 @@ function renderTeamTable(){
     }
     const leaderMd=totalOf(leader);
     let teamMd=leaderMd;
-    let teamAmt=isAdmin?leaderMd*(leader.dailyRate||0):0;
     let memberRows='';
     members.forEach(function(mem){
       const md=totalOf(mem);
       teamMd+=md;
-      if(isAdmin) teamAmt+=md*(mem.dailyRate||0);
-      memberRows+='<div class="team-member-row"><span>'+escapeHtml(mem.name)+'</span><span>'+md.toFixed(1)+'공수'+(isAdmin?('  ·  '+fmtMoney(md*(mem.dailyRate||0))+'원'):'')+'</span></div>';
+      // 개인별 단가·금액은 팀 합계에서 더 이상 표시하지 않음(팀 단가 기준으로만 집계)
+      memberRows+='<div class="team-member-row"><span>'+escapeHtml(mem.name)+'</span><span>'+md.toFixed(1)+'공수</span></div>';
     });
+    // 팀 단가(leader.teamRate) × 팀 총공수로 금액 계산. 개인별 단가는 팀 합계 계산에 사용하지 않음.
+    const teamRate=leader.teamRate||0;
+    const teamAmt=teamMd*teamRate;
+    const rateEditBtn=isAdmin?(' <button class="team-rate-edit-btn" onclick="editTeamRate(\''+leader.id+'\',\''+escapeHtml(leader.name)+'\','+teamRate+')" title="팀 단가 설정" style="border:none;background:none;color:#9AAABF;cursor:pointer;font-size:12px;padding:0 2px;">✏️</button>'):'';
     html+='<div class="team-block"><div class="team-head"><span>👑 '+escapeHtml(leader.name)+' 팀 ('+members.length+'명)</span>'
-      +'<span>'+teamMd.toFixed(1)+'공수'+(isAdmin?('  ·  '+fmtMoney(teamAmt)+'원'):'')+'</span></div>'
-      +'<div class="team-member-row" style="border-top:none;font-weight:600"><span>'+escapeHtml(leader.name)+' (팀장 본인)</span><span>'+leaderMd.toFixed(1)+'공수'+(isAdmin?('  ·  '+fmtMoney(leaderMd*(leader.dailyRate||0))+'원'):'')+'</span></div>'
+      +'<span>'+teamMd.toFixed(1)+'공수'+(isAdmin?('  ·  팀단가 '+fmtMoney(teamRate)+'원  ·  '+fmtMoney(teamAmt)+'원'+rateEditBtn):'')+'</span></div>'
+      +'<div class="team-member-row" style="border-top:none;font-weight:600"><span>'+escapeHtml(leader.name)+' (팀장 본인)</span><span>'+leaderMd.toFixed(1)+'공수</span></div>'
       +memberRows+'</div>';
   });
   el.innerHTML=html;
 }
+
+// 팀 단가 설정 — 팀장(leader)의 master_workers 문서에 teamRate로 저장, 팀 전체 공수에 곱해 팀별 합계 금액을 계산한다.
+// 개인별 dailyRate와는 별개이며, 팀별 합계 표시에는 더 이상 개인별 dailyRate를 사용하지 않는다.
+window.editTeamRate=async function(leaderId, leaderName, currentRate){
+  const input=prompt(leaderName+' 팀의 단가(원/공수)를 입력하세요.', currentRate?String(currentRate):'');
+  if(input===null) return;
+  const rate=parseMoney(input);
+  try{
+    await setDoc(doc(db,'master_workers',leaderId), {teamRate:rate}, {merge:true});
+    await loadMonth();
+  }catch(e){ alert('저장 실패: '+e.message); }
+};
 
 window.openMasterForm=function(){
   _masterEditing=null;
