@@ -1,7 +1,7 @@
 # 2.4. 인사 — 초과근로
 
 > Firestore 컬렉션: `overtime/{auto-id}`
-> 최초 작성: 2026-06-26 · 최종 수정: 2026-07-24(r4, edoc 자동 재동기화 self-heal 추가) · 작성: 춘식이(Claude)
+> 최초 작성: 2026-06-26 · 최종 수정: 2026-07-26(r5, 클릭 상세보기 모달 추가) · 작성: 춘식이(Claude)
 
 ---
 
@@ -28,6 +28,16 @@
 | 중복 | 동일 날짜·직원 → 별도 문서 저장 (합산됨) |
 
 **통상임금 = (기본 + 고정연장 + 고정야간 + 주휴) ÷ 209**
+
+---
+
+## 클릭 상세보기 모달 (2026-07-26)
+
+목록/조회 화면의 사유 컬럼은 공간 제약상 말줄임(ellipsis) 처리되어 긴 사유가 잘려 보이는 문제가 있었음. 세 테이블(PC 직원 상세 `otPcShowPersonDetail`, 모바일 직원별 조회 `otLoadPersonDetail`, 전체현황 날짜별 상세 `otLoadSummary`) 모두 행 클릭 시 `window.otShowDetail(rowId)`가 이름·날짜·시간·수당과 **사유 전문**을 모달로 보여준다.
+
+- 각 렌더 함수가 행을 그릴 때 `_otDetailCache[r.id] = r`로 원본 데이터를 캐시하고, `<tr onclick="otShowDetail('${r.id}')">`로 연결
+- 수정·삭제 버튼은 `event.stopPropagation()`으로 모달이 뜨지 않도록 분리
+- 모달은 배경 클릭 또는 ✕ 버튼으로 닫힘, 사유는 `white-space:pre-wrap`으로 줄바꿈 유지
 
 ---
 
