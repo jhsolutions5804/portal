@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>초과근로 연동 진단 · 제이에이치솔루션</title>
+<style>
+  body{font-family:-apple-system,BlinkMacSystemFont,'Malgun Gothic',sans-serif;background:#F5F7FA;margin:0;padding:16px;color:#1a2333;}
+  h1{font-size:16px;margin:0 0 4px;}
+  .sub{font-size:12px;color:#8a97ac;margin-bottom:16px;}
+  .box{background:#fff;border-radius:10px;padding:14px;margin-bottom:14px;box-shadow:0 1px 3px rgba(0,0,0,.06);}
+  .box h2{font-size:13px;margin:0 0 10px;color:#1D5BA6;}
+  table{width:100%;border-collapse:collapse;font-size:12px;}
+  th,td{padding:6px 6px;text-align:left;border-bottom:1px solid #eef1f5;vertical-align:top;word-break:break-all;}
+  th{color:#8a97ac;font-weight:600;}
+  .ok{color:#16A34A;font-weight:700;}
+  .bad{color:#DC2626;font-weight:700;}
+  .warn{color:#D97706;font-weight:700;}
+  .err{background:#FEE2E2;color:#991B1B;padding:12px;border-radius:8px;font-size:12.5px;white-space:pre-wrap;word-break:break-all;}
+  .loading{color:#8a97ac;padding:20px;text-align:center;}
+  .pill{display:inline-block;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:700;}
+  .pill-approved{background:#DCFCE7;color:#16A34A;}
+  .pill-other{background:#F1F5F9;color:#64748B;}
+  button{background:#1D5BA6;color:#fff;border:none;border-radius:8px;padding:10px 16px;font-size:13px;font-weight:700;cursor:pointer;}
+</style>
+</head>
+<body>
+  <h1>🔍 초과근로 연동 진단</h1>
+  <div class="sub">전자결재(edoc_overtime) ↔ 인사(overtime) 데이터를 그대로 보여주는 읽기 전용 화면입니다. 아무것도 수정하지 않습니다.</div>
+  <div id="root"><div class="loading">불러오는 중…</div></div>
+
+<script type="module">
+  import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
+  import { getAuth, onAuthStateChanged, GoogleAuthProvider, signInWithPopup } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
+  import { getFirestore, collection, getDocs } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+
+  const FB = {
+    apiKey:"AIzaSyCyQxBJ_ftfM0ImBXubmqD5gfzFR54iPmE",
+    authDomain:"p4ph2-fab-506a7.firebaseapp.com",
+    projectId:"p4ph2-fab-506a7",
+    storageBucket:"p4ph2-fab-506a7.firebasestorage.app",
+    messagingSenderId:"36946317914",
+    appId:"1:36946317914:web:c6ad5f3a1b98130c99fe63"
+  };
+  const app = initializeApp(FB);
+  const auth = getAuth(app);
+  const db = getFirestore(app);
+  const root = document.getElementById('root');
+
+  function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+  onAuthStateChanged(auth, async (user) => {
+    if (!user) {
+      root.innerHTML = `<div class="box"><p>로그인이 필요합니다. 평소 포털에 로그인하신 계정으로 로그인해주세요.</p>
+        <button id="loginBtn">Google로 로그인</button></div>`;
+      document.getElementById('loginBtn').onclick = () => signInWithPopup(auth, new GoogleAuthProvider());
+      return;
+    }
+    root.innerHTML = `<div class="loading">${esc(user.email)} 로 로그인됨 · 데이터 조회 중…</div>`;
+
+    let edocDocs = [], hrDocs = [], edocErr = null, hrErr = null;
+
+    try {
+      const snap = await getDocs(collection(db, 'edoc_overtime'));
+      snap.forEach(d => edocDocs.push({ id: d.id, ...d.data() }));
+    } catch (e) { edocErr = e; }
+
+    try {
+      const snap2 = await getDocs(collection(db, 'overtime'));
+      snap2.forEach(d => hrDocs.push({ id: d.id, ...d.data() }));
+    } catch (e) { hrErr = e; }
+
+    edocDocs.sort((a,b) => String(b.date||'').localeCompare(String(a.date||'')));
+    hrDocs.sort((a,b) => String(b.date||'').localeCompare(String(a.date||'')));
+
+    function keyOf(d){ return `${d.workerId||''}|${d.date||''}|${Number(d.hours)||0}`; }
+    const hrKeys = new Set(hrDocs.map(keyOf));
+
+    let html = '';
+
+    html += `<div class="box"><h2>로그인 정보</h2><table>
+      <tr><th>이메일</th><td>${esc(user.email)}</td></tr>
+      <tr><th>UID</th><td>${esc(user.uid)}</td></tr>
+    </table></div>`;
+
+    html += `<div class="box"><h2>① edoc_overtime (전자결재 초과근로) — 총 ${edocDocs.length}건</h2>`;
+    if (edocErr) {
+      html += `<div class="err">❌ 조회 오류 (edoc_overtime)\n\ncode: ${esc(edocErr.code||'')}\nmessage: ${esc(edocErr.message||String(edocErr))}</div>`;
+    } else if (!edocDocs.length) {
+      html += `<p>문서가 없습니다.</p>`;
+    } else {
+      html += `<table><tr><th>문서ID</th><th>일자</th><th>이름</th><th>시간</th><th>상태</th><th>linkedToOvertime</th><th>인사 매칭</th></tr>`;
+      edocDocs.forEach(d => {
+        const isApproved = d.status === 'approved';
+        const matched = hrKeys.has(keyOf(d));
+        html += `<tr>
+          <td>${esc(d.id)}</td>
+          <td>${esc(d.date)}</td>
+          <td>${esc(d.name)}(${esc(d.rank||'')})</td>
+          <td>${esc(d.hours)}h</td>
+          <td><span class="pill ${isApproved?'pill-approved':'pill-other'}">${esc(d.status)}</span></td>
+          <td>${d.linkedToOvertime ? '<span class="ok">true</span>' : '<span class="bad">false/없음</span>'}</td>
+          <td>${isApproved ? (matched ? '<span class="ok">✅ 있음</span>' : '<span class="bad">❌ 없음</span>') : '-'}</td>
+        </tr>`;
+      });
+      html += `</table>`;
+    }
+    html += `</div>`;
+
+    html += `<div class="box"><h2>② overtime (인사 초과근로) — 총 ${hrDocs.length}건</h2>`;
+    if (hrErr) {
+      html += `<div class="err">❌ 조회 오류 (overtime)\n\ncode: ${esc(hrErr.code||'')}\nmessage: ${esc(hrErr.message||String(hrErr))}</div>`;
+    } else if (!hrDocs.length) {
+      html += `<p>문서가 없습니다.</p>`;
+    } else {
+      html += `<table><tr><th>문서ID</th><th>일자</th><th>이름</th><th>시간</th><th>수당</th><th>사유</th></tr>`;
+      hrDocs.forEach(d => {
+        html += `<tr>
+          <td>${esc(d.id)}</td>
+          <td>${esc(d.date)}</td>
+          <td>${esc(d.name)}(${esc(d.rank||'')})</td>
+          <td>${esc(d.hours)}h</td>
+          <td>${Number(d.amount||0).toLocaleString()}원</td>
+          <td>${esc(d.reason||'')}</td>
+        </tr>`;
+      });
+      html += `</table>`;
+    }
+    html += `</div>`;
+
+    root.innerHTML = html;
+  });
+</script>
+</body>
+</html>
