@@ -1,10 +1,16 @@
 # 3.0. 전자결재 — 홈 · 결재함
 
 > Firestore 컬렉션: `edoc_daily`, `edoc_leave`, `edoc_resign`, `edoc_cert`, `edoc_purchase`, `edoc_expense`, `edoc_overtime`, `portal_users`
-> 최종 수정: 2026-07-26 (docApprove 관리자 대신승인 버그 수정 · r3)
-> 최초 작성: 2026-07-01 · 작성: 춘식이(Claude)
+> 최종 수정: 2026-07-27 (via=portal 우회 버그 수정 · r4) · 최초 작성: 2026-07-01 · 작성: 춘식이(Claude)
 
 ---
+
+## 접근 검증 (2026-07-27)
+
+- `onAuthStateChanged` 콜백에서 항상 `portal_users/{uid}` 문서를 조회해 `status==='approved' && (admin || perms.edoc)`을 확인한 뒤에만 `enterApp()` 진입 — via=portal 여부와 무관하게 동일 기준 적용
+- ⚠️ 과거엔 `?via=portal` 파라미터가 있으면 승인·권한 여부와 무관하게 무조건 입장시키는 우회 버그가 있었음(주소창에 `?via=portal`만 붙이면 미승인 계정도 진입 가능). 이번 수정으로 두 경로 모두 동일한 검증을 거치도록 통합함
+- via=portal일 때는 검증 통과 후 `document.documentElement.classList.add('portal-embed')`만 추가로 적용(포털 임베드 스타일용), 직접 접근 시엔 미적용 — 이 차이만 유지하고 나머지 검증 로직은 완전히 동일
+
 
 ## 개요
 
@@ -133,3 +139,4 @@ kind: `'approve' | 'inbox' | 'mydocs' | 'posted'`. `window._edocLists[kind]` **�
 > **r2 배경**: 이전에는 하단 패널이 미리보기 8건만 보여주고 클릭이 안 돼, 전체 목록을 보려면 상단 KPI 카드를 눌러야 한다는 걸 사용자가 알기 어려웠음(대표님 피드백: "게시된 문건도 저기에 리스트 뜨는 것들만 확인할 수 있잖아"). 패널 헤더도 동일 모달로 연결해 두 경로 모두에서 전체 목록에 접근 가능하도록 수정.
 > 새 페이지/게시판을 만들지 않고 기존 모달을 재사용 — 리스크 최소화.
 > `window._edocLists`가 비동기 로드 전에 클릭하면 빈 목록으로 뜨는 기존 제약은 KPI 카드와 동일하게 유지됨(변경 없음).
+
