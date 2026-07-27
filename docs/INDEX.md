@@ -506,5 +506,27 @@
 **상세**: `7_11_log_pjt_5_1_0.md`(v5.1.3), `7_4b_log_edoc.md`, `7_2b_log_gihoek_security.md`(신설), `8_14_log_2026-07-27_session.md`, `4_4_pjt_manday.md`·`3_0_edoc_home_approve.md`·`1_0_gihoek_home_r2.md`(각 갱신)
 **남은 과제**: `pjt`·`pjt_ph4`·`pjt_light`·`hr` 4개 파일에 동일한 접근검증 적용 필요 — portal-test 선검증 후 진행 예정. Firestore 보안 규칙(콘솔) 자체 점검도 권장(프론트엔드 검증은 1차 방어선일 뿐, 최종 방어선은 보안 규칙)
 
+---
+
+## 세션 요약 — 2026-07-27 (r4, 최종) — FAB/SUP/경량PJT/HR 접근검증, portal-test 선검증 후 본섭 배포
+
+| 영역 | 버전 | 주요 변경 |
+|------|------|-----------|
+| pjt (FAB) | — | 접근검증 게이트 추가. `waitForFirebaseAndInit()` 폴링 조건에 `window._accessGranted` 편입해 전체 초기화 캐스케이드를 단일 지점에서 차단, 그 외 흩어진 preload·구독 4곳도 개별 게이트 |
+| pjt_ph4 (SUP) | — | pjt와 동일 패턴 적용 (컬렉션명만 ph4 접미사) |
+| pjt_light (경량PJT) | — | pjt_manday와 같은 단일 진입점(`init()`) 구조라 깔끔히 처리. `?admin=1` 기반 관리자 판단도 실제 검증으로 전환 |
+| hr (인사) | — | **가장 심각** — `?via=portal` 파라미터 존재만으로 통과(Firebase Auth 자체 없음)하던 걸 실제 로그인+`portal_users`(`perms.hr`) 검증으로 교체. 급여·계약서 등 인사 데이터 전체가 무방비였던 상태 해소 |
+
+**진행 방식**: 지난 라운드에서 회귀 위험을 이유로 대표님께 "portal-test 선검증 후 본섭 배포"를 제안 → 대표님 선택. firebaseConfig만 테섭용으로 바꿔 동일 패치를 portal-test에도 배포 → 대표님이 정상 로그인 접근과 시크릿창 직접 URL 접근(차단 확인) 양쪽 다 테스트해서 확인("ㅇㅋㅇㅋ 전부 다 된다") → 본섭 배포 진행. 테섭의 pjt_manday도 구버전(v1.0.0)이었던 걸 발견해 본섭과 동일하게 맞춤
+
+**운영 커밋**: `pjt/index.html`, `pjt_ph4/index.html`, `pjt_light/index.html`, `hr/index.html`
+**백업**: `backup/v5.1.5/{pjt,pjt_ph4,pjt_light,hr}/index.html`
+**상세**: `7_11_log_pjt_5_1_0.md`(v5.1.5), `8_14_log_2026-07-27_session.md`, `4_1_pjt_fab.md`·`4_2_pjt_sup.md`·`4_3_pjt_light.md`·`2_0_hr_home_r3.md`(각 갱신 — hr 문서는 과거 "Firebase Auth 완전 제거" 설계 서술을 정정)
+
+**세션 전체 요약**: 이번 세션 하루 동안 총 4차례 배포 라운드 진행 — ① pjt_manday 생년월일 마스터 동기화 ② 월간공수 메뉴 관리자 전용 제한(포털 셸) ③ pjt_manday 자체 접근검증 + edoc/gihoek via=portal 우회 버그 수정 ④ pjt/pjt_ph4/pjt_light/hr 접근검증 게이트. 모든 서브 메뉴에 프론트엔드 레벨 접근검증 구축 완료.
+
+**남은 과제**: Firestore 보안 규칙(콘솔)이 실제로 인증·권한을 확인하도록 되어 있는지는 아직 미점검 — 프론트엔드 검증은 1차 방어선이고 최종 방어선은 보안 규칙이므로, 다음 세션에서 대표님과 협의해 점검 여부 결정 필요
+
+
 
 
