@@ -31,9 +31,10 @@
 
 <script type="module">
   import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
-  import { getAuth, onAuthStateChanged, GoogleAuthProvider, signInWithPopup } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
+  import { getAuth, onAuthStateChanged, signInWithEmailAndPassword } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
   import { getFirestore, collection, getDocs } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
 
+  const DOMAIN = '@jhsol.kr';
   const FB = {
     apiKey:"AIzaSyCyQxBJ_ftfM0ImBXubmqD5gfzFR54iPmE",
     authDomain:"p4ph2-fab-506a7.firebaseapp.com",
@@ -49,11 +50,33 @@
 
   function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 
+  function showLoginForm(errMsg){
+    root.innerHTML = `<div class="box">
+      <p>포털에서 쓰시는 <b>아이디(또는 이메일)</b>와 <b>비밀번호</b>로 로그인해주세요.</p>
+      ${errMsg ? `<p style="color:#DC2626;font-weight:700;">${esc(errMsg)}</p>` : ''}
+      <div style="display:flex;flex-direction:column;gap:8px;max-width:320px;">
+        <input id="diagId" type="text" placeholder="아이디 (예: kimjonghwa)" style="padding:10px 12px;border:1px solid #DDE3EE;border-radius:8px;font-size:14px;">
+        <input id="diagPw" type="password" placeholder="비밀번호" style="padding:10px 12px;border:1px solid #DDE3EE;border-radius:8px;font-size:14px;">
+        <button id="loginBtn">로그인</button>
+      </div>
+    </div>`;
+    document.getElementById('loginBtn').onclick = async () => {
+      const idRaw = document.getElementById('diagId').value.trim().toLowerCase();
+      const pw = document.getElementById('diagPw').value;
+      if (!idRaw || !pw) { showLoginForm('아이디와 비밀번호를 입력하세요.'); return; }
+      const email = idRaw.includes('@') ? idRaw : idRaw + DOMAIN;
+      try {
+        await signInWithEmailAndPassword(auth, email, pw);
+        // 로그인 성공 시 onAuthStateChanged가 자동으로 데이터 로드를 시작함
+      } catch (e) {
+        showLoginForm('로그인 실패: ' + (e.code || e.message || String(e)));
+      }
+    };
+  }
+
   onAuthStateChanged(auth, async (user) => {
     if (!user) {
-      root.innerHTML = `<div class="box"><p>로그인이 필요합니다. 평소 포털에 로그인하신 계정으로 로그인해주세요.</p>
-        <button id="loginBtn">Google로 로그인</button></div>`;
-      document.getElementById('loginBtn').onclick = () => signInWithPopup(auth, new GoogleAuthProvider());
+      showLoginForm(null);
       return;
     }
     root.innerHTML = `<div class="loading">${esc(user.email)} 로 로그인됨 · 데이터 조회 중…</div>`;
