@@ -483,4 +483,28 @@
 **상세**: `7_11_log_pjt_5_1_0.md`(v5.1.2 항목 추가), `8_14_log_2026-07-27_session.md`(이어서 기록), `4_4_pjt_manday.md`(접근 권한 섹션 추가)
 **남은 과제**: 제한은 포털 셸에서만 적용됨 — `pjt_manday/index.html`을 직접 딥링크로 접근하는 경로가 생기면 그쪽엔 가드가 없으므로 필요 시 앱 자체에도 권한 체크 추가 검토
 
+---
+
+## 세션 요약 — 2026-07-27 (r3)
+
+**"우회 경로 없으면 좋겠는데" — 서브 메뉴 URL 직접 접근 보안 전수 점검·수정**
+
+| 영역 | 버전 | 주요 변경 |
+|------|------|-----------|
+| pjt_manday | 1.0.1 → **1.0.2** | 페이지 자체에 로그인+관리자(`portal_users.admin`) 검증 추가. 검증 통과 전엔 어떤 Firestore 조회도 실행 안 됨. `?admin=1` 파라미터 기반 급여 노출 문제도 해결 |
+| edoc | — | `?via=portal` 우회 버그 수정 — 승인·`perms.edoc` 확인 없이 입장되던 경로 차단 |
+| gihoek | — | `?via=portal` 우회 버그 수정(**심각**) — 검증 없이 견적/정산/거래처/지출 전체가 즉시 구독·노출되던 경로 차단 |
+
+**계기**: 대표님이 "지금 본섭에 있는 세부 메뉴들이 독립된 url로 접근할 수 있게 설계 되어 있나?"라고 질문 → 코드 확인 결과 모든 서브 메뉴가 독립 URL로 직접 접근 가능하고 `pjt_manday`는 자체 로그인 검증이 전혀 없다고 보고 → "우회 경로 없으면 좋겠는데, 방법이 없나?" → "응 본섭에 바로 반영하고, 모든 하위 메뉴들에 똑같이 적용해줘"
+
+**전수 점검 결과**: `edoc`·`gihoek`은 자체 로그인 검증이 있었으나 `?via=portal`이면 검증을 건너뛰는 공통 버그 발견(특히 gihoek은 재무 데이터 전체가 무방비 노출). `pjt`·`pjt_ph4`·`pjt_light`·`hr`은 애초에 자체 로그인 검증이 없고, 데이터 로딩 진입점이 여러 곳에 흩어져 있어 pjt_manday처럼 단일 지점 차단이 어려움을 확인 — 회귀 위험 때문에 portal-test 선검증을 대표님께 제안, 다음 세션에서 진행 예정
+
+**배포 순서**: 대표님 지시로 pjt_manday·edoc·gihoek 3건 모두 portal-test 생략, production 직접 배포
+
+**운영 커밋**: `pjt_manday/index.html`, `edoc/index.html`, `gihoek/index.html`
+**백업**: `backup/v5.1.3/pjt_manday/index.html`, `backup/v5.1.4/edoc/index.html`, `backup/v5.1.4/gihoek/index.html`
+**상세**: `7_11_log_pjt_5_1_0.md`(v5.1.3), `7_4b_log_edoc.md`, `7_2b_log_gihoek_security.md`(신설), `8_14_log_2026-07-27_session.md`, `4_4_pjt_manday.md`·`3_0_edoc_home_approve.md`·`1_0_gihoek_home_r2.md`(각 갱신)
+**남은 과제**: `pjt`·`pjt_ph4`·`pjt_light`·`hr` 4개 파일에 동일한 접근검증 적용 필요 — portal-test 선검증 후 진행 예정. Firestore 보안 규칙(콘솔) 자체 점검도 권장(프론트엔드 검증은 1차 방어선일 뿐, 최종 방어선은 보안 규칙)
+
+
 
