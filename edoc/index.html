@@ -59,52 +59,23 @@ onAuthStateChanged(auth, async u => {
   if (!u) { show('login'); return; }
   _user = u;
 
-  // 포털 경유 승인 체크
+  // 포털 경유 여부와 무관하게 항상 동일한 기준으로 검증한다.
+  // ⚠️ 과거엔 via=portal일 때 승인/권한 여부와 무관하게 무조건 입장시켜서,
+  //    주소창에 ?via=portal만 붙이면 미승인·권한없는 계정도 들어올 수 있는 우회 경로였음(2026-07-27 수정).
   const via = new URLSearchParams(location.search).get('via') === 'portal';
-  if (via) {
-    try {
-      const ps = await getDoc(doc(db, 'portal_users', u.uid));
-      if (ps.exists()) {
-        const d = ps.data();
-        if (d.status === 'approved' && (d.admin || (d.perms && d.perms.edoc))) {
-          _isAdmin = !!d.admin;
-          _myInfo = { name: d.name||u.displayName||'', rank: d.rank||'', dept: d.dept||'', email: u.email };
-          document.documentElement.classList.add('portal-embed');
-          enterApp(u);
-          return;
-        } else {
-          // perms.edoc 없음 또는 미승인 → 직접 접근 허용 (로그인된 상태로 입장)
-          _isAdmin = !!d.admin;
-          _myInfo = { name: d.name||u.displayName||'', rank: d.rank||'', dept: d.dept||'', email: u.email };
-          document.documentElement.classList.add('portal-embed');
-          enterApp(u);
-          return;
-        }
-      } else {
-        // portal_users 문서 없음 → 그냥 입장 허용
-        document.documentElement.classList.add('portal-embed');
+  try {
+    const ps = await getDoc(doc(db, 'portal_users', u.uid));
+    if (ps.exists()) {
+      const d = ps.data();
+      if (d.status === 'approved' && (d.admin || (d.perms && d.perms.edoc))) {
+        _isAdmin = !!d.admin;
+        _myInfo = { name: d.name||u.displayName||'', rank: d.rank||'', dept: d.dept||'', email: u.email };
+        if (via) document.documentElement.classList.add('portal-embed');
         enterApp(u);
         return;
       }
-    } catch(e) {
-      console.error('portal auth error:', e);
-      document.documentElement.classList.add('portal-embed');
-      enterApp(u);
-      return;
     }
-  }
-
-  // 직접 접근: portal_users 승인 체크
-  try {
-    const ps = await getDoc(doc(db, 'portal_users', u.uid));
-    if (ps.exists() && ps.data().status === 'approved') {
-      const d = ps.data();
-      _isAdmin = !!d.admin;
-      _myInfo = { name: d.name||u.displayName||'', rank: d.rank||'', dept: d.dept||'', email: u.email };
-      enterApp(u);
-    } else {
-      show('denied');
-    }
+    show('denied');
   } catch(e) {
     show('denied');
   }
@@ -2423,3 +2394,4 @@ body{font-family:-apple-system,'Apple SD Gothic Neo','Pretendard',sans-serif;bac
 
 </body>
 </html>
+
