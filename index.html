@@ -1,4 +1,4 @@
-<!DOCTYPE html><!-- build: 20260726c · ver: 2026-07-26 (PJT 5.1.0 · edoc 3.4r2 · hr payslip 2.6.2 · hr overtime 2.6.8) · 초과근로 목록 결재자/관리자도 조회 가능하도록 수정, 클릭 시 사유 전문 상세보기 모달 추가(hr/edoc) · 전자결재: 관리자가 대신 결재할 때 결재라인이 갱신 안 되던 버그 수정(다단계 결재 오승인 방지 포함) · 초과근로 연동 진단 페이지 추가(debug/overtime_check.html) · [PJT] FAB/SUP도 경량PJT처럼 종료·재개 가능하도록 확장(pjt_settings.status) · 사이드바 PJT 하위에 "종료 PJT" 전용 메뉴/뷰 신설(FAB·SUP·경량PJT 종료 항목 통합 조회, 재개, 경량PJT는 완전삭제) · 기존 PJT홈 하단 종료목록 섹션은 전용 메뉴로 이전(중복 제거) · 종료된 프로젝트 완전삭제 버튼 추가(관리자 전용, 이중확인) -->
+<!DOCTYPE html><!-- build: 20260727 · ver: 2026-07-27 (PJT 5.1.0 · edoc 3.4r2 · hr payslip 2.6.2 · hr overtime 2.6.8) · [PJT] 월간 공수(pjt_manday) 메뉴 접근을 관리자 계정에만 허용하도록 사이드바(PC/모바일)·openModule 가드 추가 · 초과근로 목록 결재자/관리자도 조회 가능하도록 수정, 클릭 시 사유 전문 상세보기 모달 추가(hr/edoc) · 전자결재: 관리자가 대신 결재할 때 결재라인이 갱신 안 되던 버그 수정(다단계 결재 오승인 방지 포함) · 초과근로 연동 진단 페이지 추가(debug/overtime_check.html) · [PJT] FAB/SUP도 경량PJT처럼 종료·재개 가능하도록 확장(pjt_settings.status) · 사이드바 PJT 하위에 "종료 PJT" 전용 메뉴/뷰 신설(FAB·SUP·경량PJT 종료 항목 통합 조회, 재개, 경량PJT는 완전삭제) · 기존 PJT홈 하단 종료목록 섹션은 전용 메뉴로 이전(중복 제거) · 종료된 프로젝트 완전삭제 버튼 추가(관리자 전용, 이중확인) -->
 <html lang="ko">
 <head>
 <meta charset="utf-8">
@@ -2506,7 +2506,7 @@ function renderMenu(){
         if(willOpen) grp.classList.add('open');
       };
       const sub=document.createElement('div'); sub.className='sb-sub';
-      SUBTABS[m.key].forEach(st=>{
+      SUBTABS[m.key].filter(st=>st.key!=='pjt_manday' || (me&&me.admin)).forEach(st=>{
         const sbtn=document.createElement('button');
         sbtn.className='sb-subitem'; sbtn.dataset.nav=m.key; sbtn.dataset.sub=st.key;
         sbtn.innerHTML=`<span class="sdot">${st.emoji}</span><span>${st.name}</span>`;
@@ -2778,6 +2778,7 @@ async function renderOutlookCard(){
 window.renderOutlookCard = renderOutlookCard;
 
 function openModule(m, tab, overrideUrl){
+  if(tab==='pjt_manday' && !(me&&me.admin)){ toast('월간 공수는 관리자만 접근할 수 있습니다.'); return; }
   const actualUrl=overrideUrl||m.url;
   if(tab==='pjt_home'||m.key==='pjt'&&tab===null){
     showPjtHome(); return;
@@ -3008,7 +3009,7 @@ function mbnOpenMore(){
       const head=document.createElement('button'); head.className='mmp-btn'; head.style.cssText='width:100%;padding:12px 20px';
       head.innerHTML='<span class="mmp-ic">'+m.emoji+'</span><div><div>'+m.name+'</div><div class="mmp-sub">'+m.desc+'</div></div><span style="margin-left:auto;font-size:14px;">›</span>';
       const sublist=document.createElement('div'); sublist.className='mmp-sublist'; sublist.style.display='none';
-      _SUBTABS[m.key].forEach(st=>{
+      _SUBTABS[m.key].filter(st=>st.key!=='pjt_manday' || _me.admin).forEach(st=>{
         const sbtn=document.createElement('button'); sbtn.className='mmp-subbtn';
         sbtn.innerHTML='<span style="font-size:15px;">'+st.emoji+'</span> '+st.name;
         sbtn.onclick=()=>{
@@ -3095,4 +3096,5 @@ window.mbnCloseMore=mbnCloseMore;
 </body>
 </html>
 <!-- b 1783190358 -->
+
 
