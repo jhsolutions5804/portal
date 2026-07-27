@@ -1,4 +1,4 @@
-<!DOCTYPE html><!-- build: 20260727c · ver: 1.1.0 · 월간 공수 집계 (전체 PJT 통합) · r3: 팀별 합계를 개인별 단가 합산 대신 팀 단가(teamRate) × 팀 총공수로 계산, 팀별 합계에서 개인별 금액 표시 제거 -->
+<!DOCTYPE html><!-- build: 20260727d · ver: 1.1.1 · 월간 공수 집계 (전체 PJT 통합) · r4: 근로자 마스터 관리 목록에서 개인별 단가 표시 제거 -->
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
@@ -496,10 +496,10 @@ function renderMasterTable(){
   el.innerHTML=sorted.map(function(m){
     const leader=m.leaderId?masterById(m.leaderId):null;
     const badge=(!m.leaderId)?'<span class="leader-badge">팀장/독립</span>':'<span class="member-badge">'+escapeHtml(leader?leader.name:'?')+' 팀</span>';
-    const rateHtml=isAdmin?('<span style="color:#1D5BA6;font-weight:700;margin-left:8px">'+fmtMoney(m.dailyRate)+'원</span>'):'';
+    // 개인별 단가는 더 이상 이 목록에 표시하지 않음 (팀 단가로 일원화, 2026-07-27)
     return '<div class="master-row">'
       +'<span style="flex:1;font-weight:600">'+escapeHtml(m.name)+' <span style="color:#9AAABF;font-size:11px">('+(m.birth||'생년월일 없음')+')</span></span>'
-      +badge+rateHtml
+      +badge
       +'<button class="nav-arrow" style="width:auto;padding:0 10px;font-size:11px" onclick="editMaster(\''+m.id+'\')">수정</button>'
       +'<button class="nav-arrow" style="width:auto;padding:0 10px;font-size:11px;color:#c0392b" onclick="deleteMaster(\''+m.id+'\')">삭제</button>'
       +'</div>';
