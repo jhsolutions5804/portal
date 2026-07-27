@@ -2,9 +2,15 @@
 
 > 앱: `portal/pjt_ph4/index.html` · 워커 컬렉션: `pjt_workers_ph4`
 > Firestore(차이): `ph4_schedules`(일정), `ph4_reports`(업무지시), `pjt_workers_ph4` · localStorage 키 `ph4ls_`
-> 최초 작성: 2026-07-01 · 최종 개정: 2026-07-20 (4.5.2) · 작성: 춘식이(Claude)
+> 최초 작성: 2026-07-01 · 최종 개정: 2026-07-27 (접근검증 게이트 추가) · 작성: 춘식이(Claude)
 
 ---
+
+## 접근 검증 (2026-07-27)
+
+- FAB(`4_1_pjt_fab.md`)와 동일한 구조·동일한 패치 적용 — 로그인+`portal_users`(`status==='approved' && (admin || perms.pjt)`) 검증 게이트, `waitForFirebaseAndInit()` 폴링 조건에 `window._accessGranted` 추가, 공수/공정 preload·`subscribeUserSchedules()`·`subscribeEdocLeave()`·`applyOnLoad()`·`renderProgress()` 모두 검증 통과 후에만 실행
+- 상세 원리는 `4_1_pjt_fab.md` 참고
+
 
 ## 개요
 
@@ -57,3 +63,4 @@ FAB(4.1)에 추가된 아래 기능이 SUP에도 **동일하게** 반영됨:
 - **자정 넘기는 일정 시작일에만 표시**: "19:00~다음날 05:00"처럼 자정을 넘겨 끝나는 일정이 다음날에도 중복 표시되던 문제 수정. `_usItemsForKey`에서 종료일이 시작일 다음날이고 종료시각이 시작시각보다 빠르거나 같으면 시작일에만 표시. 진짜 여러 날짜 일정(출장 등)은 기존대로 각 날짜 유지. `ph4_schedules` 컬렉션 사용, 함수·로직은 FAB와 완전 동일
 
 > 상세 판별 로직은 4.1(FAB) 문서 참조.
+
