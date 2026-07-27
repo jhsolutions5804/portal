@@ -1,15 +1,15 @@
 # 2.0. 인사 홈
 
 > `portal/hr/index.html` · URL: `.../portal/hr/?via=portal`
-> 최초 작성: 2026-06-26 · 최종 수정: 2026-07-03(r3a) · 정산도우미 가이드 대조 후 PDF 출력 규격 보완 · 작성: 춘식이(Claude)
+> 최초 작성: 2026-06-26 · 최종 수정: 2026-07-27(접근검증 게이트 추가, 보안수정) · 작성: 춘식이(Claude)
 
 ---
 
-## 접근 방식 (포털 전용)
+## 접근 검증 (2026-07-27 수정 — 이전 설계는 아래 "과거 방식" 참고)
 
-- `?via=portal` 파라미터 없이 직접 URL 접근 시 차단 화면 표시
-- Firebase Auth 완전 제거 (Firestore 데이터 R/W용으로만 유지)
-- 권한 부여는 오직 `portal/index.html`에서 담당
+- ⚠️ **과거 방식(2026-07-03 ~ 2026-07-26)**: `?via=portal` 파라미터 존재 여부만으로 접근 허용, Firebase Auth 완전 미사용, 권한 부여는 포털 셸(`index.html`)에서만 담당한다는 설계였음. 이 설계의 허점: 주소창에 `?via=portal`만 붙이면 로그인 여부·승인 상태·hr 권한과 무관하게 급여·계약서 등 전체 인사 데이터에 접근 가능했음.
+- **현재 방식**: Firebase Auth 재도입. `onAuthStateChanged`로 로그인 확인 → `portal_users/{uid}` 조회 → `status==='approved' && (admin===true || perms.hr===true)`를 실제로 검증한 뒤에만 `showScreen('app')` 진입. via=portal 파라미터는 이제 `portal-embed` 스타일 클래스 적용 여부만 결정(보안과 무관)
+- `window._isAdmin`도 더 이상 `?admin=1` 파라미터로 설정하지 않고, 위 검증에서 확인된 `portal_users.admin` 값을 그대로 사용
 
 ---
 
@@ -81,3 +81,4 @@ const homeBtn = () =>
 
 > 근로/연봉계약서는 `company_settings/signatures.kjh` 서명·도장이 A4 출력 시 자동 삽입됨(위 서명/도장 관리 참조).
 > 출처: 구 정산도우미(`administrator`) 인사섹션 가이드 대조 결과, portal/hr 코드로 재검증하여 반영(2026-07-03). 나머지 항목(급여 공식·공제율·간이세액표·Firebase 스키마·Work Flow)은 이미 2.1~2.6 문서에 반영 완료.
+
