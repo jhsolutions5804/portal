@@ -749,7 +749,14 @@ window.renderOvertimeMain = async function(){
   let docs=[];
   try{ const snap=await getDocs(collection(window._db,'edoc_overtime')); snap.forEach(d=>docs.push({id:d.id,...d.data()})); }catch(e){}
   const myUid=(_user&&_user.uid)||'';
-  docs=docs.filter(d=>d.authorUid===myUid);
+  // 볼 수 있는 문서: 관리자(전체) / 내가 작성 / 결재라인에 내 uid 포함(이미 처리한 이력) / 아직 결재 안 됐고 내가 결재라인에 이름으로 지정된 건
+  const myName=(_myInfo&&_myInfo.name)||'';
+  docs = docs.filter(d => {
+    if (_isAdmin) return true;
+    if (d.authorUid === myUid) return true;
+    const line = d.approvalLine || [];
+    return line.some(s => s.uid === myUid || (!s.uid && s.name === myName && s.role !== '회람' && s.role !== '수신' && s.role !== '작성'));
+  });
   docs.sort((a,b)=>String(b.date||'').localeCompare(String(a.date||'')));
   const won=n=>'₩'+(Math.round(n)||0).toLocaleString('ko-KR');
   const STL={draft:'임시저장',pending:'결재대기',reviewing:'검토중',approved:'승인',rejected:'반려'};
