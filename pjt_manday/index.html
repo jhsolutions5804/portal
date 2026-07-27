@@ -1,4 +1,4 @@
-<!DOCTYPE html><!-- build: 20260724 · ver: 1.0.0 · 월간 공수 집계 (전체 PJT 통합) -->
+<!DOCTYPE html><!-- build: 20260727 · ver: 1.0.1 · 월간 공수 집계 (전체 PJT 통합) · r1: 개인별 생년월일/이름을 근로자 마스터 명부 기준으로 자동 동기화 -->
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
@@ -191,13 +191,16 @@ window.mShift=function(dir){
   loadMonth();
 };
 
-async function loadRoster(collPath, sourceLabel, sourceKind, regId){
+async function loadRoster(collPath, sourceLabel, sourceKind, regId, masterMap){
   try{
     const snap=await getDocs(collection(db, ...collPath));
     const list=[];
     snap.forEach(function(d){
       const w=d.data();
-      list.push({ id:d.id, name:w.name||'(이름없음)', birth:w.birth||'', sourceLabel, sourceKind, regId, collPath });
+      // 마스터 명부(master_workers)에 동일 ID로 등록된 인원이면 이름·생년월일을 마스터 정보로 덮어씀
+      // → 근로자 마스터 관리에서 수정한 내용이 자동으로 이 화면에도 실시간 반영됨
+      const m=masterMap && masterMap[d.id];
+      list.push({ id:d.id, name:(m&&m.name)||w.name||'(이름없음)', birth:(m&&m.birth)||w.birth||'', sourceLabel, sourceKind, regId, collPath });
     });
     return list;
   }catch(e){ return []; }
@@ -236,12 +239,18 @@ async function loadMonth(){
     });
   }
 
+  // 1-1. 근로자 마스터 명부를 먼저 조회 (프로젝트별 명단의 이름·생년월일을 마스터 기준으로 덮어쓰기 위함)
+  let masterSnapEarly=null;
+  try{ masterSnapEarly=await getDocs(collection(db,'master_workers')); }catch(e){}
+  const masterMap={};
+  if(masterSnapEarly) masterSnapEarly.forEach(d=>{ masterMap[d.id]=d.data(); });
+
   // 2. 근로자 명단 로딩 (FAB/SUP/경량 PJT 전체)
-  const rosterFab=await loadRoster(['pjt_workers_fab'],'P4 Ph2 (FAB)','fab');
-  const rosterSup=await loadRoster(['pjt_workers_ph4'],'P4 Ph4 (SUP)','sup');
+  const rosterFab=await loadRoster(['pjt_workers_fab'],'P4 Ph2 (FAB)','fab',undefined,masterMap);
+  const rosterSup=await loadRoster(['pjt_workers_ph4'],'P4 Ph4 (SUP)','sup',undefined,masterMap);
   let rosterLight=[];
   for(const lp of lightPjts){
-    const r=await loadRoster(['pjt_registry',lp.id,'workers'], lp.name, 'light', lp.id);
+    const r=await loadRoster(['pjt_registry',lp.id,'workers'], lp.name, 'light', lp.id, masterMap);
     rosterLight=rosterLight.concat(r);
   }
   const fabIdSet=new Set(rosterFab.map(w=>w.id));
@@ -386,7 +395,7 @@ function renderResult(pjtTotals, personMap, ambiguousIds, missingBirthWorkers, u
   const warnEl=document.getElementById('warn-section');
   let warnHtml='';
   if(missingBirthWorkers.length){
-    warnHtml+='<div class="warn-box"><b>⚠️ 생년월일 미입력 인원 (여러 PJT 겸직 시 별도 인원으로 집계됨)</b>';
+    warnHtml+='<div class="warn-box"><b>⚠️ 생년월일 미입력 인원 (근로자 마스터 명부에 미등록 · 여러 PJT 겸직 시 별도 인원으로 집계됨)</b>';
     missingBirthWorkers.forEach(function(w){
       warnHtml+='<div class="warn-row"><span style="flex:1">'+escapeHtml(w.name)+' <span style="color:#9AAABF">('+escapeHtml(w.sourceLabel)+')</span></span>'
         +'<input type="date" class="birth-input" onchange="fixBirth(\''+w.id+'\',\''+w.sourceKind+'\',\''+(w.regId||'')+'\',this.value)"></div>';
@@ -716,3 +725,4 @@ loadMonth();
 </div>
 </body>
 </html>
+
