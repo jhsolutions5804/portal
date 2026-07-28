@@ -99,3 +99,28 @@
 
 ## 관련 커밋 (2026-07-04)
 모바일 앱 구축 → 공정 실연동(daf758f1) → 여백+체크(4a07386a) → SUP 공정(e50d0884) → 시작일 자동조회(2f7502c8) → 근태(db039e42) → 근태 날짜이동+TDZ수정(e4844066) → 업무지시/보고 실구조 수정(PC 3d5c91d0 / 모바일 24ad0c6b).
+
+
+---
+
+## v5.3.0 변경 요약 (2026-07-28)
+
+**[치명적 버그 수정] 모바일 전체 Firebase Auth 초기화 누락**
+- `m/pjt.html`·`hr.html`·`edoc.html`·`gihoek.html`·`account.html`·`admin.html` 전부 `getFirestore()`만 초기화하고 `getAuth()`를 호출한 적이 없었음
+- 2026-07-27 Firestore 보안 규칙 강화(`request.auth != null` 요구) 이후, 모바일 페이지는 `request.auth`를 실어 보낼 방법이 없어 승인된 계정으로 로그인해도 전 컬렉션 read/write가 `permission-denied`로 막힘 (PC `index.html`은 자체 로그인 폼에서 `signInWithEmailAndPassword`로 Auth를 직접 관리해서 문제없었음)
+- 수정: 각 파일에 `import { getAuth, onAuthStateChanged } from '.../firebase-auth.js'`, `const auth=getAuth(app)` 추가. 파일 하단의 Firestore 구독 시작 코드를 `onAuthStateChanged(auth, ()=>{ ... })` 콜백 안으로 이동해, PC 로그인 세션(IndexedDB 공유)이 인증 토큰으로 확정된 뒤에만 Firestore 요청을 보내도록 변경
+- 재발 방지: 신규 모바일 페이지 작성 시 Firestore를 쓰려면 반드시 `getAuth()` + `onAuthStateChanged` 부트스트랩을 먼저 넣을 것
+
+**PJT(`m/pjt.html`) — `pjt_registry` 실시간 동기화**
+- 기존엔 FAB/SUP만 하드코딩되어 있어 PC에서 등록한 경량PJT(예: 화성 17L)가 모바일에 전혀 노출되지 않음
+- `pjt_registry` 컬렉션을 `onSnapshot`으로 실시간 구독 → `status!=='ended'`인 경량PJT를 홈 카드에 자동 추가/제거(PC와 동일하게 즉시 반영)
+- 경량PJT 상세뷰 신설: 일정(캘린더, 등록/수정/삭제 — `pjt_registry/{id}/schedules` 서브컬렉션), 근태·공수(`pjt_registry/{id}/workers`+`attendance`+`manday`)
+- 범위 제외(후속 작업 필요): 업무지시·보고 섹션, 공정(스테이지 체크) 탭 — PC `pjt_light`와 서브컬렉션 구조가 상이해 별도 작업 필요
+- `SITE(key)` 헬퍼로 FAB/SUP(정적)와 경량PJT(동적)를 공통 인터페이스로 통합, 기존 FAB/SUP 로직은 변경 없음
+
+**홈 화면(`m/home.html`) 레이아웃 개편**
+- PJT(FAB/SUP)를 각각 독립 강조 카드로 분리 배치(그라디언트, 클라이언트명·물량 표시)
+- 전자결재는 그 아래 일반 카드로 유지, 기획·인사는 "그 외" 축소 카드로 이동
+- `pjt.html?site=fab` / `?site=sup` 쿼리파라미터 딥링크 지원 추가 (카드 클릭 시 홈 경유 없이 해당 현장 바로 진입)
+
+상세 로그: `7_12_log_mobile_auth_fix.md` · 백업: `backup/v5.2.0/m/`
