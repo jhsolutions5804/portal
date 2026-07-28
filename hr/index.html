@@ -69,7 +69,7 @@
     try {
       const ps = await getDoc(doc(db, 'portal_users', user.uid));
       const d = ps.exists() ? ps.data() : null;
-      const ok = !!(d && d.status === 'approved' && (d.admin === true || (d.perms && d.perms.hr === true)));
+      const ok = !!(d && d.status === 'approved' && d.admin === true);  // 인사는 관리자 전용으로 제한(2026-07-28)
       if (!ok) { showScreen('blocked'); return; }
       window._isAdmin = !!(d.admin === true);
       if (viaPortal) document.documentElement.classList.add('portal-embed');
@@ -5661,4 +5661,5 @@ window.retireDelete = async (wid, rid, wname) => {
 </script>
 </body>
 </html>
+
 
