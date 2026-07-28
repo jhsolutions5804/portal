@@ -54,12 +54,13 @@
 const _uInitial=(function(){try{var a=JSON.parse(localStorage.getItem('jh_login_perms')||'null');return (a&&a.name)?a.name.slice(0,1):'·';}catch(e){return '·';}})();
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
 import { getFirestore, collection, onSnapshot } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+import { getAuth, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
 const firebaseConfig = {
   apiKey:"AIzaSyCyQxBJ_ftfM0ImBXubmqD5gfzFR54iPmE", authDomain:"p4ph2-fab-506a7.firebaseapp.com",
   projectId:"p4ph2-fab-506a7", storageBucket:"p4ph2-fab-506a7.firebasestorage.app",
   messagingSenderId:"36946317914", appId:"1:36946317914:web:c6ad5f3a1b98130c99fe63"
 };
-const app=initializeApp(firebaseConfig); const db=getFirestore(app);
+const app=initializeApp(firebaseConfig); const db=getFirestore(app); const auth=getAuth(app);
 
 let users=[], loadError='';
 // 초기 뷰: URL ?v=org|admin
@@ -134,11 +135,16 @@ function sub(coll,setter){
   onSnapshot(collection(db,coll), snap=>{ const arr=[]; snap.forEach(d=>arr.push({id:d.id,...d.data()})); setter(arr); render(); },
     err=>{ loadError=err.code||err.message; render(); });
 }
-sub('portal_users',a=>{users=a;});
+let _authBooted=false;
+onAuthStateChanged(auth, ()=>{
+  if(_authBooted) return; _authBooted=true;
+  sub('portal_users',a=>{users=a;});
 
-history.replaceState({v:curView,id:null},'');
-render();
+  history.replaceState({v:curView,id:null},'');
+  render();
+});
 </script>
 </body>
 </html>
+
 
