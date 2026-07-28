@@ -226,7 +226,7 @@ onAuthStateChanged(auth, async user => {
     const ps = await getDoc(doc(db,'portal_users',user.uid));
     if (ps.exists()) {
       const d = ps.data();
-      if (d.status==='approved' && (d.admin===true || (d.perms && d.perms.plan===true))) {
+      if (d.status==='approved' && d.admin===true) {  // 기획은 관리자 전용으로 제한(2026-07-28)
         me = { uid:user.uid, ...d };
         if (_viaPortal) {
           $('splash').style.display = 'none';
@@ -1464,4 +1464,5 @@ window.tab=tab;
 
 </body>
 </html>
+
 
