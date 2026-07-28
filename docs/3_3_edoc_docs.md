@@ -111,3 +111,13 @@ yyyymmdd + 이름 + 문서명   (예: 20260701 정다애 지출결의서)
 ## UI — 금액 입력 포맷 (r2, 2026-07-23)
 
 구매품의서 단가(`unitPrice`)·지출결의서 금액(`amount`) 필드를 `DOC_CONFIG`에서 `type:'money'`로 신설. 렌더러는 텍스트+실시간 콤마(`fmtMoney`), `docSave`는 콤마 제거 후 숫자로 저장, 상세보기(`docDetail`)도 `Number(v).toLocaleString('ko-KR')+'원'` 형식으로 표시. 상세: `7_4b_log_edoc.md`
+
+
+---
+
+## v3.5 변경 요약 (2026-07-28) — 모바일 구매품의서·지출결의서 실연동
+
+- 기존 모바일(`m/edoc.html`)은 구매품의서/지출결의서를 "준비 중" 스텁으로만 표시 → `edoc_purchase`/`edoc_expense` 컬렉션 실시간 구독으로 교체
+- 목록·상세·작성(품목 다중입력: 품목명/수량/단가)·삭제·결재(승인/반려) 전부 지원. PC와 동일한 필드 스키마(vendor/purpose/dueDate/items, expDate/category/amount/vendor/purpose/receipt/items) 사용 → 상호 조회 가능
+- 결재선: 결재 1단계(김종화 차장), PC의 `DOC_CONFIG.purchase/expense.approvers`와 동일
+- 결재함(`renderApprove`)에 구매품의·지출결의·초과근로까지 함께 노출되도록 통합 (기존엔 업무일지·연차만 표시됐음)
