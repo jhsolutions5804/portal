@@ -2481,7 +2481,7 @@ function renderMenu(){
   const sec=document.createElement('div'); sec.className='sb-sec'; sec.textContent='업무';
   nav.appendChild(sec);
   MODULES.forEach(m=>{
-    const allowed=me.admin||(me.perms&&me.perms[m.key]);
+    const allowed=(m.key==='plan'||m.key==='hr')?me.admin:(me.admin||(me.perms&&me.perms[m.key]));
     // 홈 카드
     const card=document.createElement('div');
     card.className='mcard'+(allowed?'':' locked');
@@ -2779,6 +2779,7 @@ window.renderOutlookCard = renderOutlookCard;
 
 function openModule(m, tab, overrideUrl){
   if(tab==='pjt_manday' && !(me&&me.admin)){ toast('월간 공수는 관리자만 접근할 수 있습니다.'); return; }
+  if((m.key==='plan'||m.key==='hr') && !(me&&me.admin)){ toast('기획/인사는 관리자만 접근할 수 있습니다.'); return; }
   const actualUrl=overrideUrl||m.url;
   if(tab==='pjt_home'||m.key==='pjt'&&tab===null){
     showPjtHome(); return;
@@ -3003,7 +3004,7 @@ function mbnOpenMore(){
   // 업무 메뉴
   const workItems=[];
   _MODULES.forEach(m=>{
-    const allowed=_me.admin||(_me.perms&&_me.perms[m.key]);
+    const allowed=(m.key==='plan'||m.key==='hr')?_me.admin:(_me.admin||(_me.perms&&_me.perms[m.key]));
     if(_SUBTABS[m.key] && allowed){
       const wrap=document.createElement('div'); wrap.style.cssText='width:100%';
       const head=document.createElement('button'); head.className='mmp-btn'; head.style.cssText='width:100%;padding:12px 20px';
