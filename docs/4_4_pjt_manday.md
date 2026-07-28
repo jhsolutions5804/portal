@@ -106,3 +106,14 @@ FAB·SUP·경량 PJT 전체에 걸쳐 발생하는 공수를 한 화면에서 PJ
 
 
 
+
+
+---
+
+## v1.2.0 변경 요약 (2026-07-28) — 모바일 신규
+
+- `m/pjt_manday.html` 신규: 월간 공수를 모바일에서도 조회 가능 (관리자 전용)
+- PC와 동일한 집계 로직 이식: FAB(`worker_manday`)+SUP(`ph4_manday`)+경량PJT(`pjt_registry/{id}/manday`) 통합, `master_workers` 기준 이름/생년월일 동기화, 팀 단가(teamRate)×팀 총공수로 팀 합계 계산
+- 접근 제어: `portal_users/{uid}.admin===true && status==='approved'`를 Firestore에서 직접 재확인(클라이언트 localStorage 신뢰하지 않음) — PC와 동일한 검증 패턴
+- 모바일 홈(`m/home.html`)에 진입 카드 추가, 관리자가 아니면 카드 자체를 렌더링하지 않음(잠금 표시가 아니라 완전 비노출 — 급여 단가 정보 포함이라 더 엄격하게 처리)
+- 범위 제외(PC 전용 유지): 근로자 마스터 등록/수정/삭제, 생년월일 인라인 수정, 개인별 공수표 모달, 팀 단가 설정 — 조회 중심으로 우선 구현
