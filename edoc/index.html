@@ -1698,6 +1698,8 @@ window.docSave = async function(dtype, status) {
   await loadPortalUsers();
   if (!_myInfo?.name) await loadMyInfo();
   const approvalLine = buildFixedApprovalLine(dtype);
+  const viewerUidSet = new Set([_user.uid]);
+  approvalLine.forEach(a => { if (a.uid) viewerUidSet.add(a.uid); });
 
   const data = {
     title, dtype, status,
@@ -1705,6 +1707,7 @@ window.docSave = async function(dtype, status) {
     authorName:_myInfo?.name||_user.displayName||_user.email||'',
     authorRank:_myInfo?.rank||'', authorDept:_myInfo?.dept||'',
     approvalLine,
+    viewerUids: Array.from(viewerUidSet),
     createdAt:serverTimestamp()
   };
   cfg.fields.forEach(f => {
@@ -2394,4 +2397,5 @@ body{font-family:-apple-system,'Apple SD Gothic Neo','Pretendard',sans-serif;bac
 
 </body>
 </html>
+
 
