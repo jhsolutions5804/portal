@@ -53,3 +53,26 @@
 ### 후속 조치 필요
 - 기존에 이미 `fiz`로 잘못 저장된 정산서가 있다면 대표님이 정산서 상세에서 구역 드롭다운으로 수동 재선택 필요 (자동 마이그레이션 없음)
 
+## 2026-07-30 (2) — 정산서 공급가액/부가세 수동수정 + 공수연동 자동집계 오차 수정
+
+### 요청
+1. 정산서 발행 화면에서 공급가액·부가세를 직접 수정할 수 있게 해달라
+2. SUP(ph4) 7월 실투입 공수가 8.0인데 정산서 공수연동은 19.6으로 집계됨. FAB도 pjt_manday(309.0)와 정산서 자동집계(315) 불일치
+
+### 진단
+- (1)은 신규 기능 요청 — 기존엔 `renderSetTot()`가 자동계산값만 읽기전용 표시
+- (2) 원인: `fetchManday()`가 `worker_manday`/`ph4_manday` 일별 문서의 `md` 값을 **명부 검증 없이 전부 합산**. 반면 `pjt_manday`(월간 공수 집계) 화면은 합산 전 해당 ID가 `pjt_workers_fab`/`pjt_workers_ph4`(현재 유효 명부)에 있는지 검증하고, 없으면 무시함(`unknownIdCount`로만 집계). 근로자 마스터 정리·중복 통합 과정에서 남은 구 ID 잔재 데이터가 정산서 쪽에서만 그대로 합산되어 두 화면 수치가 어긋난 것
+
+### 수정
+1. `settleDraft`에 `supplyOverride`/`vatOverride` 필드 추가. `renderSetTot()`의 공급가액·부가세를 `<input>`으로 변경, `onchange`로 오버라이드 저장(`setSupplyOverride`/`setVatOverride`). `effSupply()`/`effVat()` 헬퍼로 오버라이드 우선 적용, 없으면 기존 자동계산. 오버라이드 상태일 때 자동계산값 병기 + "자동계산으로 되돌리기" 링크(`resetSetTot`). `publishSettle()`도 `effSupply()`/`effVat()` 사용하도록 변경
+2. `fetchManday()`에 명부 필터링 추가: 프로젝트 종류(FAB/SUP)에 따라 `pjt_workers_fab`/`pjt_workers_ph4`를 조회해 ID셋 구성 → 그 안의 ID만 합산, 명부 외 공수는 제외하고 토스트로 제외량 안내
+
+### 검증
+- `node --check` 문법 통과 (import 구문 제거 후 `.mjs` 재검증)
+- 원격 최신본과 diff 확인 후 배포(직전 zone 버그 수정 건과 충돌 없음 확인)
+
+### 배포
+- 커밋: `gihoek/index.html`, `index.html`(버전배너, gihoek 5.3.2)
+- 백업: `backup/v5.3.2/gihoek/index.html`
+- 문서: `docs/1_4_gihoek_settle.md` r4 갱신
+
