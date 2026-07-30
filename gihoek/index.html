@@ -772,12 +772,10 @@ const PROGRESS_PROFILES = {
     checkCols: ['반입','입고검사','내진스토퍼','다이크','실링','동판','결선','시공검측'],
     installCols: ['내진스토퍼','다이크','실링','동판','결선'],
     zones: [
-      // 주의: 견적 항목명에 건물명(복합3동/4동)과 설비타입(3F FIZ 등)이 함께 들어가는 경우가 있어,
-      // zoneGuess()가 first-match로 판정하므로 건물명(구체적) 항목을 설비타입(포괄적) 항목보다 먼저 배치할 것.
-      {id:'c3', name:'복합3동', total:14, eqs:['351','352','353','354','355','356','357','358','359','360','361','362','363','364'], kw:['복합3동','복합 3동']},
-      {id:'c4', name:'복합4동', total:14, eqs:['302A','302B','302C','302D','302E','302F','302G','302H','302I','302J','302K','302L','302M','302N'], kw:['복합4동','복합 4동']},
       {id:'fiz', name:'3F FIZ', total:39, eqs:Array.from({length:39},(_,i)=>String(801+i)), kw:['3F FIZ','FIZ']},
       {id:'xob', name:'X-OB', total:19, eqs:['861','862','863','864','865','866','867','868','869','870','871','872','873','874','875','876','877','878','879'], kw:['X-OB','XOB']},
+      {id:'c3', name:'복합3동', total:14, eqs:['351','352','353','354','355','356','357','358','359','360','361','362','363','364'], kw:['복합3동','복합 3동']},
+      {id:'c4', name:'복합4동', total:14, eqs:['302A','302B','302C','302D','302E','302F','302G','302H','302I','302J','302K','302L','302M','302N'], kw:['복합4동','복합 4동']},
       {id:'wob', name:'W-OB', total:81, eqs:Array.from({length:81},(_,i)=>'W-'+(101+i)), kw:['W-OB','WOB']},
       {id:'mfr', name:'2F 제조부속실', total:16, eqs:['801','802','811','812','813','814','815','816','817','818','819','820','821','822','823','824'], kw:['제조부속실','2F 제조']},
     ]
@@ -867,6 +865,7 @@ window.newSettle=function(pjtId){
     senderId:(sup.find(c=>c.company==='제이에이치솔루션')?.id)||sup[0]?.id||'', recipientId:'',
     senderContact:'', recipientContact:'',
     estIds:[], estZone:{}, deposit:{}, prog:{}, eqs:{}, billOverride:{}, qtyInput:{}, qtyAmt:{}, mandayInput:null, mandayAuto:null, mandayRate:TEAM_RATE,
+    supplyOverride:null, vatOverride:null,
     manualItems:[{name:'',spec:'',qty:1,price:0,amount:0},{name:'',spec:'',qty:1,price:0,amount:0}] };
   tabSilent('settle'); drawSettleForm();
 };
@@ -1041,10 +1040,19 @@ function priorManday(){ return settlements.filter(s=>setActive(s)&&s.docType==='
 window.setMd=function(v){ settleDraft.mandayInput=num(v); drawSettleForm(); };
 window.setMandayRate=function(v){ settleDraft.mandayRate=Math.round(num(v))||TEAM_RATE; drawSettleForm(); };
 window.fetchManday=async function(){ const d=settleDraft; toast('공수 불러오는 중...');
-  try{ const col=getMandayCol(); const [y,m]=d.baseMonth.split('-').map(Number); const lastDay=new Date(y,m,0).getDate(); let sum=0; const tasks=[];
+  try{ const col=getMandayCol(); const key=getLinkPjt(projects.find(p=>p.id===d.pjtId));
+    // pjt_manday(월간 공수 집계) 화면과 동일하게, 현재 유효한 근로자 명부(pjt_workers_fab/ph4)에 등록된 ID만 합산한다.
+    // 그렇지 않으면 명부에서 빠진(탈퇴/오입력/중복 정리 등) 구 근로자 ID의 잔여 기록까지 그대로 합산되어
+    // 월간 공수 집계 화면(정상)보다 큰 값이 나오는 오차가 생길 수 있다.
+    const rosterCol=key==='p4ph4'?'pjt_workers_ph4':'pjt_workers_fab';
+    let idSet=null;
+    try{ const rs=await getDocs(collection(db,rosterCol)); idSet=new Set(rs.docs.map(x=>x.id)); }catch(e){ idSet=null; }
+    const [y,m]=d.baseMonth.split('-').map(Number); const lastDay=new Date(y,m,0).getDate(); let sum=0; let ignored=0; const tasks=[];
     for(let day=1; day<=lastDay; day++){ const dk=y+'-'+String(m).padStart(2,'0')+'-'+String(day).padStart(2,'0');
-      tasks.push((async()=>{ try{ const sn=await getDoc(doc(db,col,dk)); if(sn.exists()){ const md=sn.data().md||{}; Object.values(md).forEach(v=>sum+=Number(v)||0); } }catch(e){} })()); }
-    await Promise.all(tasks); d.mandayAuto=Math.round(sum*10)/10; d.mandayInput=d.mandayAuto; drawSettleForm(); toast('공수 '+d.mandayAuto+' 반영했습니다.');
+      tasks.push((async()=>{ try{ const sn=await getDoc(doc(db,col,dk)); if(sn.exists()){ const md=sn.data().md||{};
+        Object.keys(md).forEach(wid=>{ const v=Number(md[wid])||0; if(!idSet || idSet.has(wid)) sum+=v; else ignored+=v; }); } }catch(e){} })()); }
+    await Promise.all(tasks); d.mandayAuto=Math.round(sum*10)/10; d.mandayInput=d.mandayAuto; drawSettleForm();
+    toast('공수 '+d.mandayAuto+' 반영했습니다.'+(ignored>0?' (명부 외 '+Math.round(ignored*10)/10+' 공수 제외)':''));
   }catch(e){ toast('불러오기 실패: '+(e.code||e.message)); }
 };
 
@@ -1074,12 +1082,19 @@ function setSupply(){ const d=settleDraft;
   if(d.method==='qty') return d.estIds.reduce((s,id)=>{ const e=estimates.find(x=>x.id===id); if(!e) return s; return s+(e.items||[]).reduce((a,it,idx)=>a+qAmt(id,idx,it),0); },0);
   return d.estIds.reduce((s,id)=>s+calcSetRow(id).thisBill,0);
 }
-function renderSetTot(){ const d=settleDraft; const sup=setSupply(); const vat=Math.round(sup*0.1);
+function effSupply(){ const d=settleDraft; const auto=setSupply(); return d.supplyOverride!=null?d.supplyOverride:auto; }
+function effVat(){ const d=settleDraft; const sup=effSupply(); return d.vatOverride!=null?d.vatOverride:Math.round(sup*0.1); }
+window.setSupplyOverride=function(v){ settleDraft.supplyOverride=Math.max(0,num(v)); renderSetTot(); };
+window.setVatOverride=function(v){ settleDraft.vatOverride=Math.max(0,num(v)); renderSetTot(); };
+window.resetSetTot=function(){ settleDraft.supplyOverride=null; settleDraft.vatOverride=null; renderSetTot(); };
+function renderSetTot(){ const d=settleDraft; const sup=effSupply(); const vat=effVat(); const auto=setSupply();
   const label=d.docType==='invoice'?'청구':'지급';
+  const overridden=(d.supplyOverride!=null || d.vatOverride!=null);
   if($('set-tot')) $('set-tot').innerHTML=`<div class="totbox" style="margin-top:0;border-top:none;padding-top:0">
-    <div class="totrow"><span class="muted">금번 ${label} 공급가액</span><span>${won(sup)} 원</span></div>
-    <div class="totrow"><span class="muted">부가세 (10%)</span><span>${won(vat)} 원</span></div>
-    <div class="totrow big"><span>금번 ${label}금액 합계</span><span>${won(sup+vat)} 원</span></div></div>`;
+    <div class="totrow"><span class="muted">금번 ${label} 공급가액</span><span><input class="ti num" style="width:140px;text-align:right;display:inline-block" type="text" inputmode="numeric" value="${Number(sup).toLocaleString('ko-KR')}" oninput="fmtMoney(this)" onchange="setSupplyOverride(this.value)"> 원</span></div>
+    <div class="totrow"><span class="muted">부가세 (10%)</span><span><input class="ti num" style="width:140px;text-align:right;display:inline-block" type="text" inputmode="numeric" value="${Number(vat).toLocaleString('ko-KR')}" oninput="fmtMoney(this)" onchange="setVatOverride(this.value)"> 원</span></div>
+    <div class="totrow big"><span>금번 ${label}금액 합계</span><span>${won(sup+vat)} 원</span></div>
+    ${overridden?`<div class="small muted" style="margin-top:4px">✎ 수동 수정됨 (자동계산: 공급가액 ${won(auto)} 원) · <a href="javascript:void(0)" onclick="resetSetTot()">자동계산으로 되돌리기</a></div>`:''}</div>`;
   if(d.method==='manual'&&$('sm-rows')&&!$('sm-rows').children.length) drawSmRows();
 }
 
@@ -1092,7 +1107,7 @@ function settleLines(){ const d=settleDraft;
     return {name:e.title,spec:(z?z.name:'')+' 반입 '+r.banip+'/'+r.qty+bN+' · 설치 '+r.install+'/'+r.qty+iN,qty:1,price:r.thisBill,amount:r.thisBill}; });
 }
 
-window.publishSettle=async function(){ const d=settleDraft; const sup=setSupply();
+window.publishSettle=async function(){ const d=settleDraft; const sup=effSupply();
   if(sup<=0){ toast('정산 금액이 없습니다.'); return; }
   if(!d.recipientId){ if(!confirm('수신자(거래처)가 선택되지 않았습니다. 그래도 발행할까요?')) return; }
   const yymm=d.issueDate.slice(2,4)+d.issueDate.slice(5,7);
@@ -1103,7 +1118,7 @@ window.publishSettle=async function(){ const d=settleDraft; const sup=setSupply(
   if(d.method==='progress') d.estIds.forEach(eid=>perEst[eid]=calcSetRow(eid).thisBill);
   if(d.method==='qty') d.estIds.forEach(eid=>{ const e=estimates.find(x=>x.id===eid); if(!e) return; perItem[eid]={}; let es=0; (e.items||[]).forEach((it,idx)=>{ const q=qVal(eid,idx); const amt=qAmt(eid,idx,it); if(q>0||amt>0){ perItem[eid][idx]={qty:q,amount:amt}; es+=amt; } }); perEst[eid]=es; });
   if(d.method==='manday') mandayUsed=d.mandayInput!=null?d.mandayInput:(d.mandayAuto||0);
-  const vat=Math.round(sup*0.1);
+  const vat=effVat();
   // 급여와 동일 규칙: 지급예정서(payment)이고 지급예정일이 비어 있으면 기준월의 익월 말일(주말→금요일)로 자동
   let effPayDate=d.payDate||'';
   if(d.docType==='payment' && !effPayDate && d.baseMonth) effPayDate=defaultPayDate(d.baseMonth);
