@@ -1138,15 +1138,18 @@ window.publishSettle=async function(){ const d=settleDraft; const sup=effSupply(
 window.openSettle=function(id){ viewSetId=id; const s=settlements.find(x=>x.id===id); if(!s){ renderSettle(); return; }
   const p=projects.find(x=>x.id===s.pjtId); tabSilent('settle');
   const party=(label,o)=>`<div class="party"><div class="pl">${label}</div><div class="pc">${o?.company||'-'}</div><div class="pd">${o?.ceo?'대표 '+o.ceo:''}${o?.bizno?' · '+o.bizno:''}</div>${o?.contact?`<div class="pd">담당: ${o.contact}</div>`:''}</div>`;
+  const canLink=(s.docType==='invoice' && (s.method==='manual'||s.method==='qty'));
+  const linkedEsts=Object.keys(s.perEst||{}).filter(k=>s.perEst[k]>0);
   $('v-settle').innerHTML=`<button class="back" onclick="renderSettle()">← 정산 목록</button>
     <div class="card">
       ${!setActive(s)?'<div class="void-banner">🚫 폐기된 정산서입니다. 집계에서 제외됩니다.</div>':''}
       <div style="display:flex;justify-content:space-between;align-items:flex-start">
         <div><div style="font-size:16px;font-weight:800">${s.docType==='invoice'?'대금청구서':'지급예정서'}</div>
         <div class="small muted" style="margin-top:3px"><span class="pill">${p?p.code:'-'}</span> &nbsp;${s.no} · 발행 ${s.issueDate}${s.author?' · '+s.author:''}</div></div>
-        <div style="display:flex;gap:6px"><button class="btn line sm" onclick="previewSettle('${s.id}')">🖨 인쇄/PDF</button>${(setActive(s)&&s.status!=='done')?(s.docType==='invoice'?`<button class="btn line sm" style="color:#16A34A;border-color:#16A34A" onclick="doneSettle('${s.id}')">✓ 완결${(pjtBilled(s.pjtId)-pjtPaid(s.pjtId))<=0?' (권장)':''}</button>`:`<button class="btn line sm" style="color:#16A34A;border-color:#16A34A" onclick="doneSettlePayment('${s.id}')">✓ 지급완료</button>`):''}${(s.status==='done')?`<button class="btn line sm" style="color:#5C6F8A" onclick="undoneSettle('${s.id}')">완결 취소</button>`:''}${setActive(s)?`<button class="btn gray sm" onclick="voidSettle('${s.id}')">폐기</button>`:`<button class="btn gray sm" style="color:#c00" onclick="deleteSettle('${s.id}')">🗑 삭제</button>`}</div></div>
+        <div style="display:flex;gap:6px">${canLink?`<button class="btn line sm" onclick="linkSettleToEst('${s.id}')">🔗 견적 연결${linkedEsts.length?' 수정':''}</button>`:''}<button class="btn line sm" onclick="previewSettle('${s.id}')">🖨 인쇄/PDF</button>${(setActive(s)&&s.status!=='done')?(s.docType==='invoice'?`<button class="btn line sm" style="color:#16A34A;border-color:#16A34A" onclick="doneSettle('${s.id}')">✓ 완결${(pjtBilled(s.pjtId)-pjtPaid(s.pjtId))<=0?' (권장)':''}</button>`:`<button class="btn line sm" style="color:#16A34A;border-color:#16A34A" onclick="doneSettlePayment('${s.id}')">✓ 지급완료</button>`):''}${(s.status==='done')?`<button class="btn line sm" style="color:#5C6F8A" onclick="undoneSettle('${s.id}')">완결 취소</button>`:''}${setActive(s)?`<button class="btn gray sm" onclick="voidSettle('${s.id}')">폐기</button>`:`<button class="btn gray sm" style="color:#c00" onclick="deleteSettle('${s.id}')">🗑 삭제</button>`}</div></div>
       <div class="partybox">${party('발신 (공급자)',s.sender)}${party(s.docType==='invoice'?'수신 (원청)':'수신 (하청)',s.recipient)}</div>
       <div class="small muted" style="margin-bottom:10px">기준월 ${s.baseMonth} · ${s.docType==='invoice'?'지급요청일':'지급예정일'} ${s.payDate||'-'} · 정산방식 ${{progress:'공정 자동',qty:'수량정산',manday:'공수',manual:'직접입력'}[s.method]}${s.docType==='payment'?(' · 회계 계상월 <b style="color:#1D5BA6">'+acctMonthOf(s)+'</b> <button class="btn line sm" style="padding:1px 8px;font-size:11px;margin-left:4px" onclick="editAcctMonth(\''+s.id+'\')">수정</button>'):''}</div>
+      ${linkedEsts.length?`<div class="note-amber" style="margin-bottom:10px">🔗 견적 연결됨: ${linkedEsts.map(eid=>{ const e=estimates.find(x=>x.id===eid); return (e?e.title:eid)+' '+won(s.perEst[eid])+'원'; }).join(', ')} — 이후 이 견적의 공정 정산서에서 기청구로 반영됩니다.</div>`:''}
       <div class="scroll"><table class="items"><thead><tr><th>#</th><th>내역</th><th>비고</th><th class="right">금액</th></tr></thead>
         <tbody>${(s.lines||[]).map((it,i)=>`<tr><td class="muted small">${i+1}</td><td>${it.name}</td><td class="muted small">${it.spec||'-'}</td><td class="right" style="font-weight:700;color:var(--money)">${won(it.amount)}</td></tr>`).join('')}</tbody></table></div>
       <div class="totbox"><div class="totrow"><span class="muted">공급가액</span><span>${won(s.supply)} 원</span></div>
@@ -1154,6 +1157,26 @@ window.openSettle=function(id){ viewSetId=id; const s=settlements.find(x=>x.id==
         <div class="totrow big"><span>${s.docType==='invoice'?'청구금액':'지급금액'} 합계</span><span>${won(s.total)} 원</span></div></div>
     </div>`;
   window.scrollTo(0,0);
+};
+window.linkSettleToEst=async function(id){
+  const s=settlements.find(x=>x.id===id); if(!s) return;
+  const ests=estimates.filter(e=>e.pjtId===s.pjtId && isActive(e));
+  if(!ests.length){ toast('연결할 견적이 없습니다.'); return; }
+  const cur=s.perEst&&Object.keys(s.perEst)[0];
+  const listStr=ests.map((e,i)=>(i+1)+'. '+e.title+' ('+e.no+')'+((cur===e.id)?' [현재 연결됨]':'')).join('\n');
+  const sel=prompt('이 정산서를 연결할 견적을 번호로 선택하세요.\n(선택 시, 이 정산서 금액이 해당 견적의 "기청구"로 반영되어 이후 공정 정산서에서 자동 차감됩니다)\n\n'+listStr);
+  if(sel===null) return;
+  const idx=parseInt(sel,10)-1;
+  if(isNaN(idx)||idx<0||idx>=ests.length){ toast('올바른 번호를 입력하세요.'); return; }
+  const est=ests[idx];
+  const amtStr=prompt('이 정산서 공급가액 중 위 견적에 기청구로 반영할 금액을 입력하세요 (원):', String(s.supply||0));
+  if(amtStr===null) return;
+  const amt=Math.max(0,num(amtStr));
+  if(amt<=0){ toast('금액이 올바르지 않습니다.'); return; }
+  try{
+    await setDoc(doc(db,'gihoek_settlements',id), { perEst:{[est.id]:amt} }, {merge:true});
+    toast('견적에 연결했습니다.'); openSettle(id);
+  }catch(e){ toast('연결 실패: '+(e.code||e.message)); }
 };
 window.editAcctMonth=async function(id){
   const s=settlements.find(x=>x.id===id); if(!s) return;
