@@ -76,3 +76,28 @@
 - 백업: `backup/v5.3.2/gihoek/index.html`
 - 문서: `docs/1_4_gihoek_settle.md` r4 갱신
 
+## 2026-07-30 (3) — 정산서-견적 연결 기능 추가 (기청구 미반영 문제)
+
+### 발단
+- 대표님이 "FAB동 3F FIZ FCU 39대 설치" 견적으로 공정 정산서를 작성했는데 "기청구"가 0으로 뜨는 것을 지적. 7/3에 이미 같은 설비(FCU 34대, 73,850,000원)로 "직접입력" 방식 청구서를 발행한 상태였음
+
+### 원인
+- `priorByEst(estId)`는 `settlements`에서 `docType==='invoice' && s.perEst[estId]`가 있는 것만 합산
+- `perEst`는 발행 시 `method==='progress'`/`'qty'`일 때만 자동 채워짐. `method==='manual'`(직접입력)은 `perEst`가 비어있는 채로 저장되어, 같은 물리적 설비라도 견적과 연결이 안 됨 → 기청구 0
+
+### 수정
+- 정산서 상세화면에 "🔗 견적 연결" 버튼 추가 (`docType==='invoice'` && `method` in `manual`/`qty`)
+- `linkSettleToEst(id)`: 프로젝트 내 견적 목록에서 선택 → 반영 금액 입력 → `perEst` merge 저장
+- 연결 상태는 상세화면에 안내 배너로 표시, 재연결(수정) 가능
+
+### 검증
+- `node --check` 문법 통과, 원격 최신본과 diff로 신규 추가분만 있음을 확인 후 배포
+
+### 배포
+- 커밋: `gihoek/index.html`, `index.html`(버전배너, gihoek 5.3.3)
+- 백업: `backup/v5.3.3/gihoek/index.html`
+- 문서: `docs/1_4_gihoek_settle.md` r5
+
+### 후속조치 필요
+- 대표님이 7/3 청구서(73,850,000원)를 "FAB동 3F FIZ" 견적에 수동으로 연결해야 함 (자동 소급 매칭 없음)
+
