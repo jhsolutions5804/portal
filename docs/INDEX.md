@@ -698,3 +698,14 @@
 **배포**: `gihoek/index.html`, `index.html`(버전배너, gihoek 5.3.4), 백업 `backup/v5.3.4/gihoek/index.html`
 **상세**: `1_4_gihoek_settle.md`(r6), `7_2b_log_gihoek_security.md`, `8_16_log_2026-07-30_session.md`
 
+---
+
+## 2026-07-30 추가 세션 (5) 요약 — 정산 목록 필터(구분/PJT/거래처/완결·미결) 추가 (gihoek v5.3.5)
+
+**요청**: 대금청구서/지급예정서 구분, PJT별, 거래처별 필터링 → 완결/미결 상태 필터도 추가 요청.
+
+**대응**: 정산 목록 상단에 필터 바(구분·PJT·거래처·상태 4종) 신설. 거래처 목록은 기존 정산서에서 자동 추출. 필터 적용 시 목록뿐 아니라 상단 요약 카드(청구누계/지급예정누계/미수금)도 필터 결과 기준으로 재계산됨.
+
+**배포**: `gihoek/index.html`, `index.html`(버전배너, gihoek 5.3.5), 백업 `backup/v5.3.5/gihoek/index.html`
+**상세**: `1_4_gihoek_settle.md`(r7), `7_2b_log_gihoek_security.md`, `8_16_log_2026-07-30_session.md`
+
