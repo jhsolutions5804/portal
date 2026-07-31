@@ -119,3 +119,21 @@
 - 백업: `backup/v5.3.4/gihoek/index.html`
 - 문서: `docs/1_4_gihoek_settle.md` r6
 
+## 2026-07-30 (5) — 정산 목록 필터(구분/PJT/거래처/상태) 추가
+
+### 요청
+- 대금청구서/지급예정서 구분, PJT별, 거래처별 필터링 요청 → 이어서 완결/미결 상태 필터도 추가 요청
+
+### 수정
+- `renderSettle()`에 필터 바 추가: 구분(`docType`)/PJT(`pjtId`)/거래처(`recipient.company`, 동적 목록)/상태(`done`/`pending`)
+- `window.settleFilter`(세션 메모리)에 현재 필터 저장, `setSettleFilter(key,val)`/`resetSettleFilter()`로 갱신 시 재렌더
+- 상단 요약(청구누계/지급예정누계/미수금)도 필터된 배열 기준으로 재계산되도록 변경
+
+### 검증
+- `node --check` 통과, 원격 diff로 의도한 변경분만 확인 후 배포
+
+### 배포
+- 커밋: `gihoek/index.html`, `index.html`(버전배너, gihoek 5.3.5)
+- 백업: `backup/v5.3.5/gihoek/index.html`
+- 문서: `docs/1_4_gihoek_settle.md` r7
+
