@@ -687,3 +687,14 @@
 **상세**: `1_4_gihoek_settle.md`(r5), `7_2b_log_gihoek_security.md`, `8_16_log_2026-07-30_session.md`
 **후속조치**: 대표님이 7/3 청구서를 "FAB동 3F FIZ" 견적에 수동 연결 필요 (자동 소급매칭 없음)
 
+---
+
+## 2026-07-30 추가 세션 (4) 요약 — 정산서-견적 연결을 항목별 개별 지정으로 개선 (gihoek v5.3.4)
+
+**요청**: 청구서 1건에 여러 내역(FIZ/X-OB/복합3동/복합4동/관리자파견 등)이 섞여있을 때, 항목마다 각각 다른 견적에 연결하고 싶다.
+
+**대응**: "견적 연결" 버튼을 모달 UI로 교체. 청구서 내역(`s.lines`) 각각에 견적 선택 드롭다운을 표시해 항목별로 다른 견적을 지정 가능. 저장 시 `perEstLines`(항목-견적 매핑, 재편집용)와 `perEst`(견적별 합산금액, 기존 기청구 계산과 완전 호환)를 함께 저장.
+
+**배포**: `gihoek/index.html`, `index.html`(버전배너, gihoek 5.3.4), 백업 `backup/v5.3.4/gihoek/index.html`
+**상세**: `1_4_gihoek_settle.md`(r6), `7_2b_log_gihoek_security.md`, `8_16_log_2026-07-30_session.md`
+
