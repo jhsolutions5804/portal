@@ -841,21 +841,49 @@ let settleDraft=null, viewSetId=null;
 const setActive=s=>s.status!=='void';
 
 function renderSettle(){ settleDraft=null; viewSetId=null;
-  const inv=settlements.filter(s=>s.docType==='invoice'&&setActive(s)).reduce((a,s)=>a+(s.total||0),0);
-  const pay=settlements.filter(s=>s.docType==='payment'&&setActive(s)).reduce((a,s)=>a+(s.total||0),0);
-  const done=settlements.filter(s=>s.docType==='invoice'&&s.status==='done').reduce((a,s)=>a+(s.total||0),0);
-  const sorted=[...settlements].sort((a,b)=>(b.issueDate||'').localeCompare(a.issueDate||'')||(b.no||'').localeCompare(a.no||'')||((b.createdAt?.seconds||0)-(a.createdAt?.seconds||0)));
+  if(!window.settleFilter) window.settleFilter={docType:'',pjtId:'',client:'',status:''};
+  const f=window.settleFilter;
+  const clients=[...new Set(settlements.map(s=>s.recipient&&s.recipient.company).filter(Boolean))].sort();
+  const filtered=settlements.filter(s=>(!f.docType||s.docType===f.docType)&&(!f.pjtId||s.pjtId===f.pjtId)&&(!f.client||(s.recipient&&s.recipient.company)===f.client)&&(!f.status||(f.status==='done'?s.status==='done':s.status!=='done')));
+  const inv=filtered.filter(s=>s.docType==='invoice'&&setActive(s)).reduce((a,s)=>a+(s.total||0),0);
+  const pay=filtered.filter(s=>s.docType==='payment'&&setActive(s)).reduce((a,s)=>a+(s.total||0),0);
+  const done=filtered.filter(s=>s.docType==='invoice'&&s.status==='done').reduce((a,s)=>a+(s.total||0),0);
+  const sorted=[...filtered].sort((a,b)=>(b.issueDate||'').localeCompare(a.issueDate||'')||(b.no||'').localeCompare(a.no||'')||((b.createdAt?.seconds||0)-(a.createdAt?.seconds||0)));
+  const filterBarHtml=`<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">
+      <select class="sel" style="width:auto;min-width:110px" onchange="setSettleFilter('docType',this.value)">
+        <option value="" ${!f.docType?'selected':''}>구분: 전체</option>
+        <option value="invoice" ${f.docType==='invoice'?'selected':''}>대금청구서</option>
+        <option value="payment" ${f.docType==='payment'?'selected':''}>지급예정서</option>
+      </select>
+      <select class="sel" style="width:auto;min-width:130px" onchange="setSettleFilter('pjtId',this.value)">
+        <option value="" ${!f.pjtId?'selected':''}>PJT: 전체</option>
+        ${projects.map(p=>`<option value="${p.id}" ${f.pjtId===p.id?'selected':''}>${p.code}</option>`).join('')}
+      </select>
+      <select class="sel" style="width:auto;min-width:130px" onchange="setSettleFilter('client',this.value)">
+        <option value="" ${!f.client?'selected':''}>거래처: 전체</option>
+        ${clients.map(c=>`<option value="${c}" ${f.client===c?'selected':''}>${c}</option>`).join('')}
+      </select>
+      <select class="sel" style="width:auto;min-width:100px" onchange="setSettleFilter('status',this.value)">
+        <option value="" ${!f.status?'selected':''}>상태: 전체</option>
+        <option value="done" ${f.status==='done'?'selected':''}>✓ 완결</option>
+        <option value="pending" ${f.status==='pending'?'selected':''}>미결</option>
+      </select>
+      ${(f.docType||f.pjtId||f.client||f.status)?`<button class="btn line sm" onclick="resetSettleFilter()">필터 초기화</button>`:''}
+    </div>`;
   $('v-settle').innerHTML=`<button onclick="tab('home')" style="background:#F0F4F9;border:1px solid #DDE4EF;border-radius:8px;padding:5px 12px;color:#5C6F8A;font-size:12px;cursor:pointer;font-weight:600;">🏠 기획 홈</button>
   <div class="sec-h"><h2>정산</h2><button class="btn pri sm" onclick="newSettle()">+ 정산서 발행</button></div>
     <div class="sumgrid" style="grid-template-columns:1fr 1fr 1fr;margin-bottom:16px">
       <div class="sumcell"><div class="l">대금청구 누계</div><div class="v">${won(inv)}</div></div>
       <div class="sumcell"><div class="l">지급예정 누계</div><div class="v">${won(pay)}</div></div>
       <div class="sumcell"><div class="l">미수금 (청구−수금)</div><div class="v" style="color:${(inv-done)>0?'#DC2626':'#16A34A'}">${won(inv-done)}</div></div></div>
+    ${filterBarHtml}
     ${sorted.length? sorted.map(s=>{ const p=projects.find(x=>x.id===s.pjtId); const v=!setActive(s);
       return `<div class="litem ${v?'void':''}" onclick="openSettle('${s.id}')"><div class="d"><div class="ti">${s.docType==='invoice'?'대금청구서':'지급예정서'} <span class="pill">${s.no}</span>${v?'<span class="void-tag">폐기</span>':''}${s.status==='done'?'<span class="void-tag" style="background:#E1F5EE;color:#085041">✓ 완결</span>':''}</div><div class="mt"><span class="pill">${p?p.code:'-'}</span> &nbsp;기준월 ${s.baseMonth} · 발행 ${s.issueDate}${s.recipient?.company?' · '+s.recipient.company:''}</div></div><div class="amt">${won(s.total)}</div></div>`;
-    }).join('') : '<div class="empty">발행된 정산서가 없습니다.</div>'}`;
+    }).join('') : `<div class="empty">${(f.docType||f.pjtId||f.client||f.status)?'조건에 맞는 정산서가 없습니다.':'발행된 정산서가 없습니다.'}</div>`}`;
 }
 window.renderSettle=renderSettle;
+window.setSettleFilter=function(key,val){ if(!window.settleFilter) window.settleFilter={docType:'',pjtId:'',client:'',status:''}; window.settleFilter[key]=val; renderSettle(); };
+window.resetSettleFilter=function(){ window.settleFilter={docType:'',pjtId:'',client:'',status:''}; renderSettle(); };
 
 window.newSettle=function(pjtId){
   if(!projects.length){ toast('먼저 프로젝트를 등록하세요.'); tab('pjt'); return; }
