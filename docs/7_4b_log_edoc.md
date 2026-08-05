@@ -118,3 +118,27 @@
 - 백업: `backup/v5.1.4/edoc/index.html` (수정 전 원본)
 
 
+## 2026-08-05 — fetchEdocDocs 함수 스코프 버그 수정
+
+### 발단
+- 대표님 스크린샷 제보: 연차신청서, 지출결의서 화면에서 `오류: fetchEdocDocs is not defined` 표시, 페이지 로드 안 됨
+
+### 조사
+- `edoc/index.html` 전수 검색 결과 `fetchEdocDocs`는 `renderEdocHome()` 함수(862~1062줄) 내부에 중첩 선언(915줄)되어 있었음
+- 전자결재 홈 자체는 같은 함수 스코프 내 호출이라 정상, 하지만 별도 최상위 함수인 `renderDocList()`(1789줄, 연차·구매품의·지출결의 등 목록 공용 렌더러)와 `loadApproveData()`(1106줄, 결재함)는 스코프 밖이라 `ReferenceError` 발생
+
+### 수정
+- `fetchEdocDocs()` 함수 선언을 `renderEdocHome()` 밖, 모듈 최상위로 이동
+- 함수 내부 로직은 전혀 변경하지 않음(순수 스코프 이동)
+
+### 검증
+- `node --check`로 module script 구문 검증 통과
+- 원본과 diff 비교 → 함수 블록 위치 이동 외 변경 없음 확인
+- 중복 선언 없음(grep으로 단일 정의 확인)
+
+### 배포
+- 대표님 지시로 portal-test 생략, production 직접 배포
+- 커밋: `edoc/index.html`
+- 백업: `backup/v5.3.6/edoc/index.html` (수정 전 원본)
+- `index.html` 버전주석: edoc 3.4r2 → 3.4r3
+
