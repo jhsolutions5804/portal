@@ -1,7 +1,7 @@
 # 3.0. 전자결재 — 홈 · 결재함
 
 > Firestore 컬렉션: `edoc_daily`, `edoc_leave`, `edoc_resign`, `edoc_cert`, `edoc_purchase`, `edoc_expense`, `edoc_overtime`, `portal_users`
-> 최종 수정: 2026-07-27 (via=portal 우회 버그 수정 · r4) · 최초 작성: 2026-07-01 · 작성: 춘식이(Claude)
+> 최종 수정: 2026-08-05 (fetchEdocDocs 스코프 버그 수정 · r5) · 최초 작성: 2026-07-01 · 작성: 춘식이(Claude)
 
 ---
 
@@ -140,3 +140,11 @@ kind: `'approve' | 'inbox' | 'mydocs' | 'posted'`. `window._edocLists[kind]` **�
 > 새 페이지/게시판을 만들지 않고 기존 모달을 재사용 — 리스크 최소화.
 > `window._edocLists`가 비동기 로드 전에 클릭하면 빈 목록으로 뜨는 기존 제약은 KPI 카드와 동일하게 유지됨(변경 없음).
 
+
+
+## fetchEdocDocs 스코프 버그 수정 (2026-08-05, r5)
+
+- **증상**: 연차신청서·지출결의서 등 문서 목록 화면, 결재함 화면에서 `오류: fetchEdocDocs is not defined` 표시되며 로드 실패. 전자결재 홈은 정상 작동.
+- **원인**: `fetchEdocDocs()`(edoc_* 컬렉션 조회 헬퍼)가 전역이 아닌 `renderEdocHome()` 함수 내부에 중첩 선언되어 있었음. 홈 화면 자체는 같은 함수 스코프라 정상 동작했지만, 별도 최상위 함수인 `renderDocList()`(연차·지출결의서 등 목록)와 `loadApproveData()`(결재함)에서는 접근 불가 → ReferenceError.
+- **수정**: `fetchEdocDocs()`를 모듈 최상위(전역) 스코프로 이동. 함수 로직은 변경 없음.
+- **검증**: `node --check` 구문 검증 통과, diff로 로직 변경 없이 위치만 이동했음을 확인.
