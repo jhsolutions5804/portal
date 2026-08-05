@@ -709,3 +709,16 @@
 **배포**: `gihoek/index.html`, `index.html`(버전배너, gihoek 5.3.5), 백업 `backup/v5.3.5/gihoek/index.html`
 **상세**: `1_4_gihoek_settle.md`(r7), `7_2b_log_gihoek_security.md`, `8_16_log_2026-07-30_session.md`
 
+
+---
+
+## 2026-08-05 세션 요약 — 전자결재 fetchEdocDocs 스코프 버그 수정 (edoc v3.4r3)
+
+**증상**: 연차신청서·지출결의서 등 문서 목록 화면, 결재함 화면에서 오류: fetchEdocDocs is not defined 표시되며 로드 실패. 전자결재 홈은 정상.
+
+**원인**: fetchEdocDocs()(edoc_* 컬렉션 조회 헬퍼)가 전역이 아닌 renderEdocHome() 함수 내부에 중첩 선언되어 있었음. 홈 화면은 같은 스코프라 정상 동작했지만, 별도 최상위 함수인 renderDocList()·loadApproveData()에서는 접근 불가.
+
+**해결**: fetchEdocDocs()를 모듈 최상위(전역) 스코프로 이동. 로직 변경 없음(순수 스코프 이동).
+
+**배포**: edoc/index.html, index.html(버전배너, edoc 3.4r3), 백업 backup/v5.3.6/edoc/index.html
+**상세**: 3_0_edoc_home_approve.md(r5), 7_4b_log_edoc.md, 8_17_log_2026-08-05_session.md
