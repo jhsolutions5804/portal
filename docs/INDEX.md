@@ -722,3 +722,16 @@
 
 **배포**: edoc/index.html, index.html(버전배너, edoc 3.4r3), 백업 backup/v5.3.6/edoc/index.html
 **상세**: 3_0_edoc_home_approve.md(r5), 7_4b_log_edoc.md, 8_17_log_2026-08-05_session.md
+
+---
+
+## 2026-08-13 세션 요약 — 기획/거래처 담당자 전화번호 저장 버그 수정 (gihoek v5.3.6)
+
+**증상**: 거래처 수정 화면에서 담당자 전화번호를 입력하고 저장해도 다시 초기화되는 것처럼 보임.
+
+**원인**: 전화번호 입력란의 `fmtTelBlur(el)`이 8자리 번호에 `010`을 자동 접두할 때 화면 표시값(`el.value`)만 재포맷하고, 실제 저장에 쓰이는 `window._cfContacts[i].tel` 배열은 갱신하지 않던 스코프 버그. 저장 시 배열에 남아있던 잘못 포맷된 값이 전송됨.
+
+**해결**: `fmtTelBlur(el, idx)`로 인덱스를 전달받아 배열도 함께 동기화하도록 수정.
+
+**배포**: gihoek/index.html, index.html(버전배너, gihoek 5.3.6), 백업 backup/v5.3.7/gihoek/index.html
+**상세**: 1_2_gihoek_company_r2.md, 7_14_log_gihoek_contact_tel_fix.md, 8_18_log_2026-08-13_session.md
