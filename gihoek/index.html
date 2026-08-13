@@ -493,10 +493,11 @@ function fmtTel(v){
   if(d.length<=10) return d.slice(0,3)+'-'+d.slice(3,6)+'-'+d.slice(6);
   return d.slice(0,3)+'-'+d.slice(3,7)+'-'+d.slice(7,11);
 }
-function fmtTelBlur(el){
+function fmtTelBlur(el,idx){
   var d=el.value.replace(/\D/g,'');
   if(d.length===8 && d[0]!=='0') d='010'+d;
   el.value=fmtTel(d);
+  if(idx!==undefined && window._cfContacts && window._cfContacts[idx]) window._cfContacts[idx].tel=el.value;
 }
 // 업체 선택 후 담당자 드롭다운 렌더
 function contactOptHtml(compId, selName){
@@ -720,7 +721,7 @@ window.renderContactRows=function(){
   wrap.innerHTML = window._cfContacts.map((ct,i)=>`
     <div style="display:flex;gap:6px;align-items:center;margin-bottom:6px">
       <input class="inp" style="flex:1;min-width:0" placeholder="이름" value="${(ct.name||'').replace(/"/g,'&quot;')}" oninput="window._cfContacts[${i}].name=this.value">
-      <input class="inp" style="flex:1.2;min-width:0" placeholder="전화번호" value="${ct.tel||''}" oninput="window._cfContacts[${i}].tel=fmtTel(this.value);this.value=fmtTel(this.value)" onblur="fmtTelBlur(this)">
+      <input class="inp" style="flex:1.2;min-width:0" placeholder="전화번호" value="${ct.tel||''}" oninput="window._cfContacts[${i}].tel=fmtTel(this.value);this.value=fmtTel(this.value)" onblur="fmtTelBlur(this,${i})">
       <input class="inp" style="flex:1.8;min-width:0" placeholder="이메일" value="${ct.email||''}" oninput="window._cfContacts[${i}].email=this.value">
       <button class="btn gray sm" style="flex-shrink:0;padding:4px 8px" onclick="window._cfContacts.splice(${i},1);window.renderContactRows()">✕</button>
     </div>`).join('');
