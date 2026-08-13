@@ -469,7 +469,7 @@ window.newEst=function(pjtId){
   const sup=supplierList(), cli=clientList();
   estDraft={ editId:null, no:null, pjtId:pjtId||projects[0].id, title:'', date:new Date().toISOString().slice(0,10),
     clientId: cli[0]?.id||'', issuerId: (sup.find(c=>c.company==='제이에이치솔루션')?.id) || sup[0]?.id || '',
-    issuerContact:'', clientContact:'',
+    issuerContact:'', clientContact:'', notes:'',
     authorDept:(me&&me.rank)||'', authorName:(me&&me.name)||'', authorEmail:(me&&me.email)||'',
     items:[{name:'',spec:'',qty:1,price:0,amount:0},{name:'',spec:'',qty:1,price:0,amount:0}] };
   tabSilent('est'); drawEstForm();
@@ -478,7 +478,7 @@ window.editEst=function(id){
   const e=estimates.find(x=>x.id===id); if(!e){ renderEst(); return; }
   estDraft={ editId:e.id, baseNo:e.baseNo||e.no, srcNo:e.no, srcRev:e.rev||1, pjtId:e.pjtId, title:e.title||'', date:e.date||new Date().toISOString().slice(0,10),
     clientId:e.clientId||'', issuerId:e.issuerId||(supplierList().find(c=>c.company==='제이에이치솔루션')?.id)||'',
-    issuerContact:e.issuerContact||'', clientContact:e.clientContact||'',
+    issuerContact:e.issuerContact||'', clientContact:e.clientContact||'', notes:e.notes||'',
     authorDept:e.authorDept||(me&&me.rank)||'', authorName:e.authorName||(me&&me.name)||'', authorEmail:e.authorEmail||(me&&me.email)||'',
     items:(e.items&&e.items.length)? e.items.map(i=>({name:i.name||'',spec:i.spec||'',qty:i.qty||0,price:i.price||0,amount:Math.round(itemAmt(i))})) : [{name:'',spec:'',qty:1,price:0,amount:0}] };
   viewEstId=null; tabSilent('est'); drawEstForm();
@@ -545,6 +545,7 @@ function drawEstForm(){ const d=estDraft;
       <div class="totrow big"><span>합계금액 <span class="small muted" style="font-weight:500">(직접 수정 가능)</span></span>
         <span style="display:flex;align-items:center;gap:6px"><input class="tinp" id="t-total" type="text" inputmode="numeric" oninput="fmtMoney(this)" onchange="onTotalEdit(this.value)"> 원</span></div>
     </div>
+    <div class="field" style="margin-top:12px"><label>특기사항 <span class="small muted" style="font-weight:500">(선택사항)</span></label><textarea class="inp" id="ed-notes" rows="3" placeholder="예: 납기·설치조건·특이사항 등을 입력하세요" oninput="setDraft('notes',this.value)" style="resize:vertical;font-family:inherit">${(d.notes||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</textarea></div>
     <div style="display:flex; gap:8px; margin-top:16px"><button class="btn line full" onclick="renderEst()">취소</button><button class="btn pri full" id="est-save" onclick="saveEst()">저장</button></div>
   </div>`;
   drawRows(); window.scrollTo(0,0);
@@ -608,7 +609,7 @@ window.saveEst=async function(){ const d=estDraft;
   const payload={ pjtId:d.pjtId, no, baseNo, rev, status:'active', date:d.date, title:d.title.trim(), items, authorDept, authorName, authorEmail, authorUid,
       clientId:d.clientId||'', client: cl?{company:cl.company,ceo:cl.ceo||'',bizno:cl.bizno||'',tel:cl.tel||'',email:cl.email||'',address:cl.address||'',...ctSnap(d.clientId,d.clientContact)}:null,
       issuerId:d.issuerId||'', issuer: iss?{company:iss.company,ceo:iss.ceo||'',bizno:iss.bizno||'',tel:iss.tel||'',email:iss.email||'',address:iss.address||'',...ctSnap(d.issuerId,d.issuerContact)}:null,
-      clientContact:d.clientContact||'', issuerContact:d.issuerContact||'',
+      clientContact:d.clientContact||'', issuerContact:d.issuerContact||'', notes:(d.notes||'').trim(),
       createdAt:serverTimestamp() };
   try{
     await setDoc(doc(db,'gihoek_estimates',id), payload);
@@ -637,6 +638,7 @@ window.openEst=function(id){ viewEstId=id; const e=estimates.find(x=>x.id===id);
       <div class="totbox"><div class="totrow"><span class="muted">공급가액</span><span>${won(sup)} 원</span></div>
         <div class="totrow"><span class="muted">부가세 (10%)</span><span>${won(vat)} 원</span></div>
         <div class="totrow big"><span>합계금액</span><span>${won(sup+vat)} 원</span></div></div>
+      ${e.notes?`<div class="field" style="margin-top:12px"><label>특기사항</label><div class="small" style="white-space:pre-wrap;padding:10px 12px;background:#f6f9fd;border:1px solid var(--line);border-radius:8px">${e.notes.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div></div>`:''}
     </div>`;
   window.scrollTo(0,0);
 };
@@ -690,6 +692,7 @@ window.printEst=function(id){ const e=estimates.find(x=>x.id===id); if(!e) retur
     <tr><td colspan="5" style="text-align:right">부가세 (10%)</td><td style="text-align:right">${won(vat)}</td></tr>
     <tr class="tot"><td colspan="5" style="text-align:right">합계금액</td><td style="text-align:right">${won(tot)}</td></tr>
   </tfoot></table>
+  ${e.notes?`<div style="margin-top:14px;border:1px solid #cfd8e6;border-radius:6px;padding:10px 12px"><div style="font-size:10px;color:#1D5BA6;font-weight:700;margin-bottom:4px;letter-spacing:1px">특기사항</div><div style="font-size:11.5px;white-space:pre-wrap">${e.notes.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div></div>`:''}
   <div class="stamp">위와 같이 견적합니다.<br><br>${iss.company||''} ${iss.ceo?'　대표 '+iss.ceo+' (인)':''} ${iss.contact?'<br><span style="font-size:11px;color:#555">담당: '+iss.contact+(iss.contactTel?' &nbsp;'+iss.contactTel:'')+(iss.contactEmail?' &nbsp;'+iss.contactEmail:'')+'</span>':''}</div>
   <scr`+`ipt>window.onload=function(){setTimeout(function(){window.print();},250);}</scr`+`ipt>
   
