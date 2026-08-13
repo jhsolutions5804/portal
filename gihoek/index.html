@@ -471,7 +471,7 @@ window.newEst=function(pjtId){
     clientId: cli[0]?.id||'', issuerId: (sup.find(c=>c.company==='제이에이치솔루션')?.id) || sup[0]?.id || '',
     issuerContact:'', clientContact:'', notes:'',
     authorDept:(me&&me.rank)||'', authorName:(me&&me.name)||'', authorEmail:(me&&me.email)||'',
-    items:[{name:'',spec:'',qty:1,price:0,amount:0},{name:'',spec:'',qty:1,price:0,amount:0}] };
+    items:[{name:'',spec:'',qty:1,price:0,amount:0,remark:''},{name:'',spec:'',qty:1,price:0,amount:0,remark:''}] };
   tabSilent('est'); drawEstForm();
 };
 window.editEst=function(id){
@@ -480,7 +480,7 @@ window.editEst=function(id){
     clientId:e.clientId||'', issuerId:e.issuerId||(supplierList().find(c=>c.company==='제이에이치솔루션')?.id)||'',
     issuerContact:e.issuerContact||'', clientContact:e.clientContact||'', notes:e.notes||'',
     authorDept:e.authorDept||(me&&me.rank)||'', authorName:e.authorName||(me&&me.name)||'', authorEmail:e.authorEmail||(me&&me.email)||'',
-    items:(e.items&&e.items.length)? e.items.map(i=>({name:i.name||'',spec:i.spec||'',qty:i.qty||0,price:i.price||0,amount:Math.round(itemAmt(i))})) : [{name:'',spec:'',qty:1,price:0,amount:0}] };
+    items:(e.items&&e.items.length)? e.items.map(i=>({name:i.name||'',spec:i.spec||'',qty:i.qty||0,price:i.price||0,amount:Math.round(itemAmt(i)),remark:i.remark||''})) : [{name:'',spec:'',qty:1,price:0,amount:0,remark:''}] };
   viewEstId=null; tabSilent('est'); drawEstForm();
 };
 function clientOpt(sel){ const list=clientList(); return `<option value="">— 선택 —</option>`+list.map(c=>`<option value="${c.id}" ${c.id===sel?'selected':''}>${c.company}${c.ceo?' ('+c.ceo+')':''}</option>`).join(''); }
@@ -535,8 +535,8 @@ function drawEstForm(){ const d=estDraft;
 
     <label style="font-size:12px;color:var(--sub);font-weight:600">품목</label>
     <div class="scroll"><table class="items">
-      <colgroup><col class="c-no"><col><col><col class="c-qty"><col class="c-price"><col class="c-amt"><col class="c-del"></colgroup>
-      <thead><tr><th>#</th><th>품명</th><th>규격</th><th>수량</th><th>단가</th><th>금액</th><th></th></tr></thead>
+      <colgroup><col class="c-no"><col><col><col class="c-qty"><col class="c-price"><col class="c-amt"><col><col class="c-del"></colgroup>
+      <thead><tr><th>#</th><th>품명</th><th>규격</th><th>수량</th><th>단가</th><th>금액</th><th>비고</th><th></th></tr></thead>
       <tbody id="est-rows"></tbody></table></div>
     <button class="btn gray sm" style="margin-top:10px" onclick="addRow()">+ 품목 추가</button>
     <div class="totbox">
@@ -562,6 +562,7 @@ function drawRows(){
     <td><input class="ti num" id="q-${i}" type="number" inputmode="numeric" value="${it.qty}" oninput="onQty(${i},this.value)"></td>
     <td><input class="ti num" id="p-${i}" type="text" inputmode="numeric" value="${Number(it.price||0).toLocaleString('ko-KR')}" oninput="fmtMoney(this);onPrice(${i},this.value)"></td>
     <td><input class="ti num" id="a-${i}" type="text" inputmode="numeric" value="${Number(Math.round(itemAmt(it))).toLocaleString('ko-KR')}" oninput="fmtMoney(this);onAmt(${i},this.value)"></td>
+    <td><input class="ti" value="${(it.remark||'').replace(/"/g,'&quot;')}" placeholder="비고" oninput="setItem(${i},'remark',this.value)"></td>
     <td><button class="del" onclick="delRow(${i})">×</button></td></tr>`).join('');
   recalcTotals();
 }
@@ -581,15 +582,15 @@ window.onTotalEdit=function(v){ const X=num(v); const items=estDraft.items; if(!
   last.amount=targetSupply-others; last.price=last.qty>0?Math.round(last.amount/last.qty):last.amount;
   const li=items.length-1; if($('a-'+li))$('a-'+li).value=Math.round(last.amount).toLocaleString('ko-KR'); if($('p-'+li))$('p-'+li).value=last.price.toLocaleString('ko-KR');
   recalcTotals(); toast('마지막 품목으로 차액을 반영했습니다.'); };
-window.addRow=function(){ estDraft.items.push({name:'',spec:'',qty:1,price:0,amount:0}); drawRows(); };
-window.delRow=function(i){ estDraft.items.splice(i,1); if(!estDraft.items.length) estDraft.items.push({name:'',spec:'',qty:1,price:0,amount:0}); drawRows(); };
+window.addRow=function(){ estDraft.items.push({name:'',spec:'',qty:1,price:0,amount:0,remark:''}); drawRows(); };
+window.delRow=function(i){ estDraft.items.splice(i,1); if(!estDraft.items.length) estDraft.items.push({name:'',spec:'',qty:1,price:0,amount:0,remark:''}); drawRows(); };
 
 // ctSnap: 담당자 스냅샷 헬퍼 (saveEst / saveSettle 공통)
 function ctSnap(cid,name){ const c=compById(cid); const ct=(c?.contacts||[]).find(x=>x.name===name)||{}; return {contact:name||'',contactTel:ct.tel||'',contactEmail:ct.email||''}; }
 
 window.saveEst=async function(){ const d=estDraft;
   if(!d.title.trim()){ toast('견적 제목을 입력하세요.'); return; }
-  const items=d.items.filter(i=>(i.name||'').trim()).map(i=>({name:i.name.trim(),spec:i.spec||'',qty:i.qty||0,price:i.price||0,amount:Math.round(itemAmt(i))}));
+  const items=d.items.filter(i=>(i.name||'').trim()).map(i=>({name:i.name.trim(),spec:i.spec||'',qty:i.qty||0,price:i.price||0,amount:Math.round(itemAmt(i)),remark:(i.remark||'').trim()}));
   if(!items.length){ toast('품목을 1개 이상 입력하세요.'); return; }
   const cl=compById(d.clientId); const iss=compById(d.issuerId);
   const authorDept=(d.authorDept||'').trim(), authorName=(d.authorName||'').trim(), authorEmail=(d.authorEmail||'').trim(), authorUid=(me&&me.uid)||'';
@@ -632,8 +633,8 @@ window.openEst=function(id){ viewEstId=id; const e=estimates.find(x=>x.id===id);
       </div>
       <div class="partybox">${partyHtml('발행처',e.issuer)}${partyHtml('수신처',e.client)}</div>
       <div class="scroll"><table class="items">
-        <thead><tr><th>#</th><th>품명</th><th>규격</th><th class="right">수량</th><th class="right">단가</th><th class="right">금액</th></tr></thead>
-        <tbody>${e.items.map((it,i)=>`<tr><td class="muted small">${i+1}</td><td>${it.name}</td><td class="muted">${it.spec||'-'}</td><td class="right">${won(it.qty)}</td><td class="right">${won(it.price)}</td><td class="right" style="font-weight:700;color:var(--money)">${won(itemAmt(it))}</td></tr>`).join('')}</tbody>
+        <thead><tr><th>#</th><th>품명</th><th>규격</th><th class="right">수량</th><th class="right">단가</th><th class="right">금액</th><th>비고</th></tr></thead>
+        <tbody>${e.items.map((it,i)=>`<tr><td class="muted small">${i+1}</td><td>${it.name}</td><td class="muted">${it.spec||'-'}</td><td class="right">${won(it.qty)}</td><td class="right">${won(it.price)}</td><td class="right" style="font-weight:700;color:var(--money)">${won(itemAmt(it))}</td><td class="muted">${it.remark||''}</td></tr>`).join('')}</tbody>
       </table></div>
       <div class="totbox"><div class="totrow"><span class="muted">공급가액</span><span>${won(sup)} 원</span></div>
         <div class="totrow"><span class="muted">부가세 (10%)</span><span>${won(vat)} 원</span></div>
@@ -656,7 +657,7 @@ window.delEst=async function(id){ if(!confirm('이 견적을 삭제할까요?'))
 window.printEst=function(id){ const e=estimates.find(x=>x.id===id); if(!e) return; const p=projects.find(x=>x.id===e.pjtId);
   const sup=estSupply(e), vat=Math.round(sup*0.1), tot=sup+vat;
   const iss=e.issuer||{}, cl=e.client||{};
-  const rows=e.items.map((it,i)=>`<tr><td style="text-align:center">${i+1}</td><td>${it.name||''}</td><td>${it.spec||''}</td><td style="text-align:right">${won(it.qty)}</td><td style="text-align:right">${won(it.price)}</td><td style="text-align:right">${won(itemAmt(it))}</td></tr>`).join('');
+  const rows=e.items.map((it,i)=>`<tr><td style="text-align:center">${i+1}</td><td>${it.name||''}</td><td>${it.spec||''}</td><td style="text-align:right">${won(it.qty)}</td><td style="text-align:right">${won(it.price)}</td><td style="text-align:right">${won(itemAmt(it))}</td><td>${it.remark||''}</td></tr>`).join('');
   const w=window.open('','_blank'); if(!w){ toast('팝업이 차단되었습니다.'); return; }
   w.document.write(`<!doctype html><html lang="ko"><head><meta charset="utf-8"><title>견적서 ${e.no}</title>
   <style>@page{size:A4;margin:16mm}*{box-sizing:border-box;font-family:'Malgun Gothic','맑은 고딕',sans-serif}
@@ -685,12 +686,12 @@ window.printEst=function(id){ const e=estimates.find(x=>x.id===id); if(!e) retur
       <div class="ln">${iss.ceo?'대표 '+iss.ceo:''}${iss.bizno?' / '+iss.bizno:''}</div>${iss.tel?`<div class="ln">${iss.tel}</div>`:''}${iss.email?`<div class="ln">${iss.email}</div>`:''}</div>
   </div>
   <div class="title-row">${p?'['+p.code+'] ':''}${e.title}</div>
-  <table><thead><tr><th style="width:34px">No</th><th>품명</th><th>규격</th><th style="width:60px">수량</th><th style="width:96px">단가</th><th style="width:110px">금액</th></tr></thead>
+  <table><thead><tr><th style="width:34px">No</th><th>품명</th><th>규격</th><th style="width:60px">수량</th><th style="width:96px">단가</th><th style="width:110px">금액</th><th style="width:90px">비고</th></tr></thead>
   <tbody>${rows}</tbody>
   <tfoot>
-    <tr><td colspan="5" style="text-align:right">공급가액</td><td style="text-align:right">${won(sup)}</td></tr>
-    <tr><td colspan="5" style="text-align:right">부가세 (10%)</td><td style="text-align:right">${won(vat)}</td></tr>
-    <tr class="tot"><td colspan="5" style="text-align:right">합계금액</td><td style="text-align:right">${won(tot)}</td></tr>
+    <tr><td colspan="5" style="text-align:right">공급가액</td><td style="text-align:right">${won(sup)}</td><td></td></tr>
+    <tr><td colspan="5" style="text-align:right">부가세 (10%)</td><td style="text-align:right">${won(vat)}</td><td></td></tr>
+    <tr class="tot"><td colspan="5" style="text-align:right">합계금액</td><td style="text-align:right">${won(tot)}</td><td></td></tr>
   </tfoot></table>
   ${e.notes?`<div style="margin-top:14px;border:1px solid #cfd8e6;border-radius:6px;padding:10px 12px"><div style="font-size:10px;color:#1D5BA6;font-weight:700;margin-bottom:4px;letter-spacing:1px">특기사항</div><div style="font-size:11.5px;white-space:pre-wrap">${e.notes.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div></div>`:''}
   <div class="stamp">위와 같이 견적합니다.<br><br>${iss.company||''} ${iss.ceo?'　대표 '+iss.ceo+' (인)':''} ${iss.contact?'<br><span style="font-size:11px;color:#555">담당: '+iss.contact+(iss.contactTel?' &nbsp;'+iss.contactTel:'')+(iss.contactEmail?' &nbsp;'+iss.contactEmail:'')+'</span>':''}</div>
