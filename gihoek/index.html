@@ -678,7 +678,7 @@ window.printEst=function(id){ const e=estimates.find(x=>x.id===id); if(!e) retur
   <div class="meta"><span>견적번호: ${e.no}${(e.rev||1)>1?' (개정 r'+e.rev+')':''}</span><span>작성일: ${e.date}</span></div>
   <div class="parties">
     <div class="pcard"><div class="h">공급받는자</div><div class="nm">${cl.company||'-'}</div>
-      <div class="ln">${cl.ceo?'대표 '+cl.ceo:''}${cl.bizno?' / '+cl.bizno:''}</div>${cl.tel?`<div class="ln">${cl.tel}</div>`:''}${cl.address?`<div class="ln">${cl.address}</div>`:''}</div>
+      <div class="ln">${cl.ceo?'대표 '+cl.ceo:''}${cl.bizno?' / '+cl.bizno:''}</div>${cl.contact?`<div class="ln">${cl.contactTel?cl.contactTel+' ':''}(${cl.contact})</div>`:(cl.tel?`<div class="ln">${cl.tel}</div>`:'')}${cl.address?`<div class="ln">${cl.address}</div>`:''}</div>
     <div class="pcard"><div class="h">공급자</div><div class="nm">${iss.company||'-'}</div>
       <div class="ln">${iss.ceo?'대표 '+iss.ceo:''}${iss.bizno?' / '+iss.bizno:''}</div>${iss.tel?`<div class="ln">${iss.tel}</div>`:''}${iss.email?`<div class="ln">${iss.email}</div>`:''}</div>
   </div>
@@ -1270,7 +1270,7 @@ function settleDocHTML(s){ const title=s.docType==='invoice'?'대 금 청 구 �
   return `<h1>${title}</h1>
   <div class="meta"><span>발행번호: ${s.no}</span><span>발행일: ${s.issueDate}</span></div>
   <div class="parties">
-    <div class="pcard"><div class="h">${s.docType==='invoice'?'수신 (원청)':'수신 (하청)'}</div><div class="nm">${rc.company||'-'}</div><div class="ln">${rc.ceo?'대표 '+rc.ceo:''}${rc.bizno?' / '+rc.bizno:''}</div>${rc.tel?`<div class="ln">${rc.tel}</div>`:''}</div>
+    <div class="pcard"><div class="h">${s.docType==='invoice'?'수신 (원청)':'수신 (하청)'}</div><div class="nm">${rc.company||'-'}</div><div class="ln">${rc.ceo?'대표 '+rc.ceo:''}${rc.bizno?' / '+rc.bizno:''}</div>${rc.contact?`<div class="ln">${rc.contactTel?rc.contactTel+' ':''}(${rc.contact})</div>`:(rc.tel?`<div class="ln">${rc.tel}</div>`:'')}</div>
     <div class="pcard"><div class="h">발신 (공급자)</div><div class="nm">${sd.company||'-'}</div><div class="ln">${sd.ceo?'대표 '+sd.ceo:''}${sd.bizno?' / '+sd.bizno:''}</div>${sd.tel?`<div class="ln">${sd.tel}</div>`:''}</div></div>
   <div class="info"><b>프로젝트</b> : ${p?p.code:'-'} &nbsp;&nbsp; <b>기준월</b> : ${s.baseMonth} &nbsp;&nbsp; <b>${dateLabel}</b> : ${s.payDate||'-'}</div>
   <table><thead><tr><th style="width:34px">No</th><th>내역</th><th>비고</th><th style="width:130px">금액</th></tr></thead><tbody>${rows}</tbody>
