@@ -761,3 +761,14 @@
 
 **배포**: gihoek/index.html, index.html(버전배너, gihoek 5.3.8), 백업 backup/v5.3.9/gihoek/index.html
 **상세**: 1_3_gihoek_estimate_r5.md, 7_16_log_gihoek_print_contact_fix.md, 8_18_log_2026-08-13_session.md
+
+---
+
+## 2026-08-13 추가 세션 (4) 요약 — 견적서 특기사항 입력란 추가 (gihoek v5.3.9)
+
+**요청**: 견적서 작성 화면 하단에 자유 기재용 특기사항 입력란 추가.
+
+**구현**: `gihoek_estimates/{id}.notes`(string, 선택입력) 필드 신설. 작성/수정 폼(합계금액 아래 textarea) → `saveEst` 저장 → 상세보기(합계 아래 박스, 값 있을 때만) → 인쇄/PDF(품목표-도장란 사이, 값 있을 때만) 전 구간에 일관 반영.
+
+**배포**: gihoek/index.html, index.html(버전배너, gihoek 5.3.9), 백업 backup/v5.3.10/gihoek/index.html
+**상세**: 1_3_gihoek_estimate_r6.md, 7_17_log_gihoek_est_notes.md, 8_18_log_2026-08-13_session.md
