@@ -735,3 +735,16 @@
 
 **배포**: gihoek/index.html, index.html(버전배너, gihoek 5.3.6), 백업 backup/v5.3.7/gihoek/index.html
 **상세**: 1_2_gihoek_company_r2.md, 7_14_log_gihoek_contact_tel_fix.md, 8_18_log_2026-08-13_session.md
+
+---
+
+## 2026-08-13 추가 세션 (2) 요약 — 담당자 전화번호 저장 안되던 진짜 원인 수정 (gihoek v5.3.7)
+
+**경위**: 위 v5.3.6 수정 배포 후에도 대표님 재확인 결과 여전히 저장 안 됨. 브라우저 콘솔 로그 확보 후 재분석.
+
+**진짜 원인**: `fmtTel`/`fmtTelBlur`가 `<script type="module">` 내부의 일반 함수로 선언되어 있었음. 모듈 스코프 함수는 HTML 인라인 이벤트 핸들러(`oninput`/`onblur`, 전역 스코프에서 실행)에서 보이지 않아 `ReferenceError: fmtTel is not defined` 발생 → 전화번호 입력 자체가 배열에 반영되지 않았음. 이전 수정(v5.3.6)은 도달 불가능한 코드였음.
+
+**해결**: `window.fmtTel=fmtTel`, `window.fmtTelBlur=fmtTelBlur`로 전역 노출 추가. 동일 파일 내 다른 인라인 핸들러 함수 전수 조사로 추가 문제 없음 확인.
+
+**배포**: gihoek/index.html, index.html(버전배너, gihoek 5.3.7), 백업 backup/v5.3.8/gihoek/index.html
+**상세**: 1_2_gihoek_company_r3.md, 7_15_log_gihoek_fmtTel_window_scope_fix.md, 8_18_log_2026-08-13_session.md
