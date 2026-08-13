@@ -493,12 +493,14 @@ function fmtTel(v){
   if(d.length<=10) return d.slice(0,3)+'-'+d.slice(3,6)+'-'+d.slice(6);
   return d.slice(0,3)+'-'+d.slice(3,7)+'-'+d.slice(7,11);
 }
+window.fmtTel=fmtTel;
 function fmtTelBlur(el,idx){
   var d=el.value.replace(/\D/g,'');
   if(d.length===8 && d[0]!=='0') d='010'+d;
   el.value=fmtTel(d);
   if(idx!==undefined && window._cfContacts && window._cfContacts[idx]) window._cfContacts[idx].tel=el.value;
 }
+window.fmtTelBlur=fmtTelBlur;
 // 업체 선택 후 담당자 드롭다운 렌더
 function contactOptHtml(compId, selName){
   const c = compById(compId);
