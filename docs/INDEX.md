@@ -772,3 +772,14 @@
 
 **배포**: gihoek/index.html, index.html(버전배너, gihoek 5.3.9), 백업 backup/v5.3.10/gihoek/index.html
 **상세**: 1_3_gihoek_estimate_r6.md, 7_17_log_gihoek_est_notes.md, 8_18_log_2026-08-13_session.md
+
+---
+
+## 2026-08-13 추가 세션 (5) 요약 — 견적서 품목 비고란 추가 (gihoek v5.3.10)
+
+**요청**: 기존 견적서 수정발행 시 특기사항 기입 가능 여부 확인(이미 지원됨) + 품목에 품명·규격 다음, 금액 옆에 비고란 추가.
+
+**구현**: `items[].remark`(string, 선택입력) 필드 신설. 작성/수정 폼(비고 입력칸) → `saveEst` 저장 → 상세보기(비고 컬럼) → 인쇄/PDF(비고 컬럼, tfoot 정렬 유지) 전 구간 일관 반영. 기존 견적은 remark 없어도 빈 값으로 자동 폴백(하위호환).
+
+**배포**: gihoek/index.html, index.html(버전배너, gihoek 5.3.10), 백업 backup/v5.3.11/gihoek/index.html
+**상세**: 1_3_gihoek_estimate_r7.md, 7_18_log_gihoek_item_remark.md, 8_18_log_2026-08-13_session.md
