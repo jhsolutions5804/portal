@@ -748,3 +748,16 @@
 
 **배포**: gihoek/index.html, index.html(버전배너, gihoek 5.3.7), 백업 backup/v5.3.8/gihoek/index.html
 **상세**: 1_2_gihoek_company_r3.md, 7_15_log_gihoek_fmtTel_window_scope_fix.md, 8_18_log_2026-08-13_session.md
+
+---
+
+## 2026-08-13 추가 세션 (3) 요약 — 견적/정산 인쇄 시 담당자 전화번호 오표시 수정 (gihoek v5.3.8)
+
+**증상**: 견적서 작성 시 담당자를 "배민철"로 선택했는데, 인쇄/PDF 출력물엔 다른 담당자("이경택")의 전화번호가 표시됨.
+
+**원인**: 인쇄 템플릿(`printEst`, `settleDocHTML`)의 공급받는자/수신 카드가 견적·정산별로 선택한 담당자 스냅샷(`contact`/`contactTel`)을 참조하지 않고, 거래처의 레거시 회사 단위 `tel` 필드(다중 담당자 기능 이전의 옛 대표번호)를 그대로 출력. 앱 내 상세 화면(`partyHtml`)은 처음부터 담당자를 올바르게 표시하고 있었음 — 인쇄 템플릿에만 있던 버그.
+
+**해결**: 담당자가 선택된 경우 담당자 이름+전화번호를 우선 표시, 없으면 기존 레거시 tel로 폴백하도록 견적서·정산서 인쇄 템플릿 모두 수정.
+
+**배포**: gihoek/index.html, index.html(버전배너, gihoek 5.3.8), 백업 backup/v5.3.9/gihoek/index.html
+**상세**: 1_3_gihoek_estimate_r5.md, 7_16_log_gihoek_print_contact_fix.md, 8_18_log_2026-08-13_session.md
