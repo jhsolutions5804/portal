@@ -540,10 +540,10 @@ function drawEstForm(){ const d=estDraft;
       <tbody id="est-rows"></tbody></table></div>
     <button class="btn gray sm" style="margin-top:10px" onclick="addRow()">+ 품목 추가</button>
     <div class="totbox">
-      <div class="totrow"><span class="muted">공급가액</span><span id="t-supply">0 원</span></div>
+      <div class="totrow"><span class="muted">공급가액 <span class="small muted" style="font-weight:500">(직접 수정 가능)</span></span>
+        <span style="display:flex;align-items:center;gap:6px"><input class="tinp" id="t-supply" type="text" inputmode="numeric" oninput="fmtMoney(this)" onchange="onSupplyEdit(this.value)"> 원</span></div>
       <div class="totrow"><span class="muted">부가세 (10%)</span><span id="t-vat">0 원</span></div>
-      <div class="totrow big"><span>합계금액 <span class="small muted" style="font-weight:500">(직접 수정 가능)</span></span>
-        <span style="display:flex;align-items:center;gap:6px"><input class="tinp" id="t-total" type="text" inputmode="numeric" oninput="fmtMoney(this)" onchange="onTotalEdit(this.value)"> 원</span></div>
+      <div class="totrow big"><span>합계금액</span><span id="t-total">0 원</span></div>
     </div>
     <div class="field" style="margin-top:12px"><label>특기사항 <span class="small muted" style="font-weight:500">(선택사항)</span></label><textarea class="inp" id="ed-notes" rows="3" placeholder="예: 납기·설치조건·특이사항 등을 입력하세요" oninput="setDraft('notes',this.value)" style="resize:vertical;font-family:inherit">${(d.notes||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</textarea></div>
     <div style="display:flex; gap:8px; margin-top:16px"><button class="btn line full" onclick="renderEst()">취소</button><button class="btn pri full" id="est-save" onclick="saveEst()">저장</button></div>
@@ -568,18 +568,17 @@ function drawRows(){
 }
 function recalcTotals(){
   const sup=estDraft.items.reduce((s,it)=>s+itemAmt(it),0); const vat=Math.round(sup*0.1);
-  if($('t-supply')) $('t-supply').textContent=won(sup)+' 원';
+  if($('t-supply') && document.activeElement!==$('t-supply')) $('t-supply').value=Math.round(sup).toLocaleString('ko-KR');
   if($('t-vat')) $('t-vat').textContent=won(vat)+' 원';
-  if($('t-total')) $('t-total').value=Math.round(sup+vat).toLocaleString('ko-KR');
+  if($('t-total')) $('t-total').textContent=won(sup+vat)+' 원';
 }
 window.onQty=function(i,v){ const it=estDraft.items[i]; it.qty=num(v); it.amount=Math.round(it.qty*it.price); const a=$('a-'+i); if(a)a.value=it.amount.toLocaleString('ko-KR'); recalcTotals(); };
 window.onPrice=function(i,v){ const it=estDraft.items[i]; it.price=num(v); it.amount=Math.round(it.qty*it.price); const a=$('a-'+i); if(a)a.value=it.amount.toLocaleString('ko-KR'); recalcTotals(); };
 window.onAmt=function(i,v){ const it=estDraft.items[i]; it.amount=num(v); it.price=it.qty>0?Math.round(it.amount/it.qty):it.amount; const p=$('p-'+i); if(p)p.value=it.price.toLocaleString('ko-KR'); recalcTotals(); };
-window.onTotalEdit=function(v){ const X=num(v); const items=estDraft.items; if(!items.length) return;
-  const targetSupply=Math.round(X/1.1);
+window.onSupplyEdit=function(v){ const X=num(v); const items=estDraft.items; if(!items.length) return;
   const others=items.slice(0,-1).reduce((s,it)=>s+itemAmt(it),0);
   const last=items[items.length-1];
-  last.amount=targetSupply-others; last.price=last.qty>0?Math.round(last.amount/last.qty):last.amount;
+  last.amount=X-others; last.price=last.qty>0?Math.round(last.amount/last.qty):last.amount;
   const li=items.length-1; if($('a-'+li))$('a-'+li).value=Math.round(last.amount).toLocaleString('ko-KR'); if($('p-'+li))$('p-'+li).value=last.price.toLocaleString('ko-KR');
   recalcTotals(); toast('마지막 품목으로 차액을 반영했습니다.'); };
 window.addRow=function(){ estDraft.items.push({name:'',spec:'',qty:1,price:0,amount:0,remark:''}); drawRows(); };
