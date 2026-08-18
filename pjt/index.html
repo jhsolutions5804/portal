@@ -3008,6 +3008,7 @@ async function loadMasterOptions(){
     snap.forEach(function(d){
       if(already.has(d.id)) return; // 이미 이 PJT에 등록된 사람은 제외
       const m=d.data();
+      if(m.resigned) return; // 퇴사자는 신규 투입 대상에서 제외
       opts+='<option value="'+d.id+'">'+m.name+' ('+(m.birth||'생년월일 없음')+')</option>';
     });
     sel.innerHTML=opts;
