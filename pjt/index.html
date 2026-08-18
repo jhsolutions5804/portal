@@ -1,4 +1,4 @@
-<!DOCTYPE html><!-- PJT module build: 20260722 · ver 4.10.3 · 주간공정회의 자료 자동생성 + 도면 좌표 매핑 툴(클릭/드래그 배치, 기준크기 자동적용, 크기 일괄보정, 확대·축소+스크롤 팬, 자동정렬 스냅, 구역 전체 좌표 일괄삭제) + 화살표 flow형 범례·표 색상 고정 + W-OB 장비ID 801~881로 수정 (기존 W-101~W-181 오류) -->
+<!DOCTYPE html><!-- PJT module build: 20260818 · ver 4.10.4 · 기술인 명단 관리: 이름/생년월일 인라인 수정 기능 추가 + 생년월일 입력을 텍스트마스킹 방식으로 전환(네이티브 date input이 자릿수 입력 중 자동확정되어 "10"이 "01"로 저장되던 버그 수정) -->
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
@@ -1085,6 +1085,14 @@ window._fbUpdateWorkerBirth = async function(workerId, birth){
     await setDoc(doc(db, WORKERS_COLLECTION, workerId), {birth}, {merge:true});
     await window._fbLoadWorkers();
   }catch(e){ alert('생년월일 저장 실패: '+e.message); }
+};
+
+// 이름/생년월일을 함께(또는 개별) 수정 — 명단 관리 패널의 "수정" 기능에서 사용
+window._fbUpdateWorker = async function(workerId, data){
+  try{
+    await setDoc(doc(db, WORKERS_COLLECTION, workerId), data, {merge:true});
+    await window._fbLoadWorkers();
+  }catch(e){ alert('수정 실패: '+e.message); }
 };
 
 window._fbDeleteWorker = async function(workerId){
@@ -3006,29 +3014,90 @@ async function loadMasterOptions(){
   }catch(e){ console.warn('마스터 명부 로드 실패', e); }
 }
 
+var _workerEditingId = null; // 현재 인라인 수정 중인 인원 id (한 번에 한 명만)
+
+// "YYYY-MM-DD" 텍스트 입력용 마스킹 — 숫자만 받아 자동으로 하이픈을 붙인다.
+// (네이티브 <input type=date>는 한 자리 입력 후 잠깐 멈추면 자동으로 다음 칸으로
+//  넘어가버려 "10"을 치려다 "01"만 확정되는 문제가 있어 일반 텍스트 입력으로 대체)
+function _maskBirthInput(el){
+  var digits = el.value.replace(/[^0-9]/g,'').slice(0,8);
+  var out = digits;
+  if(digits.length>4) out = digits.slice(0,4)+'-'+digits.slice(4);
+  if(digits.length>6) out = digits.slice(0,4)+'-'+digits.slice(4,6)+'-'+digits.slice(6);
+  el.value = out;
+}
+
 function renderWorkerMgmtList(){
   var el=document.getElementById('worker-mgmt-list');
   if(!el) return;
   var ws=getWorkers();
   if(!ws.length){ el.innerHTML='<div style="font-size:12px;color:#86868b">명단이 없습니다</div>'; return; }
   el.innerHTML=ws.map(function(w){
+    var roleTag = w.role?'<span style="font-size:10px;color:#86868b;margin-right:4px">['+w.role+']</span>':'';
+    if(_workerEditingId===w.id){
+      // ── 수정 모드: 이름 + 생년월일 인라인 입력 ──
+      return '<div style="display:flex;align-items:center;justify-content:space-between;padding:6px 0;border-bottom:1px solid #f0f0f0;gap:6px">'
+        +'<span style="display:flex;align-items:center;gap:6px;flex:1">'+roleTag
+          +'<input type="text" class="name-edit-input" data-wid="'+w.id+'" value="'+w.name.replace(/"/g,'&quot;')+'" style="font-size:13px;padding:4px 7px;border:1px solid #cfe0f5;border-radius:6px;width:76px">'
+          +'<input type="text" inputmode="numeric" placeholder="YYYY-MM-DD" class="birth-edit-input" data-wid="'+w.id+'" value="'+(w.birth||'')+'" maxlength="10" style="font-size:12px;padding:4px 7px;border:1px solid #cfe0f5;border-radius:6px;min-width:110px">'
+        +'</span>'
+        +'<span style="display:flex;gap:4px;white-space:nowrap">'
+          +'<button class="save-worker-btn" data-wid="'+w.id+'" style="font-size:11px;padding:3px 8px;background:#1D5BA6;border:none;border-radius:6px;color:#fff;cursor:pointer">저장</button>'
+          +'<button class="cancel-worker-btn" style="font-size:11px;padding:3px 8px;background:#fff;border:1px solid #dde4ef;border-radius:6px;color:#555;cursor:pointer">취소</button>'
+        +'</span>'
+      +'</div>';
+    }
     var birthPart = w.birth
       ? '<span style="font-size:10px;color:#9AAABF;margin-left:6px">'+w.birth+'</span>'
-      : '<input type="date" class="birth-fix-input" data-wid="'+w.id+'" style="font-size:12px;padding:4px 7px;border:1px solid #ffd699;border-radius:6px;margin-left:6px;background:#fff8ea;min-width:138px" title="생년월일 미입력 — 입력하면 다른 PJT 공수와 합산됩니다">';
+      : '<span style="font-size:10px;color:#e0a02f;margin-left:6px">생년월일 미입력</span>';
     return '<div style="display:flex;align-items:center;justify-content:space-between;padding:6px 0;border-bottom:1px solid #f0f0f0">'
-      +'<span style="font-size:13px;color:#1d1d1f;display:flex;align-items:center">'+(w.role?'<span style="font-size:10px;color:#86868b;margin-right:4px">['+w.role+']</span>':'')+w.name+birthPart+'</span>'
-      +'<button class="del-worker-btn" data-wid="'+w.id+'" style="font-size:11px;padding:3px 8px;background:#fff;border:1px solid #ffb3b3;border-radius:6px;color:#c0392b;cursor:pointer">삭제</button>'
+      +'<span style="font-size:13px;color:#1d1d1f;display:flex;align-items:center">'+roleTag+w.name+birthPart+'</span>'
+      +'<span style="display:flex;gap:4px;white-space:nowrap">'
+        +'<button class="edit-worker-btn" data-wid="'+w.id+'" style="font-size:11px;padding:3px 8px;background:#fff;border:1px solid #cfe0f5;border-radius:6px;color:#1D5BA6;cursor:pointer">수정</button>'
+        +'<button class="del-worker-btn" data-wid="'+w.id+'" style="font-size:11px;padding:3px 8px;background:#fff;border:1px solid #ffb3b3;border-radius:6px;color:#c0392b;cursor:pointer">삭제</button>'
+      +'</span>'
     +'</div>';
   }).join('');
   // 삭제 버튼 이벤트
   el.querySelectorAll('.del-worker-btn').forEach(function(btn){
     btn.addEventListener('click',function(){deleteWorkerFromUI(this.dataset.wid);});
   });
-  // 생년월일 미입력 인원 인라인 입력 이벤트
-  el.querySelectorAll('.birth-fix-input').forEach(function(inp){
-    inp.addEventListener('change',function(){ updateWorkerBirthFromUI(this.dataset.wid, this.value); });
+  // 수정 버튼 이벤트
+  el.querySelectorAll('.edit-worker-btn').forEach(function(btn){
+    btn.addEventListener('click',function(){ _workerEditingId=this.dataset.wid; renderWorkerMgmtList(); });
+  });
+  el.querySelectorAll('.cancel-worker-btn').forEach(function(btn){
+    btn.addEventListener('click',function(){ _workerEditingId=null; renderWorkerMgmtList(); });
+  });
+  el.querySelectorAll('.save-worker-btn').forEach(function(btn){
+    btn.addEventListener('click',function(){ saveWorkerEditFromUI(this.dataset.wid); });
+  });
+  // 생년월일 입력 마스킹 (타이핑 중 하이픈 자동 삽입, 값 초기화 없음)
+  el.querySelectorAll('.birth-edit-input').forEach(function(inp){
+    inp.addEventListener('input',function(){ _maskBirthInput(this); });
   });
 }
+
+window.saveWorkerEditFromUI = async function(wid){
+  var nameInp=document.querySelector('.name-edit-input[data-wid="'+wid+'"]');
+  var birthInp=document.querySelector('.birth-edit-input[data-wid="'+wid+'"]');
+  var name=nameInp?nameInp.value.trim():'';
+  var birth=birthInp?birthInp.value.trim():'';
+  if(!name){ alert('이름을 입력하세요.'); return; }
+  if(birth && !/^\d{4}-\d{2}-\d{2}$/.test(birth)){ alert('생년월일은 YYYY-MM-DD 형식으로 입력하세요.'); return; }
+  var btn=document.querySelector('.save-worker-btn[data-wid="'+wid+'"]');
+  if(btn){ btn.disabled=true; btn.textContent='저장 중...'; }
+  try{
+    await _waitForFb('_fbUpdateWorker', 6000);
+    await window._fbUpdateWorker(wid, {name:name, birth:birth});
+    if(window._refreshWorkerArrays) window._refreshWorkerArrays();
+    _workerEditingId=null;
+    renderWorkerMgmtList();
+  }catch(e){
+    alert('저장에 실패했습니다.');
+    if(btn){ btn.disabled=false; btn.textContent='저장'; }
+  }
+};
 
 function _waitForFb(fnName, maxWait){
   return new Promise(function(resolve,reject){
