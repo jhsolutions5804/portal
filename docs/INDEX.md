@@ -783,3 +783,17 @@
 
 **배포**: gihoek/index.html, index.html(버전배너, gihoek 5.3.10), 백업 backup/v5.3.11/gihoek/index.html
 **상세**: 1_3_gihoek_estimate_r7.md, 7_18_log_gihoek_item_remark.md, 8_18_log_2026-08-13_session.md
+
+---
+
+## 2026-08-18 세션 요약 — PJT 기술인 명단 이름/생년월일 수정 기능 추가 (PJT v5.3.1)
+
+**증상**: 명단 관리 패널에서 등록된 기술인의 이름·생년월일을 수정할 방법이 없었고(삭제만 가능), 생년월일 입력 시 "10"을 치려 해도 "01"로 저장됨.
+
+**원인**: 생년월일이 비어있을 때만 나타나는 1회용 `<input type="date">` 구조였고, 네이티브 date input이 한 자리 입력 후 자동으로 확정·포커스 이동해버리는 동작 때문에 두 자리 입력이 끊김.
+
+**해결**: 인원별 "수정" 버튼 → 이름+생년월일 인라인 편집(저장/취소). 생년월일은 네이티브 date input 대신 텍스트+자동 하이픈 마스킹(YYYY-MM-DD) 방식으로 전환. `_fbUpdateWorker` 신규 추가.
+
+**배포**: pjt/index.html(ver 4.10.4), index.html(버전배너, PJT 5.3.1), 백업 backup/v5.3.1/pjt/index.html
+**상세**: 4_1_pjt_fab_attend_progress.md, 7_19_log_pjt_worker_edit_fix.md, 8_19_log_2026-08-18_session.md
+
