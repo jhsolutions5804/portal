@@ -797,3 +797,14 @@
 **배포**: pjt/index.html(ver 4.10.4), index.html(버전배너, PJT 5.3.1), 백업 backup/v5.3.1/pjt/index.html
 **상세**: 4_1_pjt_fab_attend_progress.md, 7_19_log_pjt_worker_edit_fix.md, 8_19_log_2026-08-18_session.md
 
+---
+
+## 2026-08-18 추가 세션 — 견적 작성 시 합계금액 대신 공급가액 직접수정 (gihoek v5.3.12)
+
+**요청**: 견적 작성 화면 합계란에서 합계금액(부가세 포함) 직접수정 대신 공급가액을 직접 수정하도록 변경.
+
+**해결**: 합계란 UI를 "공급가액(직접 수정)" + 부가세·합계금액(자동계산) 구조로 변경. `onSupplyEdit(v)`가 마지막 품목으로 차액 흡수(기존 ÷1.1 역산 단계 제거로 반올림 오차 없음).
+
+**배포**: gihoek/index.html(5.3.10→5.3.12), index.html(버전배너), 백업 backup/v5.3.12/gihoek/index.html
+**상세**: 1_3_gihoek_estimate_r8.md, 7_20_log_gihoek_supply_edit.md, 8_19_log_2026-08-18_session.md
+
