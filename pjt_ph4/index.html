@@ -2844,6 +2844,7 @@ window.toggleWorkerResignFromUI = async function(wid, currentlyResigned){
     }
     await loadMasterResignedMap();
     renderWorkerMgmtList();
+    if(typeof renderAttend==='function') renderAttend(); // 출역 목록에도 즉시 반영
   }catch(e){ alert('처리 실패: '+e.message); }
 };
 
@@ -2928,6 +2929,9 @@ function renderAttend(){
   document.getElementById('att-date-label').textContent=
     'W'+getWeekNum(d)+' · '+(d.getMonth()+1)+'월 '+d.getDate()+'일('+days[d.getDay()]+')';
 
+  // 마스터 명부 재직상태 최신화 — 퇴사자는 퇴사일 이후 날짜의 출역 목록에서 제외해야 하므로 매번 갱신
+  loadMasterResignedMap().then(function(){ if(typeof renderWorkerList==='function') renderWorkerList(); });
+
   // Firebase 출역 구독 시작 (준비된 경우에만)
   window._renderWorkerUI = renderWorkerList;
   renderWorkerList(); // 즉시 렌더 (localStorage 기반)
@@ -2976,7 +2980,14 @@ function renderAttend(){
 
   // ── 기술인 출역 현황 (Firebase 실시간) ──
   function renderWorkerList(){
-    const _ws=getWorkers(); // WORKERS 모듈변수는 갱신 타이밍이 어긋날 수 있어 항상 최신값을 직접 조회
+    // WORKERS 모듈변수는 갱신 타이밍이 어긋날 수 있어 항상 최신값을 직접 조회.
+    // 퇴사일(resignedDate)이 조회 날짜(dateKey) 이전이거나 같은 인원은 출역 대상에서 제외.
+    // (퇴사일 이전 과거 날짜를 볼 때는 그 시점엔 재직 중이었으므로 계속 표시됨 — 과거 기록 보존)
+    const _ws=getWorkers().filter(function(w){
+      const info=_masterResignedMap[w.id];
+      if(info && info.resigned && info.resignedDate && info.resignedDate<=dateKey) return false;
+      return true;
+    });
     const checks=window._fbGetWorkerChecks?window._fbGetWorkerChecks(dateKey):[];
     document.getElementById('att-worker-count').textContent=
       `출역 ${checks.length}명 / 전체 ${_ws.length}명`;
