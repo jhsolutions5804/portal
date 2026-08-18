@@ -900,7 +900,7 @@ window.newSettle=function(pjtId){
     senderId:(sup.find(c=>c.company==='제이에이치솔루션')?.id)||sup[0]?.id||'', recipientId:'',
     senderContact:'', recipientContact:'',
     estIds:[], estZone:{}, deposit:{}, prog:{}, eqs:{}, billOverride:{}, qtyInput:{}, qtyAmt:{}, mandayInput:null, mandayAuto:null, mandayRate:TEAM_RATE,
-    pjtIds:[pjtId||projects[0].id], mandayBreakdown:{}, mandayOverride:{},
+    pjtIds:[pjtId||projects[0].id], mandayBreakdown:{}, mandayOverride:{}, mandayRateOverride:{},
     supplyOverride:null, vatOverride:null,
     manualItems:[{name:'',spec:'',qty:1,price:0,amount:0},{name:'',spec:'',qty:1,price:0,amount:0}] };
   tabSilent('settle'); drawSettleForm();
@@ -1068,7 +1068,12 @@ function mdForPjt(pid){ const d=settleDraft;
   if(d.mandayOverride && d.mandayOverride[pid]!=null) return d.mandayOverride[pid];
   return (d.mandayBreakdown && d.mandayBreakdown[pid]!=null) ? d.mandayBreakdown[pid] : 0;
 }
+// 현재 선택된 단가(프로젝트별 수동수정 우선, 없으면 공통 단가)
+function rateForPjt(pid){ const d=settleDraft; const base=d.mandayRate!=null?d.mandayRate:TEAM_RATE;
+  return (d.mandayRateOverride && d.mandayRateOverride[pid]!=null) ? d.mandayRateOverride[pid] : base;
+}
 window.setMdForPjt=function(pid,v){ settleDraft.mandayOverride=settleDraft.mandayOverride||{}; settleDraft.mandayOverride[pid]=num(v); renderSetTot(); refreshMandayRows(); };
+window.setRateForPjt=function(pid,v){ settleDraft.mandayRateOverride=settleDraft.mandayRateOverride||{}; settleDraft.mandayRateOverride[pid]=Math.round(num(v))||0; renderSetTot(); refreshMandayRows(); };
 window.toggleMandayPjt=function(pid){ const d=settleDraft; d.pjtIds=d.pjtIds||[d.pjtId];
   const i=d.pjtIds.indexOf(pid);
   if(i<0){ d.pjtIds.push(pid); } else { if(d.pjtIds.length<=1){ toast('최소 1개 프로젝트는 선택되어야 합니다.'); return; } d.pjtIds.splice(i,1); }
@@ -1082,9 +1087,11 @@ function mandayRowsHtml(){ const d=settleDraft; const rate=d.mandayRate!=null?d.
       <td><input class="ni" value="${md}" onchange="setMd(this.value)"></td><td>${won(rate)}</td><td class="bill">${won(Math.round(md*rate))}</td></tr>
       ${prior?`<tr><td class="l muted">기지급 공수</td><td class="muted">${prior}</td><td></td><td class="muted">-${won(Math.round(prior*rate))}</td></tr>`:''}`;
   }
-  return d.pjtIds.map(pid=>{ const p=projects.find(x=>x.id===pid); const md=mdForPjt(pid);
+  return d.pjtIds.map(pid=>{ const p=projects.find(x=>x.id===pid); const md=mdForPjt(pid); const r=rateForPjt(pid);
     return `<tr><td class="l">${d.baseMonth} 기술인력 투입 <span class="pill" style="font-size:10px">${p?p.code:pid}</span></td>
-      <td><input class="ni" value="${md}" onchange="setMdForPjt('${pid}',this.value)"></td><td>${won(rate)}</td><td class="bill">${won(Math.round(md*rate))}</td></tr>`;
+      <td><input class="ni" value="${md}" onchange="setMdForPjt('${pid}',this.value)"></td>
+      <td><input class="ni num" style="width:88px;text-align:right" type="text" inputmode="numeric" value="${Number(r||0).toLocaleString('ko-KR')}" oninput="fmtMoney(this)" onchange="setRateForPjt('${pid}',this.value)"></td>
+      <td class="bill">${won(Math.round(md*r))}</td></tr>`;
   }).join('');
 }
 function setMandayCard(){ const d=settleDraft;
@@ -1097,6 +1104,9 @@ function setMandayCard(){ const d=settleDraft;
   const total=d.pjtIds.length<=1
     ? (d.mandayInput!=null?d.mandayInput:(d.mandayAuto||0))
     : d.pjtIds.reduce((s,pid)=>s+mdForPjt(pid),0);
+  const totalAmt=d.pjtIds.length<=1
+    ? Math.round(total*rate)
+    : d.pjtIds.reduce((s,pid)=>s+Math.round(mdForPjt(pid)*rateForPjt(pid)),0);
   return `<div class="card"><div class="sec-h"><h2>공수 연동</h2><button class="btn line sm" onclick="fetchManday()">⟳ 공수 불러오기</button></div>
     <div class="note-amber">기준월(${d.baseMonth}) · 워크스페이스 <b>${wsLabels}</b> 에서 공수 합계를 읽어옵니다. 공수·단가 모두 직접 수정 가능합니다.</div>
     <div style="font-size:12px;font-weight:700;color:var(--blue);margin-bottom:6px">▼ 합산할 프로젝트 (여러 개 선택 가능 — Ph2·Ph4 정산서를 하나로 합칠 수 있습니다)</div>
@@ -1105,13 +1115,13 @@ function setMandayCard(){ const d=settleDraft;
         <input type="checkbox" ${d.pjtIds.includes(p.id)?'checked':''} onchange="toggleMandayPjt('${p.id}')" style="accent-color:var(--blue)"> ${p.code}</label>`).join('')}
     </div>
     <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
-      <label class="small muted" style="white-space:nowrap">기술인력 단가 (원/공수)</label>
+      <label class="small muted" style="white-space:nowrap">기술인력 단가 (원/공수)${d.pjtIds.length>1?' <span class="small muted" style="font-weight:400">— 기본값. 프로젝트별로 아래 표에서 개별 수정 가능</span>':''}</label>
       <input class="inp" type="text" inputmode="numeric" style="width:130px;text-align:right" value="${Number(rate||0).toLocaleString('ko-KR')}" oninput="fmtMoney(this)" onchange="setMandayRate(this.value)">
     </div>
     <table class="ptab"><thead><tr><th class="l">항목</th><th>공수</th><th>단가</th><th>금액</th></tr></thead>
     <tbody id="manday-rows">${mandayRowsHtml()}</tbody></table>
     ${d.pjtIds.length<=1 && d.mandayAuto!=null?`<div class="small muted" style="margin-top:6px">자동 집계: ${d.mandayAuto} 공수</div>`
-      : d.pjtIds.length>1?`<div class="small muted" style="margin-top:6px">합계: ${Math.round(total*10)/10} 공수 (${d.pjtIds.map(pid=>{const p=projects.find(x=>x.id===pid);return (p?p.code:pid)+' '+mdForPjt(pid);}).join(' + ')})</div>`:''}
+      : d.pjtIds.length>1?`<div class="small muted" style="margin-top:6px">합계: ${Math.round(total*10)/10} 공수 · ${won(totalAmt)}원 (${d.pjtIds.map(pid=>{const p=projects.find(x=>x.id===pid);return (p?p.code:pid)+' '+mdForPjt(pid)+'×'+won(rateForPjt(pid));}).join(' + ')})</div>`:''}
     </div>`;
 }
 function priorManday(){ return settlements.filter(s=>setActive(s)&&s.docType==='payment'&&s.method==='manday').reduce((a,s)=>a+(s.mandayUsed||0),0); }
@@ -1167,7 +1177,7 @@ function setSupply(){ const d=settleDraft;
   if(d.method==='manual') return d.manualItems.reduce((s,it)=>s+itemAmt(it),0);
   if(d.method==='manday'){ const rate=d.mandayRate!=null?d.mandayRate:TEAM_RATE;
     const pjtIds=(d.pjtIds&&d.pjtIds.length)?d.pjtIds:[d.pjtId];
-    if(pjtIds.length>1) return pjtIds.reduce((s,pid)=>s+Math.round(mdForPjt(pid)*rate),0);
+    if(pjtIds.length>1) return pjtIds.reduce((s,pid)=>s+Math.round(mdForPjt(pid)*rateForPjt(pid)),0);
     const md=d.mandayInput!=null?d.mandayInput:(d.mandayAuto||0); return Math.round(md*rate); }
   if(d.method==='qty') return d.estIds.reduce((s,id)=>{ const e=estimates.find(x=>x.id===id); if(!e) return s; return s+(e.items||[]).reduce((a,it,idx)=>a+qAmt(id,idx,it),0); },0);
   return d.estIds.reduce((s,id)=>s+calcSetRow(id).thisBill,0);
@@ -1192,8 +1202,8 @@ function settleLines(){ const d=settleDraft;
   if(d.method==='manual') return d.manualItems.filter(i=>(i.name||'').trim()).map(i=>({name:i.name.trim(),spec:i.spec||'',qty:i.qty||0,price:i.price||0,amount:Math.round(itemAmt(i))}));
   if(d.method==='manday'){ const rate=d.mandayRate!=null?d.mandayRate:TEAM_RATE;
     const pjtIds=(d.pjtIds&&d.pjtIds.length)?d.pjtIds:[d.pjtId];
-    if(pjtIds.length>1) return pjtIds.map(pid=>{ const p=projects.find(x=>x.id===pid); const md=mdForPjt(pid);
-      return {name:d.baseMonth+' 기술인력 투입 ('+(p?p.code:pid)+')', spec:'공수 '+md, qty:md, price:rate, amount:Math.round(md*rate)}; });
+    if(pjtIds.length>1) return pjtIds.map(pid=>{ const p=projects.find(x=>x.id===pid); const md=mdForPjt(pid); const r=rateForPjt(pid);
+      return {name:d.baseMonth+' 기술인력 투입 ('+(p?p.code:pid)+')', spec:'공수 '+md+' × '+won(r)+'원', qty:md, price:r, amount:Math.round(md*r)}; });
     const md=d.mandayInput!=null?d.mandayInput:(d.mandayAuto||0); return [{name:d.baseMonth+' 기술인력 투입',spec:'공수 '+md,qty:md,price:rate,amount:Math.round(md*rate)}]; }
   if(d.method==='qty'){ const lines=[]; d.estIds.forEach(id=>{ const e=estimates.find(x=>x.id===id); if(!e) return; (e.items||[]).forEach((it,idx)=>{ const q=qVal(id,idx); const amt=qAmt(id,idx,it); if(q>0||amt>0) lines.push({name:it.name,spec:(it.spec||'')+' · 수량 '+q,qty:q,price:it.price||0,amount:amt}); }); }); return lines; }
   return d.estIds.map(id=>{ const e=estimates.find(x=>x.id===id); const r=calcSetRow(id); const z=getZONES().find(z=>z.id===d.estZone[id]); const eqd=d.eqs[id]||{banipEqs:[],installEqs:[]};
