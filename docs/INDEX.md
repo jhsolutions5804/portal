@@ -830,3 +830,14 @@
 **배포**: pjt/index.html(4.10.4→4.10.6), pjt_ph4/index.html, index.html(버전배너, PJT 5.3.3), 백업 backup/v5.3.14/*
 **상세**: 4_1_pjt_fab_attend_progress.md, 7_22_log_pjt_attend_resign_button.md, 8_19_log_2026-08-18_session.md
 
+---
+
+## 2026-08-18 추가 세션 (4) — 지급예정서 공수연동 시 여러 프로젝트 합산 발행 (gihoek v5.3.15)
+
+**요청**: 지급예정서를 공수 연동으로 작성할 때 Ph2·Ph4를 각각 따로 만들어야 하는데, 정산서 하나에 합칠 수 있게 해달라는 요청.
+
+**해결**: 공수 연동 카드에 프로젝트 다중 체크박스 추가. 2개 이상 선택 시 프로젝트별 행으로 공수·금액 계산, 하나의 정산서로 합산 발행. 항목표·인쇄물에도 프로젝트별 구분 표시. 공정 자동·수량 정산 방식은 이번 범위에서 제외(견적서가 프로젝트별 종속).
+
+**배포**: gihoek/index.html(5.3.12→5.3.15), index.html(버전배너), 백업 backup/v5.3.15/gihoek/index.html
+**상세**: 1_4_gihoek_settle.md(r8), 7_23_log_gihoek_settle_multi_pjt.md, 8_19_log_2026-08-18_session.md
+
