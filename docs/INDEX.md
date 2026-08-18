@@ -841,3 +841,14 @@
 **배포**: gihoek/index.html(5.3.12→5.3.15), index.html(버전배너), 백업 backup/v5.3.15/gihoek/index.html
 **상세**: 1_4_gihoek_settle.md(r8), 7_23_log_gihoek_settle_multi_pjt.md, 8_19_log_2026-08-18_session.md
 
+---
+
+## 2026-08-18 추가 세션 (5) — 퇴사처리된 인원 퇴사일 이후 출역 체크리스트에서 자동 제외 (pjt v4.10.7)
+
+**증상**: 명단 관리에서 퇴사처리해도 일별 출역 체크리스트에 계속 남아 체크·공수입력 가능했음.
+
+**해결**: 출역 화면 렌더링 시 `master_workers` 재직상태를 조회해, 조회 날짜가 퇴사일 이상이면 목록에서 제외. 퇴사일 이전 과거 날짜는 계속 표시(과거 기록 보존). 명단 관리에서 퇴사처리 시 출역 목록도 즉시 갱신. FAB·SUP 양쪽 적용.
+
+**배포**: pjt/index.html(4.10.6→4.10.7), pjt_ph4/index.html, index.html(버전배너, PJT 5.3.4), 백업 backup/v5.3.16/*
+**상세**: 4_1_pjt_fab_attend_progress.md, 7_24_log_resigned_worker_attend_exclude.md, 8_19_log_2026-08-18_session.md
+
