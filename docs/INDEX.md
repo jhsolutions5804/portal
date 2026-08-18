@@ -852,3 +852,14 @@
 **배포**: pjt/index.html(4.10.6→4.10.7), pjt_ph4/index.html, index.html(버전배너, PJT 5.3.4), 백업 backup/v5.3.16/*
 **상세**: 4_1_pjt_fab_attend_progress.md, 7_24_log_resigned_worker_attend_exclude.md, 8_19_log_2026-08-18_session.md
 
+---
+
+## 2026-08-18 추가 세션 (6) — 지급예정서 공수연동 다중 프로젝트 시 프로젝트별 단가 개별 수정 (gihoek v5.3.16)
+
+**요청**: 다중 프로젝트 합산(r8)에서 단가가 공통 하나뿐이었는데, 프로젝트별로 단가를 다르게 지정할 수 있게 해달라는 요청.
+
+**해결**: 2개 이상 프로젝트 선택 시 표의 단가 칸이 프로젝트별 직접 입력 필드로 변경. 상단 공통 단가는 기본값으로만 쓰이고 개별 입력 시 그 값이 우선. 공수 재조회해도 단가 개별설정은 유지.
+
+**배포**: gihoek/index.html(5.3.15→5.3.16), index.html(버전배너), 백업 backup/v5.3.16/gihoek/index.html
+**상세**: 1_4_gihoek_settle.md(r9), 7_25_log_gihoek_settle_rate_per_pjt.md, 8_19_log_2026-08-18_session.md
+
