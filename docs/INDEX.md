@@ -808,3 +808,14 @@
 **배포**: gihoek/index.html(5.3.10→5.3.12), index.html(버전배너), 백업 backup/v5.3.12/gihoek/index.html
 **상세**: 1_3_gihoek_estimate_r8.md, 7_20_log_gihoek_supply_edit.md, 8_19_log_2026-08-18_session.md
 
+---
+
+## 2026-08-18 추가 세션 (2) — 근로자 마스터 명부 퇴사처리 기능 추가 (pjt_manday v1.1.2)
+
+**요청**: 근로자 마스터 관리 화면에서 인원 퇴사처리가 가능하게 해달라는 요청.
+
+**해결**: `master_workers`에 `resigned`/`resignedDate` 필드 추가(삭제 아닌 상태 플래그). 퇴사자는 회색 취소선 + 배지로 표시, FAB·SUP·경량 PJT의 신규 투입 드롭다운에서 제외. 기존 투입 이력·근태·공수 기록은 유지.
+
+**배포**: pjt_manday(1.1.1→1.1.2), pjt(4.10.4→4.10.5), pjt_ph4, pjt_light(3.1.0→3.1.1), index.html(버전배너), 백업 backup/v5.3.13/*
+**상세**: 4_4_pjt_manday.md, 7_21_log_master_worker_resign.md, 8_19_log_2026-08-18_session.md
+
