@@ -819,3 +819,14 @@
 **배포**: pjt_manday(1.1.1→1.1.2), pjt(4.10.4→4.10.5), pjt_ph4, pjt_light(3.1.0→3.1.1), index.html(버전배너), 백업 backup/v5.3.13/*
 **상세**: 4_4_pjt_manday.md, 7_21_log_master_worker_resign.md, 8_19_log_2026-08-18_session.md
 
+---
+
+## 2026-08-18 추가 세션 (3) — PJT 근태 화면 명단 관리 패널에서도 퇴사처리 가능하도록 추가 (pjt v4.10.6)
+
+**요청**: 근로자 마스터 관리 화면 외에, PJT 근태 화면(P4 Ph2 FAB)의 "명단 관리" 패널에서도 퇴사처리 가능하게 해달라는 요청.
+
+**해결**: `pjt/index.html`·`pjt_ph4/index.html` 명단 관리 패널에 퇴사처리/재직전환 버튼 추가(`master_workers`에 직접 반영, PJT별 근태·공수 기록엔 영향 없음). SUP도 이번에 이름/생년월일 인라인 수정 기능 이식.
+
+**배포**: pjt/index.html(4.10.4→4.10.6), pjt_ph4/index.html, index.html(버전배너, PJT 5.3.3), 백업 backup/v5.3.14/*
+**상세**: 4_1_pjt_fab_attend_progress.md, 7_22_log_pjt_attend_resign_button.md, 8_19_log_2026-08-18_session.md
+
