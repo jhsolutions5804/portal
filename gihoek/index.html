@@ -850,7 +850,7 @@ function renderSettle(){ settleDraft=null; viewSetId=null;
   if(!window.settleFilter) window.settleFilter={docType:'',pjtId:'',client:'',status:''};
   const f=window.settleFilter;
   const clients=[...new Set(settlements.map(s=>s.recipient&&s.recipient.company).filter(Boolean))].sort();
-  const filtered=settlements.filter(s=>(!f.docType||s.docType===f.docType)&&(!f.pjtId||s.pjtId===f.pjtId)&&(!f.client||(s.recipient&&s.recipient.company)===f.client)&&(!f.status||(f.status==='done'?s.status==='done':s.status!=='done')));
+  const filtered=settlements.filter(s=>(!f.docType||s.docType===f.docType)&&(!f.pjtId||s.pjtId===f.pjtId||(s.pjtIds&&s.pjtIds.includes(f.pjtId)))&&(!f.client||(s.recipient&&s.recipient.company)===f.client)&&(!f.status||(f.status==='done'?s.status==='done':s.status!=='done')));
   const inv=filtered.filter(s=>s.docType==='invoice'&&setActive(s)).reduce((a,s)=>a+(s.total||0),0);
   const pay=filtered.filter(s=>s.docType==='payment'&&setActive(s)).reduce((a,s)=>a+(s.total||0),0);
   const done=filtered.filter(s=>s.docType==='invoice'&&s.status==='done').reduce((a,s)=>a+(s.total||0),0);
@@ -884,7 +884,8 @@ function renderSettle(){ settleDraft=null; viewSetId=null;
       <div class="sumcell"><div class="l">미수금 (청구−수금)</div><div class="v" style="color:${(inv-done)>0?'#DC2626':'#16A34A'}">${won(inv-done)}</div></div></div>
     ${filterBarHtml}
     ${sorted.length? sorted.map(s=>{ const p=projects.find(x=>x.id===s.pjtId); const v=!setActive(s);
-      return `<div class="litem ${v?'void':''}" onclick="openSettle('${s.id}')"><div class="d"><div class="ti">${s.docType==='invoice'?'대금청구서':'지급예정서'} <span class="pill">${s.no}</span>${v?'<span class="void-tag">폐기</span>':''}${s.status==='done'?'<span class="void-tag" style="background:#E1F5EE;color:#085041">✓ 완결</span>':''}</div><div class="mt"><span class="pill">${p?p.code:'-'}</span> &nbsp;기준월 ${s.baseMonth} · 발행 ${s.issueDate}${s.recipient?.company?' · '+s.recipient.company:''}</div></div><div class="amt">${won(s.total)}</div></div>`;
+      const pjtBadge=(s.pjtIds&&s.pjtIds.length>1)? s.pjtIds.map(pid=>{const pp=projects.find(x=>x.id===pid);return pp?pp.code:pid;}).join('+') : (p?p.code:'-');
+      return `<div class="litem ${v?'void':''}" onclick="openSettle('${s.id}')"><div class="d"><div class="ti">${s.docType==='invoice'?'대금청구서':'지급예정서'} <span class="pill">${s.no}</span>${v?'<span class="void-tag">폐기</span>':''}${s.status==='done'?'<span class="void-tag" style="background:#E1F5EE;color:#085041">✓ 완결</span>':''}</div><div class="mt"><span class="pill">${pjtBadge}</span> &nbsp;기준월 ${s.baseMonth} · 발행 ${s.issueDate}${s.recipient?.company?' · '+s.recipient.company:''}</div></div><div class="amt">${won(s.total)}</div></div>`;
     }).join('') : `<div class="empty">${(f.docType||f.pjtId||f.client||f.status)?'조건에 맞는 정산서가 없습니다.':'발행된 정산서가 없습니다.'}</div>`}`;
 }
 window.renderSettle=renderSettle;
@@ -899,6 +900,7 @@ window.newSettle=function(pjtId){
     senderId:(sup.find(c=>c.company==='제이에이치솔루션')?.id)||sup[0]?.id||'', recipientId:'',
     senderContact:'', recipientContact:'',
     estIds:[], estZone:{}, deposit:{}, prog:{}, eqs:{}, billOverride:{}, qtyInput:{}, qtyAmt:{}, mandayInput:null, mandayAuto:null, mandayRate:TEAM_RATE,
+    pjtIds:[pjtId||projects[0].id], mandayBreakdown:{}, mandayOverride:{},
     supplyOverride:null, vatOverride:null,
     manualItems:[{name:'',spec:'',qty:1,price:0,amount:0},{name:'',spec:'',qty:1,price:0,amount:0}] };
   tabSilent('settle'); drawSettleForm();
@@ -1051,42 +1053,93 @@ function refreshQtyRows(){ const el=$('qty-rows'); if(el) el.innerHTML=settleDra
 
 /* 공수 */
 function getMandayCol(){ return getLinkMandayCol(); }
+// 임의 프로젝트(pid)의 연동 공수 컬렉션 / 근로자 명부 컬렉션 반환 (다중 프로젝트 합산용)
+function mandayColForPjt(pid){
+  const prof=projects.find(p=>p.id===pid); const key=getLinkPjt(prof);
+  if(key==='none') return '';
+  return PROGRESS_PROFILES[key] ? PROGRESS_PROFILES[key].mandayCol : 'worker_manday';
+}
+function rosterColForPjt(pid){
+  const prof=projects.find(p=>p.id===pid); const key=getLinkPjt(prof);
+  return key==='p4ph4'?'pjt_workers_ph4':'pjt_workers_fab';
+}
+// 현재 선택된 md값(프로젝트별 수동수정 우선, 없으면 자동집계값)
+function mdForPjt(pid){ const d=settleDraft;
+  if(d.mandayOverride && d.mandayOverride[pid]!=null) return d.mandayOverride[pid];
+  return (d.mandayBreakdown && d.mandayBreakdown[pid]!=null) ? d.mandayBreakdown[pid] : 0;
+}
+window.setMdForPjt=function(pid,v){ settleDraft.mandayOverride=settleDraft.mandayOverride||{}; settleDraft.mandayOverride[pid]=num(v); renderSetTot(); refreshMandayRows(); };
+window.toggleMandayPjt=function(pid){ const d=settleDraft; d.pjtIds=d.pjtIds||[d.pjtId];
+  const i=d.pjtIds.indexOf(pid);
+  if(i<0){ d.pjtIds.push(pid); } else { if(d.pjtIds.length<=1){ toast('최소 1개 프로젝트는 선택되어야 합니다.'); return; } d.pjtIds.splice(i,1); }
+  drawSettleForm(); };
+function refreshMandayRows(){ const el=$('manday-rows'); if(el) el.innerHTML=mandayRowsHtml(); renderSetTot(); }
+function mandayRowsHtml(){ const d=settleDraft; const rate=d.mandayRate!=null?d.mandayRate:TEAM_RATE;
+  if(d.pjtIds.length<=1){
+    const md=d.mandayInput!=null?d.mandayInput:(d.mandayAuto!=null?d.mandayAuto:0);
+    const prior=priorManday();
+    return `<tr><td class="l">${d.baseMonth} 기술인력 투입</td>
+      <td><input class="ni" value="${md}" onchange="setMd(this.value)"></td><td>${won(rate)}</td><td class="bill">${won(Math.round(md*rate))}</td></tr>
+      ${prior?`<tr><td class="l muted">기지급 공수</td><td class="muted">${prior}</td><td></td><td class="muted">-${won(Math.round(prior*rate))}</td></tr>`:''}`;
+  }
+  return d.pjtIds.map(pid=>{ const p=projects.find(x=>x.id===pid); const md=mdForPjt(pid);
+    return `<tr><td class="l">${d.baseMonth} 기술인력 투입 <span class="pill" style="font-size:10px">${p?p.code:pid}</span></td>
+      <td><input class="ni" value="${md}" onchange="setMdForPjt('${pid}',this.value)"></td><td>${won(rate)}</td><td class="bill">${won(Math.round(md*rate))}</td></tr>`;
+  }).join('');
+}
 function setMandayCard(){ const d=settleDraft;
-  const md=d.mandayInput!=null?d.mandayInput:(d.mandayAuto!=null?d.mandayAuto:0);
+  d.pjtIds=(d.pjtIds&&d.pjtIds.length)?d.pjtIds:[d.pjtId];
+  if(d.pjtIds.indexOf(d.pjtId)<0) d.pjtIds.push(d.pjtId); // 상단 "프로젝트" 선택값은 항상 포함
   const rate=d.mandayRate!=null?d.mandayRate:TEAM_RATE;
-  const prior=priorManday();
-  const col=getMandayCol();
-  const WS_LABEL={'worker_manday':'P4 Ph2 (FAB)'};
-  const wsLabel=WS_LABEL[col]||col;
+  const linkable=projects.filter(p=>getLinkPjt(p)!=='none');
+  const WS_LABEL={'worker_manday':'P4 Ph2 (FAB)','ph4_manday':'P4 Ph4 (SUP)'};
+  const wsLabels=d.pjtIds.map(pid=>WS_LABEL[mandayColForPjt(pid)]||mandayColForPjt(pid)).join(' + ');
+  const total=d.pjtIds.length<=1
+    ? (d.mandayInput!=null?d.mandayInput:(d.mandayAuto||0))
+    : d.pjtIds.reduce((s,pid)=>s+mdForPjt(pid),0);
   return `<div class="card"><div class="sec-h"><h2>공수 연동</h2><button class="btn line sm" onclick="fetchManday()">⟳ 공수 불러오기</button></div>
-    <div class="note-amber">기준월(${d.baseMonth}) · 워크스페이스 <b>${wsLabel}</b> (<code style="font-size:11px">${col}</code>) 에서 공수 합계를 읽어옵니다. 공수·단가 모두 직접 수정 가능합니다.</div>
+    <div class="note-amber">기준월(${d.baseMonth}) · 워크스페이스 <b>${wsLabels}</b> 에서 공수 합계를 읽어옵니다. 공수·단가 모두 직접 수정 가능합니다.</div>
+    <div style="font-size:12px;font-weight:700;color:var(--blue);margin-bottom:6px">▼ 합산할 프로젝트 (여러 개 선택 가능 — Ph2·Ph4 정산서를 하나로 합칠 수 있습니다)</div>
+    <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px">
+      ${linkable.map(p=>`<label style="display:flex;align-items:center;gap:5px;font-size:12px;font-weight:600;border:1px solid ${d.pjtIds.includes(p.id)?'var(--blue)':'var(--line)'};border-radius:8px;padding:6px 10px;cursor:pointer;background:${d.pjtIds.includes(p.id)?'#EEF4FC':'#fff'}">
+        <input type="checkbox" ${d.pjtIds.includes(p.id)?'checked':''} onchange="toggleMandayPjt('${p.id}')" style="accent-color:var(--blue)"> ${p.code}</label>`).join('')}
+    </div>
     <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
       <label class="small muted" style="white-space:nowrap">기술인력 단가 (원/공수)</label>
       <input class="inp" type="text" inputmode="numeric" style="width:130px;text-align:right" value="${Number(rate||0).toLocaleString('ko-KR')}" oninput="fmtMoney(this)" onchange="setMandayRate(this.value)">
     </div>
     <table class="ptab"><thead><tr><th class="l">항목</th><th>공수</th><th>단가</th><th>금액</th></tr></thead>
-    <tbody><tr><td class="l">${d.baseMonth} 기술인력 투입</td>
-      <td><input class="ni" value="${md}" onchange="setMd(this.value)"></td><td>${won(rate)}</td><td class="bill">${won(Math.round(md*rate))}</td></tr>
-      ${prior?`<tr><td class="l muted">기지급 공수</td><td class="muted">${prior}</td><td></td><td class="muted">-${won(Math.round(prior*rate))}</td></tr>`:''}</tbody></table>
-    ${d.mandayAuto!=null?`<div class="small muted" style="margin-top:6px">자동 집계: ${d.mandayAuto} 공수</div>`:''}</div>`;
+    <tbody id="manday-rows">${mandayRowsHtml()}</tbody></table>
+    ${d.pjtIds.length<=1 && d.mandayAuto!=null?`<div class="small muted" style="margin-top:6px">자동 집계: ${d.mandayAuto} 공수</div>`
+      : d.pjtIds.length>1?`<div class="small muted" style="margin-top:6px">합계: ${Math.round(total*10)/10} 공수 (${d.pjtIds.map(pid=>{const p=projects.find(x=>x.id===pid);return (p?p.code:pid)+' '+mdForPjt(pid);}).join(' + ')})</div>`:''}
+    </div>`;
 }
 function priorManday(){ return settlements.filter(s=>setActive(s)&&s.docType==='payment'&&s.method==='manday').reduce((a,s)=>a+(s.mandayUsed||0),0); }
-window.setMd=function(v){ settleDraft.mandayInput=num(v); drawSettleForm(); };
+window.setMd=function(v){ settleDraft.mandayInput=num(v); refreshMandayRows(); };
 window.setMandayRate=function(v){ settleDraft.mandayRate=Math.round(num(v))||TEAM_RATE; drawSettleForm(); };
 window.fetchManday=async function(){ const d=settleDraft; toast('공수 불러오는 중...');
-  try{ const col=getMandayCol(); const key=getLinkPjt(projects.find(p=>p.id===d.pjtId));
-    // pjt_manday(월간 공수 집계) 화면과 동일하게, 현재 유효한 근로자 명부(pjt_workers_fab/ph4)에 등록된 ID만 합산한다.
-    // 그렇지 않으면 명부에서 빠진(탈퇴/오입력/중복 정리 등) 구 근로자 ID의 잔여 기록까지 그대로 합산되어
-    // 월간 공수 집계 화면(정상)보다 큰 값이 나오는 오차가 생길 수 있다.
-    const rosterCol=key==='p4ph4'?'pjt_workers_ph4':'pjt_workers_fab';
-    let idSet=null;
-    try{ const rs=await getDocs(collection(db,rosterCol)); idSet=new Set(rs.docs.map(x=>x.id)); }catch(e){ idSet=null; }
-    const [y,m]=d.baseMonth.split('-').map(Number); const lastDay=new Date(y,m,0).getDate(); let sum=0; let ignored=0; const tasks=[];
-    for(let day=1; day<=lastDay; day++){ const dk=y+'-'+String(m).padStart(2,'0')+'-'+String(day).padStart(2,'0');
-      tasks.push((async()=>{ try{ const sn=await getDoc(doc(db,col,dk)); if(sn.exists()){ const md=sn.data().md||{};
-        Object.keys(md).forEach(wid=>{ const v=Number(md[wid])||0; if(!idSet || idSet.has(wid)) sum+=v; else ignored+=v; }); } }catch(e){} })()); }
-    await Promise.all(tasks); d.mandayAuto=Math.round(sum*10)/10; d.mandayInput=d.mandayAuto; drawSettleForm();
-    toast('공수 '+d.mandayAuto+' 반영했습니다.'+(ignored>0?' (명부 외 '+Math.round(ignored*10)/10+' 공수 제외)':''));
+  d.pjtIds=(d.pjtIds&&d.pjtIds.length)?d.pjtIds:[d.pjtId];
+  try{
+    const breakdown={}; let grand=0; let ignoredTotal=0;
+    for(const pid of d.pjtIds){
+      const col=mandayColForPjt(pid); if(!col){ breakdown[pid]=0; continue; }
+      const rosterCol=rosterColForPjt(pid);
+      // pjt_manday(월간 공수 집계) 화면과 동일하게, 현재 유효한 근로자 명부(pjt_workers_fab/ph4)에 등록된 ID만 합산한다.
+      // 그렇지 않으면 명부에서 빠진(탈퇴/오입력/중복 정리 등) 구 근로자 ID의 잔여 기록까지 그대로 합산되어
+      // 월간 공수 집계 화면(정상)보다 큰 값이 나오는 오차가 생길 수 있다.
+      let idSet=null;
+      try{ const rs=await getDocs(collection(db,rosterCol)); idSet=new Set(rs.docs.map(x=>x.id)); }catch(e){ idSet=null; }
+      const [y,m]=d.baseMonth.split('-').map(Number); const lastDay=new Date(y,m,0).getDate(); let sum=0; let ignored=0; const tasks=[];
+      for(let day=1; day<=lastDay; day++){ const dk=y+'-'+String(m).padStart(2,'0')+'-'+String(day).padStart(2,'0');
+        tasks.push((async()=>{ try{ const sn=await getDoc(doc(db,col,dk)); if(sn.exists()){ const md=sn.data().md||{};
+          Object.keys(md).forEach(wid=>{ const v=Number(md[wid])||0; if(!idSet || idSet.has(wid)) sum+=v; else ignored+=v; }); } }catch(e){} })()); }
+      await Promise.all(tasks);
+      breakdown[pid]=Math.round(sum*10)/10; grand+=breakdown[pid]; ignoredTotal+=ignored;
+    }
+    d.mandayBreakdown=breakdown; d.mandayOverride={};
+    d.mandayAuto=Math.round(grand*10)/10; d.mandayInput=d.mandayAuto;
+    drawSettleForm();
+    toast('공수 '+d.mandayAuto+' 반영했습니다.'+(ignoredTotal>0?' (명부 외 '+Math.round(ignoredTotal*10)/10+' 공수 제외)':''));
   }catch(e){ toast('불러오기 실패: '+(e.code||e.message)); }
 };
 
@@ -1112,7 +1165,10 @@ window.delSm=function(i){ settleDraft.manualItems.splice(i,1); if(!settleDraft.m
 
 function setSupply(){ const d=settleDraft;
   if(d.method==='manual') return d.manualItems.reduce((s,it)=>s+itemAmt(it),0);
-  if(d.method==='manday'){ const md=d.mandayInput!=null?d.mandayInput:(d.mandayAuto||0); const rate=d.mandayRate!=null?d.mandayRate:TEAM_RATE; return Math.round(md*rate); }
+  if(d.method==='manday'){ const rate=d.mandayRate!=null?d.mandayRate:TEAM_RATE;
+    const pjtIds=(d.pjtIds&&d.pjtIds.length)?d.pjtIds:[d.pjtId];
+    if(pjtIds.length>1) return pjtIds.reduce((s,pid)=>s+Math.round(mdForPjt(pid)*rate),0);
+    const md=d.mandayInput!=null?d.mandayInput:(d.mandayAuto||0); return Math.round(md*rate); }
   if(d.method==='qty') return d.estIds.reduce((s,id)=>{ const e=estimates.find(x=>x.id===id); if(!e) return s; return s+(e.items||[]).reduce((a,it,idx)=>a+qAmt(id,idx,it),0); },0);
   return d.estIds.reduce((s,id)=>s+calcSetRow(id).thisBill,0);
 }
@@ -1134,7 +1190,11 @@ function renderSetTot(){ const d=settleDraft; const sup=effSupply(); const vat=e
 
 function settleLines(){ const d=settleDraft;
   if(d.method==='manual') return d.manualItems.filter(i=>(i.name||'').trim()).map(i=>({name:i.name.trim(),spec:i.spec||'',qty:i.qty||0,price:i.price||0,amount:Math.round(itemAmt(i))}));
-  if(d.method==='manday'){ const md=d.mandayInput!=null?d.mandayInput:(d.mandayAuto||0); const rate=d.mandayRate!=null?d.mandayRate:TEAM_RATE; return [{name:d.baseMonth+' 기술인력 투입',spec:'공수 '+md,qty:md,price:rate,amount:Math.round(md*rate)}]; }
+  if(d.method==='manday'){ const rate=d.mandayRate!=null?d.mandayRate:TEAM_RATE;
+    const pjtIds=(d.pjtIds&&d.pjtIds.length)?d.pjtIds:[d.pjtId];
+    if(pjtIds.length>1) return pjtIds.map(pid=>{ const p=projects.find(x=>x.id===pid); const md=mdForPjt(pid);
+      return {name:d.baseMonth+' 기술인력 투입 ('+(p?p.code:pid)+')', spec:'공수 '+md, qty:md, price:rate, amount:Math.round(md*rate)}; });
+    const md=d.mandayInput!=null?d.mandayInput:(d.mandayAuto||0); return [{name:d.baseMonth+' 기술인력 투입',spec:'공수 '+md,qty:md,price:rate,amount:Math.round(md*rate)}]; }
   if(d.method==='qty'){ const lines=[]; d.estIds.forEach(id=>{ const e=estimates.find(x=>x.id===id); if(!e) return; (e.items||[]).forEach((it,idx)=>{ const q=qVal(id,idx); const amt=qAmt(id,idx,it); if(q>0||amt>0) lines.push({name:it.name,spec:(it.spec||'')+' · 수량 '+q,qty:q,price:it.price||0,amount:amt}); }); }); return lines; }
   return d.estIds.map(id=>{ const e=estimates.find(x=>x.id===id); const r=calcSetRow(id); const z=getZONES().find(z=>z.id===d.estZone[id]); const eqd=d.eqs[id]||{banipEqs:[],installEqs:[]};
     const bN=eqd.banipEqs&&eqd.banipEqs.length?' ('+compactRanges(eqd.banipEqs)+')':''; const iN=eqd.installEqs&&eqd.installEqs.length?' ('+compactRanges(eqd.installEqs)+')':'';
@@ -1151,14 +1211,15 @@ window.publishSettle=async function(){ const d=settleDraft; const sup=effSupply(
   const perEst={}; const perItem={}; let mandayUsed=0;
   if(d.method==='progress') d.estIds.forEach(eid=>perEst[eid]=calcSetRow(eid).thisBill);
   if(d.method==='qty') d.estIds.forEach(eid=>{ const e=estimates.find(x=>x.id===eid); if(!e) return; perItem[eid]={}; let es=0; (e.items||[]).forEach((it,idx)=>{ const q=qVal(eid,idx); const amt=qAmt(eid,idx,it); if(q>0||amt>0){ perItem[eid][idx]={qty:q,amount:amt}; es+=amt; } }); perEst[eid]=es; });
-  if(d.method==='manday') mandayUsed=d.mandayInput!=null?d.mandayInput:(d.mandayAuto||0);
+  if(d.method==='manday'){ const pjtIds=(d.pjtIds&&d.pjtIds.length)?d.pjtIds:[d.pjtId];
+    mandayUsed=pjtIds.length>1 ? pjtIds.reduce((s,pid)=>s+mdForPjt(pid),0) : (d.mandayInput!=null?d.mandayInput:(d.mandayAuto||0)); }
   const vat=effVat();
   // 급여와 동일 규칙: 지급예정서(payment)이고 지급예정일이 비어 있으면 기준월의 익월 말일(주말→금요일)로 자동
   let effPayDate=d.payDate||'';
   if(d.docType==='payment' && !effPayDate && d.baseMonth) effPayDate=defaultPayDate(d.baseMonth);
   const effAcctMonth=(effPayDate||d.issueDate||d.baseMonth||'').slice(0,7);
   $('set-save').disabled=true;
-  try{ await setDoc(doc(db,'gihoek_settlements',id),{ pjtId:d.pjtId, no, docType:d.docType, method:d.method,
+  try{ await setDoc(doc(db,'gihoek_settlements',id),{ pjtId:d.pjtId, pjtIds:(d.pjtIds&&d.pjtIds.length)?d.pjtIds:[d.pjtId], no, docType:d.docType, method:d.method,
       baseMonth:d.baseMonth, issueDate:d.issueDate, payDate:effPayDate,
       acctMonth:effAcctMonth,
       senderId:d.senderId||'', sender:{...snap(compById(d.senderId)), ...ctSnap(d.senderId,d.senderContact)}, recipientId:d.recipientId||'', recipient:{...snap(compById(d.recipientId)), ...ctSnap(d.recipientId,d.recipientContact)},
@@ -1170,7 +1231,9 @@ window.publishSettle=async function(){ const d=settleDraft; const sup=effSupply(
 };
 
 window.openSettle=function(id){ viewSetId=id; const s=settlements.find(x=>x.id===id); if(!s){ renderSettle(); return; }
-  const p=projects.find(x=>x.id===s.pjtId); tabSilent('settle');
+  const p=projects.find(x=>x.id===s.pjtId);
+  const pjtBadgeDetail=(s.pjtIds&&s.pjtIds.length>1)? s.pjtIds.map(pid=>{const pp=projects.find(x=>x.id===pid);return pp?pp.code:pid;}).join(' + ') : (p?p.code:'-');
+  tabSilent('settle');
   const party=(label,o)=>`<div class="party"><div class="pl">${label}</div><div class="pc">${o?.company||'-'}</div><div class="pd">${o?.ceo?'대표 '+o.ceo:''}${o?.bizno?' · '+o.bizno:''}</div>${o?.contact?`<div class="pd">담당: ${o.contact}</div>`:''}</div>`;
   const canLink=(s.docType==='invoice' && (s.method==='manual'||s.method==='qty'));
   const linkedEsts=Object.keys(s.perEst||{}).filter(k=>s.perEst[k]>0);
@@ -1179,7 +1242,7 @@ window.openSettle=function(id){ viewSetId=id; const s=settlements.find(x=>x.id==
       ${!setActive(s)?'<div class="void-banner">🚫 폐기된 정산서입니다. 집계에서 제외됩니다.</div>':''}
       <div style="display:flex;justify-content:space-between;align-items:flex-start">
         <div><div style="font-size:16px;font-weight:800">${s.docType==='invoice'?'대금청구서':'지급예정서'}</div>
-        <div class="small muted" style="margin-top:3px"><span class="pill">${p?p.code:'-'}</span> &nbsp;${s.no} · 발행 ${s.issueDate}${s.author?' · '+s.author:''}</div></div>
+        <div class="small muted" style="margin-top:3px"><span class="pill">${pjtBadgeDetail}</span> &nbsp;${s.no} · 발행 ${s.issueDate}${s.author?' · '+s.author:''}</div></div>
         <div style="display:flex;gap:6px">${canLink?`<button class="btn line sm" onclick="linkSettleToEst('${s.id}')">🔗 견적 연결${linkedEsts.length?' 수정':''}</button>`:''}<button class="btn line sm" onclick="previewSettle('${s.id}')">🖨 인쇄/PDF</button>${(setActive(s)&&s.status!=='done')?(s.docType==='invoice'?`<button class="btn line sm" style="color:#16A34A;border-color:#16A34A" onclick="doneSettle('${s.id}')">✓ 완결${(pjtBilled(s.pjtId)-pjtPaid(s.pjtId))<=0?' (권장)':''}</button>`:`<button class="btn line sm" style="color:#16A34A;border-color:#16A34A" onclick="doneSettlePayment('${s.id}')">✓ 지급완료</button>`):''}${(s.status==='done')?`<button class="btn line sm" style="color:#5C6F8A" onclick="undoneSettle('${s.id}')">완결 취소</button>`:''}${setActive(s)?`<button class="btn gray sm" onclick="voidSettle('${s.id}')">폐기</button>`:`<button class="btn gray sm" style="color:#c00" onclick="deleteSettle('${s.id}')">🗑 삭제</button>`}</div></div>
       <div class="partybox">${party('발신 (공급자)',s.sender)}${party(s.docType==='invoice'?'수신 (원청)':'수신 (하청)',s.recipient)}</div>
       <div class="small muted" style="margin-bottom:10px">기준월 ${s.baseMonth} · ${s.docType==='invoice'?'지급요청일':'지급예정일'} ${s.payDate||'-'} · 정산방식 ${{progress:'공정 자동',qty:'수량정산',manday:'공수',manual:'직접입력'}[s.method]}${s.docType==='payment'?(' · 회계 계상월 <b style="color:#1D5BA6">'+acctMonthOf(s)+'</b> <button class="btn line sm" style="padding:1px 8px;font-size:11px;margin-left:4px" onclick="editAcctMonth(\''+s.id+'\')">수정</button>'):''}</div>
@@ -1269,13 +1332,14 @@ window.deleteSettle=async function(id){ if(!confirm('폐기된 정산서를 완�
 
 function settleDocHTML(s){ const title=s.docType==='invoice'?'대 금 청 구 서':'지 급 예 정 서';
   const dateLabel=s.docType==='invoice'?'지급요청일':'지급예정일'; const sd=s.sender||{}, rc=s.recipient||{}; const p=projects.find(x=>x.id===s.pjtId);
+  const pjtLabel=(s.pjtIds&&s.pjtIds.length>1)? s.pjtIds.map(pid=>{const pp=projects.find(x=>x.id===pid);return pp?pp.code:pid;}).join(' + ') : (p?p.code:'-');
   const rows=(s.lines||[]).map((it,i)=>`<tr><td style="text-align:center">${i+1}</td><td>${it.name}</td><td>${it.spec||''}</td><td style="text-align:right">${won(it.amount)}</td></tr>`).join('');
   return `<h1>${title}</h1>
   <div class="meta"><span>발행번호: ${s.no}</span><span>발행일: ${s.issueDate}</span></div>
   <div class="parties">
     <div class="pcard"><div class="h">${s.docType==='invoice'?'수신 (원청)':'수신 (하청)'}</div><div class="nm">${rc.company||'-'}</div><div class="ln">${rc.ceo?'대표 '+rc.ceo:''}${rc.bizno?' / '+rc.bizno:''}</div>${rc.contact?`<div class="ln">${rc.contactTel?rc.contactTel+' ':''}(${rc.contact})</div>`:(rc.tel?`<div class="ln">${rc.tel}</div>`:'')}</div>
     <div class="pcard"><div class="h">발신 (공급자)</div><div class="nm">${sd.company||'-'}</div><div class="ln">${sd.ceo?'대표 '+sd.ceo:''}${sd.bizno?' / '+sd.bizno:''}</div>${sd.tel?`<div class="ln">${sd.tel}</div>`:''}</div></div>
-  <div class="info"><b>프로젝트</b> : ${p?p.code:'-'} &nbsp;&nbsp; <b>기준월</b> : ${s.baseMonth} &nbsp;&nbsp; <b>${dateLabel}</b> : ${s.payDate||'-'}</div>
+  <div class="info"><b>프로젝트</b> : ${pjtLabel} &nbsp;&nbsp; <b>기준월</b> : ${s.baseMonth} &nbsp;&nbsp; <b>${dateLabel}</b> : ${s.payDate||'-'}</div>
   <table><thead><tr><th style="width:34px">No</th><th>내역</th><th>비고</th><th style="width:130px">금액</th></tr></thead><tbody>${rows}</tbody>
   <tfoot><tr><td colspan="3" style="text-align:right">공급가액</td><td style="text-align:right">${won(s.supply)}</td></tr>
     <tr><td colspan="3" style="text-align:right">부가세 (10%)</td><td style="text-align:right">${won(s.vat)}</td></tr>
