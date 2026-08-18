@@ -760,6 +760,7 @@ window.openWorkerAdd=async function(){
     snap.forEach(function(d){
       if(already.has(d.id)) return;
       const m=d.data();
+      if(m.resigned) return; // 퇴사자는 신규 투입 대상에서 제외
       opts+='<option value="'+d.id+'">'+m.name+' ('+(m.birth||'생년월일 없음')+')</option>';
     });
     sel.innerHTML=opts;
