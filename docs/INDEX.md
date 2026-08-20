@@ -890,3 +890,16 @@
 
 **배포**: `pjt_light/index.html`(3.1.1→3.3.0), portal-test 선배포 확인 후 production, 백업 `backup/v3.2.0/pjt_light/index.html`
 **상세**: `4_3_pjt_light.md`, `7_26_log_pjt_light_daily_report.md`, `8_20_log_2026-08-20_session.md`
+
+---
+
+## 2026-08-20 세션 (3) — 경량 PJT: 일정등록 폼 메인 PJT와 동일화 (v3.4.0)
+
+**요청**: 메인 PJT/경량 PJT 일정등록 화면 스크린샷 비교, "다른 프로젝트랑 동일하게 해줘"
+
+**해결**: FAB `pjt/index.html`의 일정등록 로직(카테고리 자동추정/할일체크박스/시분드롭다운/등록자 자동입력)을 경량 PJT에 이식. 카테고리 9종(반입/검수/교육/회의/설치/안전/휴무/연차/행정) → 8종(교육/회의/반입/설치/휴무/안전/품질/기타)으로 변경, 과거 데이터는 하위호환 표시 유지.
+
+**참고**: 홈 통합캘린더는 여전히 구버전 9종 태그 체계를 사용 중이라 FAB 개별 모듈과 이미 갈라져 있었음(이번 작업 범위 아님, 기록만 남김).
+
+**배포**: `pjt_light/index.html`(3.3.0→3.4.0), portal-test 확인 후 production, 백업 `backup/v3.3.0/pjt_light/index.html`
+**상세**: `4_3_pjt_light.md`, `7_27_log_pjt_light_sched_form.md`, `8_20_log_2026-08-20_session.md`
