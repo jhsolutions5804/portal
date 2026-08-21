@@ -2,7 +2,7 @@
 
 > 앱: `portal/pjt/index.html` · 워커 컬렉션: `pjt_workers_fab`
 > Firestore: `user_schedules`, `daily_reports_{날짜}`, `daily_report_docs`, `pjt_workers_fab`, `edoc_leave`
-> 최초 작성: 2026-07-01 · 최종 개정: 2026-07-30 (주간공정회의 자료 자동생성 + 도면 좌표 매핑 툴 v5.3.0) · 작성: 춘식이(Claude)
+> 최초 작성: 2026-07-01 · 최종 개정: 2026-08-21 (공사일보 저장 실패 근본 원인 수정 — Firebase Auth 초기화 누락 + 접근 게이트 신설, v2.4.1) · 작성: 춘식이(Claude)
 
 ---
 
@@ -43,6 +43,14 @@
 - **원인**: standalone 창은 메인 포털의 Firebase Auth 컨텍스트가 없어 `portal_users` 컬렉션 `getDocs` 조회가 실패 → 기존 코드는 `catch(e){}`로 조용히 무시해 드롭다운이 완전히 빈 채로 남음
 - **수정**: Firestore 조회는 try/catch로 감싸 실패 시 `console.warn` 로그만 남기고, 조회 성공/실패와 무관하게 `localStorage`(`jh_login_full`/`jh_login_name`)의 로그인 계정은 항상 옵션에 추가 + 자동 선택
 - 대상 파일: `daily-report/index.html`(FAB) · `daily-report/ph4.html`(SUP) 동일 수정
+
+### 저장 실패(Missing or insufficient permissions) 근본 원인 수정 + 접근 게이트 신설 (v2.4.1)
+
+- **증상**: `daily-report/index.html`에서 항목 작성 후 저장 시 항상 "저장 실패: Missing or insufficient permissions." 알림 발생 (근태 인원수 자동 로드 등 일부 조회도 동일 오류)
+- **원인**: `daily-report/index.html`은 `firebase-app.js` · `firebase-firestore.js`만 import하고 **`firebase-auth.js`를 import하거나 `getAuth(app)`을 호출하는 코드가 아예 없었음**. 다른 모든 모듈(`pjt`, `pjt_ph4`, `edoc`, `hr`, `gihoek`)은 각자 독립적으로 `getAuth(app)`을 호출해 Firestore 요청에 로그인 토큰을 실어 보내는데, `daily-report`만 이 초기화가 빠져 있어 항상 미인증 상태로 Firestore에 요청 → 로그인을 요구하는 보안 규칙에 의해 거부됨. (4.5.1의 "작성자 드롭다운 버그"도 동일 원인의 다른 증상이었으나 당시엔 try/catch로 조용히 무시되어 저장 실패만큼 눈에 띄지 않았음)
+- **수정**: `pjt/index.html`과 동일한 패턴으로 `firebase-auth.js` import + `getAuth(app)` 추가. 아울러 접근 게이트(`_accessGatePromise`)를 신설해 로그인 여부와 `portal_users` 권한(`status==='approved' && (admin===true || perms.pjt===true)`)을 확인 후에만 화면 사용을 허용하도록 함 — 공사일보 작성 권한 기준은 PJT 권한(`perms.pjt`)과 동일하게 통일(대표 확인 완료)
+- 대상 파일: `daily-report/index.html`(FAB). `ph4.html`(SUP)은 별도 확인 필요 — 미반영 상태
+- 검증: `node --check` 문법 검증 → portal-test(`jhsolutions5804.github.io/portal-test/daily-report/`) 실 저장 테스트 통과 확인 후 프로덕션 배포
 
 ---
 
