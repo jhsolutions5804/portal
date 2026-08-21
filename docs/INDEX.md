@@ -1,6 +1,6 @@
 # JH Solutions 포털 — 문서 인덱스
 
-> 최초 작성: 2026-06-26 · 최종 수정: 2026-08-20 · 경량 PJT 공사일보 고도화 + 품목현황 일괄등록/수정 (v3.3.0), 본섭↔테섭 전체 동기화 · 작성: 춘식이(Claude)
+> 최초 작성: 2026-06-26 · 최종 수정: 2026-08-21 · 공사일보 저장 실패 근본 원인 수정 — Firebase Auth 초기화 누락 (v2.4.1) · 작성: 춘식이(Claude)
 
 ---
 
@@ -903,3 +903,19 @@
 
 **배포**: `pjt_light/index.html`(3.3.0→3.4.0), portal-test 확인 후 production, 백업 `backup/v3.3.0/pjt_light/index.html`
 **상세**: `4_3_pjt_light.md`, `7_27_log_pjt_light_sched_form.md`, `8_20_log_2026-08-20_session.md`
+
+---
+
+## 2026-08-21 세션 — 공사일보(daily-report) 저장 실패 근본 원인 수정 (v2.4.1)
+
+**요청**: 대표가 공사일보 작성 화면에서 저장 시 "저장 실패: Missing or insufficient permissions." 알림이 뜬다며 스크린샷 첨부.
+
+**원인**: `daily-report/index.html`에 Firebase Auth 초기화(`firebase-auth.js` import + `getAuth(app)`)가 전혀 없어 Firestore 요청이 항상 미인증 상태로 나갔고, 이 때문에 저장이 거부됨. `pjt`/`edoc`/`hr`/`gihoek`은 모두 자체적으로 Auth를 초기화하고 있었는데 `daily-report`만 예외였던 것으로 확인.
+
+**해결**: `pjt/index.html`과 동일한 패턴으로 `getAuth(app)` + 접근 게이트(로그인 확인 → `portal_users` 권한 확인) 추가. 공사일보 작성 권한 기준은 대표 확인 하에 PJT 권한(`perms.pjt`)과 동일하게 통일.
+
+**검증**: `node --check` → portal-test 배포 → 대표 실 테스트로 정상 저장 확인 → production 배포.
+
+**배포**: `daily-report/index.html`(FAB, v2.4.1), 버전 코멘트 갱신, 백업 `backup/v2.4.1/daily-report/index.html`
+**남은 작업**: `daily-report/ph4.html`(SUP)도 동일 버그 확인됨 — 미수정, 다음 세션 필요
+**상세**: `4_1_pjt_fab.md`, `7_28_log_daily_report_auth_fix.md`, `8_21_log_2026-08-21_session.md`
