@@ -919,3 +919,21 @@
 **배포**: `daily-report/index.html`(FAB, v2.4.1), 버전 코멘트 갱신, 백업 `backup/v2.4.1/daily-report/index.html`
 **남은 작업**: `daily-report/ph4.html`(SUP)도 동일 버그 확인됨 — 미수정, 다음 세션 필요
 **상세**: `4_1_pjt_fab.md`, `7_28_log_daily_report_auth_fix.md`, `8_21_log_2026-08-21_session.md`
+
+---
+
+## 2026-08-22 세션 — 근태 출역 인원수 카운트 버그 수정 (v5.3.5 / daily-report 2.4.2)
+
+**요청**: 대표가 근태 탭에서 "출역 9명 / 전체 5명"(전체보다 출역이 더 많은) 이상한 숫자 발견, 공사일보 "투입 현황"도 실제(5명)와 다른 숫자(9명) 표시.
+
+**1차 진단(되돌림)**: "명단에서 삭제된 인원이 화면에 안 보여서 그렇다"고 보고 삭제 인원을 "(삭제됨)"으로 같이 표시하는 기능 추가 → 배포 후 확인해보니 마스터 명부 미연결 인원은 이름이 전부 "알 수 없음"으로 뜨는 문제 발견, 대표 판단으로 되돌림.
+
+**2차 진단(실제 원인)**: `worker_attendance/{날짜}.checks`는 과거 체크 기록을 그대로 보존(의도된 설계)하는데, "출역 N명" 배지·공사일보 "투입 현황"이 이 값을 필터링 없이 그대로 사용해 명단에서 삭제된 인원의 과거 체크까지 숫자에 포함되고 있었음. 추가로 공사일보는 "전체 인원"을 `data.js`의 하드코딩된 정적 목록(9명 고정)으로 계산해 근태 탭 명단 변경과 무관하게 항상 옛 숫자만 표시하는 별개 버그도 발견.
+
+**해결**: `pjt/index.html`(배지·홈 KPI), `daily-report/index.html`(전체·출역 인원 모두) — 현재 유효 명단(퇴사일 반영)에 실재하는 ID로 필터링해서 카운트하도록 통일. `daily-report`는 하드코딩 배열 대신 `pjt_workers_fab`+`master_workers` 실시간 조회로 전환.
+
+**검증**: `node --check` → portal-test 배포 → 대표 실 확인("ㅇㅋ 된다") → production 배포.
+
+**배포**: `pjt/index.html`(v5.3.5), `daily-report/index.html`(v2.4.2), 버전 코멘트 갱신, 백업 `backup/v5.3.5/pjt/`, `backup/v2.4.2/daily-report/`
+**남은 작업**: `daily-report/ph4.html`(SUP) Auth 수정 — portal-test까지만 배포, 대표 확인 대기 / 경량 PJT 품목현황 날짜별 체크 — 관리자 권한 이슈로 최종 확인 미완료, portal-test 배포 상태에서 보류
+**상세**: `4_1_pjt_fab.md`, `7_29_log_attendance_count_fix.md`, `8_22_log_2026-08-22_session.md`
