@@ -2,7 +2,7 @@
 
 > 앱: `portal/pjt/index.html` · 워커 컬렉션: `pjt_workers_fab`
 > Firestore: `user_schedules`, `daily_reports_{날짜}`, `daily_report_docs`, `pjt_workers_fab`, `edoc_leave`
-> 최초 작성: 2026-07-01 · 최종 개정: 2026-08-21 (공사일보 저장 실패 근본 원인 수정 — Firebase Auth 초기화 누락 + 접근 게이트 신설, v2.4.1) · 작성: 춘식이(Claude)
+> 최초 작성: 2026-07-01 · 최종 개정: 2026-08-22 (근태 출역 인원수 카운트 버그 수정, v5.3.5 / daily-report 2.4.2) · 작성: 춘식이(Claude)
 
 ---
 
@@ -51,6 +51,20 @@
 - **수정**: `pjt/index.html`과 동일한 패턴으로 `firebase-auth.js` import + `getAuth(app)` 추가. 아울러 접근 게이트(`_accessGatePromise`)를 신설해 로그인 여부와 `portal_users` 권한(`status==='approved' && (admin===true || perms.pjt===true)`)을 확인 후에만 화면 사용을 허용하도록 함 — 공사일보 작성 권한 기준은 PJT 권한(`perms.pjt`)과 동일하게 통일(대표 확인 완료)
 - 대상 파일: `daily-report/index.html`(FAB). `ph4.html`(SUP)은 별도 확인 필요 — 미반영 상태
 - 검증: `node --check` 문법 검증 → portal-test(`jhsolutions5804.github.io/portal-test/daily-report/`) 실 저장 테스트 통과 확인 후 프로덕션 배포
+
+---
+
+### 근태 출역 인원수 카운트 버그 수정 (v5.3.5 / daily-report 2.4.2)
+
+- **배경**: 근태 탭 "기술인 출역 현황"에 "출역 9명 / 전체 5명"처럼 출역 인원이 전체 인원보다 많게 표시되는 걸 대표가 발견. 공사일보 "기술인 투입 현황"도 마찬가지로 실제 현재 인원(5명)보다 많은 숫자(9명)로 표시됨
+- **원인 (2가지가 섞여 있었음)**:
+  1. `worker_attendance/{날짜}` 문서의 `checks` 배열은 그 날짜 당시 실제로 체크된 인원 ID를 그대로 보존 — 이후 명단(`pjt_workers_fab`)에서 인원이 삭제돼도 과거 체크 기록 자체는 지워지지 않음(의도된 동작, 삭제 확인창에도 "기존 공수·출역 데이터는 유지됩니다"라고 안내). 그런데 "출역 N명" 배지와 공사일보 "투입 현황"은 이 `checks.length`를 **필터링 없이 그대로** 표시하고 있어서, 명단에서 삭제된 인원의 과거 체크까지 숫자에 포함되어 실제 화면에 보이는 인원 수보다 많게 나옴
+  2. 공사일보(`daily-report/index.html`)의 "전체 N명"은 `data.js`에 **하드코딩된 정적 `WORKERS` 배열**(w1~w9, 9명 고정)을 그대로 썼음 — 근태 탭에서 실제 명단을 추가/삭제해도 이 하드코딩 목록은 전혀 갱신되지 않아 현재 인원(5명)과 무관하게 항상 옛 숫자가 표시됨
+- **수정**:
+  - `pjt/index.html` — "출역 N명" 배지, 홈 화면 "오늘 출역" KPI 모두 `checks`를 현재 명단(`_ws`/`getWorkers()`)에 실제로 존재하는 ID로 필터링한 뒤 카운트하도록 수정 (명단에서 삭제된 인원의 과거 체크는 카운트에서 제외)
+  - `daily-report/index.html` — 하드코딩 `WORKERS` 배열 참조 제거, `pjt_workers_fab` + `master_workers`(퇴사일)를 실시간 조회해서 "전체 인원"을 계산하도록 변경. "출역 인원"도 동일하게 현재 유효 명단 기준으로 필터링
+  - **검토했으나 보류한 대안**: 삭제된 인원을 "◯◯◯ (삭제됨)" 형태로 화면에 같이 표시하는 방안도 시도했으나, 마스터 명부에 연결 안 된 채 추가됐던 인원은 삭제 후 이름을 복구할 방법이 없어 "알 수 없음"으로만 표시되는 문제가 있어 대표 확인 하에 **화면에 안 보이게 하고, 카운트에서도 제외**하는 방식으로 확정
+- 검증: `node --check` → portal-test 실사용 테스트(8/21 날짜 기준 "출역 5명 / 전체 5명" 확인) → 프로덕션 배포
 
 ---
 
