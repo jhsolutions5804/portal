@@ -2,7 +2,7 @@
 
 > 앱: `portal/pjt_ph4/index.html` · 워커 컬렉션: `pjt_workers_ph4`
 > Firestore(차이): `ph4_schedules`(일정), `ph4_reports`(업무지시), `pjt_workers_ph4` · localStorage 키 `ph4ls_`
-> 최초 작성: 2026-07-01 · 최종 개정: 2026-07-27 (접근검증 게이트 추가) · 작성: 춘식이(Claude)
+> 최초 작성: 2026-07-01 · 최종 개정: 2026-08-22 (공사일보 ph4.html Firebase Auth 초기화 누락 수정, v2.4.1) · 작성: 춘식이(Claude)
 
 ---
 
@@ -53,6 +53,13 @@ FAB(4.1)에 추가된 아래 기능이 SUP에도 **동일하게** 반영됨:
 ## 2026-07-14 (4.5.1) 반영 — FAB와 동일 적용
 
 - **공사일보 작성자 드롭다운 버그 수정**: standalone 창(Auth 컨텍스트 없음)에서 `portal_users` 조회 실패 시에도 로그인 계정이 항상 옵션에 추가+자동선택되도록 수정. `daily-report/ph4.html` 동일 적용
+
+### 공사일보(ph4.html) 저장 실패 근본 원인 수정 (v2.4.1, 2026-08-22)
+
+- **증상**: FAB(`daily-report/index.html`)와 동일하게 SUP(`daily-report/ph4.html`)도 저장 시 "Missing or insufficient permissions." 실패
+- **원인**: FAB와 동일 — `firebase-auth.js` import 및 `getAuth(app)` 호출이 아예 없어 Firestore 요청이 항상 미인증 상태였음 (8/21 FAB 수정 당시 SUP는 별도 확인 필요로 남겨뒀던 항목)
+- **수정**: FAB에 적용한 것과 동일한 패턴 그대로 이식 — `getAuth(app)` + 접근 게이트(로그인 확인 → `portal_users`의 `status==='approved' && (admin===true || perms.pjt===true)` 확인)
+- 검증: `node --check`, 원본 대비 diff로 의도한 부분(Auth 초기화 블록)만 추가됐는지 확인 → 프로덕션 배포 (portal-test 별도 확인 없이, FAB에서 이미 검증된 동일 패턴이라 곧바로 진행)
 
 > 상세 원인·수정 내역은 4.1(FAB) 문서 참조.
 
