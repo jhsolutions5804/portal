@@ -935,5 +935,6 @@
 **검증**: `node --check` → portal-test 배포 → 대표 실 확인("ㅇㅋ 된다") → production 배포.
 
 **배포**: `pjt/index.html`(v5.3.5), `daily-report/index.html`(v2.4.2), 버전 코멘트 갱신, 백업 `backup/v5.3.5/pjt/`, `backup/v2.4.2/daily-report/`
-**남은 작업**: `daily-report/ph4.html`(SUP) Auth 수정 — portal-test까지만 배포, 대표 확인 대기 / 경량 PJT 품목현황 날짜별 체크 — 관리자 권한 이슈로 최종 확인 미완료, portal-test 배포 상태에서 보류
-**상세**: `4_1_pjt_fab.md`, `7_29_log_attendance_count_fix.md`, `8_22_log_2026-08-22_session.md`
+**추가로 같은 날 배포**: `daily-report/ph4.html`(SUP) Auth 초기화 수정도 프로덕션 반영 완료(v2.4.1, FAB와 동일 패턴이라 별도 재검증 없이 배포) — `4_2_pjt_sup.md`, `7_30_log_ph4_auth_fix.md`
+**남은 작업**: 경량 PJT 품목현황 날짜별 체크 — 관리자 권한 이슈로 최종 확인 미완료, portal-test 배포 상태에서 보류
+**상세**: `4_1_pjt_fab.md`, `4_2_pjt_sup.md`, `7_29_log_attendance_count_fix.md`, `7_30_log_ph4_auth_fix.md`, `8_22_log_2026-08-22_session.md`
