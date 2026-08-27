@@ -1,6 +1,6 @@
 # JH Solutions 포털 — 문서 인덱스
 
-> 최초 작성: 2026-06-26 · 최종 수정: 2026-08-21 · 공사일보 저장 실패 근본 원인 수정 — Firebase Auth 초기화 누락 (v2.4.1) · 작성: 춘식이(Claude)
+> 최초 작성: 2026-06-26 · 최종 수정: 2026-08-27 · 인사 초과근로 누계/총 수당 금액 표시 정정 (hr v1.0.1) · 작성: 춘식이(Claude)
 
 ---
 
@@ -938,3 +938,19 @@
 **추가로 같은 날 배포**: `daily-report/ph4.html`(SUP) Auth 초기화 수정도 프로덕션 반영 완료(v2.4.1, FAB와 동일 패턴이라 별도 재검증 없이 배포) — `4_2_pjt_sup.md`, `7_30_log_ph4_auth_fix.md`
 **남은 작업**: 경량 PJT 품목현황 날짜별 체크 — 관리자 권한 이슈로 최종 확인 미완료, portal-test 배포 상태에서 보류
 **상세**: `4_1_pjt_fab.md`, `4_2_pjt_sup.md`, `7_29_log_attendance_count_fix.md`, `7_30_log_ph4_auth_fix.md`, `8_22_log_2026-08-22_session.md`
+
+
+---
+
+## 2026-08-27 세션 — 인사 초과근로 누계/총 수당 금액 표시 정정 (v1.0.1)
+
+**요청**: 대표가 인사 초과근로 화면 스크린샷 공유, "누계수당 뭉뚱그리지 말고 금액 정확하게 1원까지" 요청. 이어서 "테섭하고 본섭 다 배포해" 지시.
+
+**원인**: `hr/index.html`의 `otPcLoadKpiAndHours`(상단 "총 수당" KPI)·`otPcShowPersonDetail`(개별 직원 "누계 수당")의 `fmt` 헬퍼가 10,000원 이상일 때 `Math.round(v/10000)+'만원'`으로 반올림 표시(예: 128,730원 → 13만원). 모바일 뷰는 원래 `toLocaleString()` 방식이라 영향 없었음.
+
+**해결**: 두 `fmt` 함수 모두 `v.toLocaleString()+'원'`으로 교체, 1,000단위 콤마 + 1원 단위 정확 표시로 통일 (포털 전체 금액 표시 컨벤션과 일치).
+
+**검증**: `node --check`로 전체 `<script>` 블록 문법 검증 → production·portal-test 독립 fetch/패치(test repo는 firebaseConfig 보존) → Contents API로 양쪽 반영 확인.
+
+**배포**: `hr/index.html`(신규 버전 주석 ver 1.0.1 — hr 모듈 최초 버전 트래킹), production + portal-test 동시 배포, 백업 `backup/v1.0.1/hr/index.html`
+**상세**: `2_4_hr_overtime_r2.md`, `7_31_log_hr_overtime_amount_fix.md`, `8_23_log_2026-08-27_session.md`
