@@ -1,4 +1,4 @@
-<!DOCTYPE html><!-- gihoek module build: 20260829a · ver 5.4.0 · 프로젝트 등록 시 PJT관리(pjt_registry) 자동 연동 -->
+<!DOCTYPE html><!-- gihoek module build: 20260829b · ver 5.5.0 · 견적/정산 검색(드롭다운)·페이지네이션(10건), 프로젝트상세 좌우2단 레이아웃+고정높이 내부스크롤, 견적/정산 상세 뒤로가기 출처추적(프로젝트↔목록) 버그 2건 수정(리터럴 보간 오류, 탭전환 누락) -->
 <html lang="ko">
 <head>
 <meta charset="utf-8">
@@ -233,7 +233,7 @@ onAuthStateChanged(auth, async user => {
           $('app').style.display = 'block';
           document.documentElement.classList.add('portal-embed');
           onSnapshot(collection(db,'gihoek_projects'), s=>{ projects=[]; s.forEach(d=>projects.push({id:d.id,...d.data()})); projects.sort((a,b)=>(a.createdAt?.seconds||0)-(b.createdAt?.seconds||0)); if(curTab==='pjt'&&!detailId&&!pjtForm) renderPjt(); else if(curTab==='home') renderPlanHome(); });
-          onSnapshot(collection(db,'gihoek_estimates'), s=>{ estimates=[]; s.forEach(d=>estimates.push({id:d.id,...d.data()})); estimates.sort((a,b)=>{ const dc=(b.date||'').localeCompare(a.date||''); if(dc) return dc; return (b.createdAt?.seconds||0)-(a.createdAt?.seconds||0); }); if(curTab==='pjt'&&detailId) pjtDetail(detailId); else if(curTab==='pjt'&&!pjtForm) renderPjt(); if(curTab==='est'&&!estDraft&&!viewEstId) renderEst(); else if(curTab==='home') renderPlanHome(); });
+          onSnapshot(collection(db,'gihoek_estimates'), s=>{ estimates=[]; s.forEach(d=>estimates.push({id:d.id,...d.data()})); estimates.sort((a,b)=>{ const dc=(b.date||'').localeCompare(a.date||''); if(dc) return dc; return (b.createdAt?.seconds||0)-(a.createdAt?.seconds||0); }); if(curTab==='pjt'&&detailId) pjtDetail(detailId); else if(curTab==='pjt'&&!pjtForm) renderPjt(); if(curTab==='est'&&!estDraft&&!viewEstId){ if(document.getElementById('est-list-wrap')) renderEstList(); else renderEst(); } else if(curTab==='home') renderPlanHome(); });
           onSnapshot(collection(db,'gihoek_settlements'), s=>{ settlements=[]; s.forEach(d=>settlements.push({id:d.id,...d.data()})); if(curTab==='pjt') { detailId?pjtDetail(detailId):renderPjt(); } else if(curTab==='settle'&&!settleDraft&&!viewSetId) renderSettle(); else if(curTab==='acct') renderAcct(); else if(curTab==='home') renderPlanHome(); });
           onSnapshot(collection(db,'gihoek_companies'), s=>{ companies=[]; s.forEach(d=>companies.push({id:d.id,...d.data()})); companies.sort((a,b)=>(a.company||'').localeCompare(b.company||'')); if(curTab==='comp'&&!compForm) renderComp(); });
           onSnapshot(collection(db,'gihoek_expenses'), s=>{ expenses=[]; s.forEach(d=>expenses.push({id:d.id,...d.data()})); if(curTab==='acct') renderAcct(); }); onSnapshot(query(collection(db,'pjt_registry'), where('status','!=','ended')), s=>{ pjtRegistryList=[]; s.forEach(d=>pjtRegistryList.push({id:d.id,...d.data()})); if(pjtForm) refreshLinkPjtOptions(); });
@@ -267,7 +267,7 @@ async function startApp(){
     }
   }catch(e){}
   onSnapshot(collection(db,'gihoek_projects'), s=>{ projects=[]; s.forEach(d=>projects.push({id:d.id,...d.data()})); projects.sort((a,b)=>(a.createdAt?.seconds||0)-(b.createdAt?.seconds||0)); if(curTab==='pjt'&&!detailId&&!pjtForm) renderPjt(); else if(curTab==='home') renderPlanHome(); });
-  onSnapshot(collection(db,'gihoek_estimates'), s=>{ estimates=[]; s.forEach(d=>estimates.push({id:d.id,...d.data()})); estimates.sort((a,b)=>{ const dc=(b.date||'').localeCompare(a.date||''); if(dc) return dc; return (b.createdAt?.seconds||0)-(a.createdAt?.seconds||0); }); if(curTab==='pjt'&&detailId) pjtDetail(detailId); else if(curTab==='pjt'&&!pjtForm) renderPjt(); if(curTab==='est'&&!estDraft&&!viewEstId) renderEst(); else if(curTab==='home') renderPlanHome(); });
+  onSnapshot(collection(db,'gihoek_estimates'), s=>{ estimates=[]; s.forEach(d=>estimates.push({id:d.id,...d.data()})); estimates.sort((a,b)=>{ const dc=(b.date||'').localeCompare(a.date||''); if(dc) return dc; return (b.createdAt?.seconds||0)-(a.createdAt?.seconds||0); }); if(curTab==='pjt'&&detailId) pjtDetail(detailId); else if(curTab==='pjt'&&!pjtForm) renderPjt(); if(curTab==='est'&&!estDraft&&!viewEstId){ if(document.getElementById('est-list-wrap')) renderEstList(); else renderEst(); } else if(curTab==='home') renderPlanHome(); });
   onSnapshot(collection(db,'gihoek_settlements'), s=>{ settlements=[]; s.forEach(d=>settlements.push({id:d.id,...d.data()})); if(curTab==='pjt') { detailId?pjtDetail(detailId):renderPjt(); } else if(curTab==='settle'&&!settleDraft&&!viewSetId) renderSettle(); else if(curTab==='acct') renderAcct(); else if(curTab==='home') renderPlanHome(); });
   onSnapshot(collection(db,'gihoek_companies'), s=>{ companies=[]; s.forEach(d=>companies.push({id:d.id,...d.data()})); companies.sort((a,b)=>(a.company||'').localeCompare(b.company||'')); if(curTab==='comp'&&!compForm) renderComp(); });
   onSnapshot(collection(db,'gihoek_expenses'), s=>{ expenses=[]; s.forEach(d=>expenses.push({id:d.id,...d.data()})); if(curTab==='acct') renderAcct(); }); onSnapshot(query(collection(db,'pjt_registry'), where('status','!=','ended')), s=>{ pjtRegistryList=[]; s.forEach(d=>pjtRegistryList.push({id:d.id,...d.data()})); if(pjtForm) refreshLinkPjtOptions(); });
@@ -383,9 +383,10 @@ function renderPlanHome(){
 }
 
 /* ---------------- 프로젝트 ---------------- */
-let detailId=null, pjtForm=false;
+let detailId=null, pjtForm=false, pdEstPage=1, pdSetPage=1;
+const PD_PAGE_SIZE=10;
 const TYPE_LABEL={fcu:'자동정산', general:'일반(품목)'};
-function renderPjt(){ detailId=null; pjtForm=false;
+function renderPjt(){ tabSilent('pjt'); detailId=null; pjtForm=false;
   $('v-pjt').innerHTML=`<button onclick="tab('home')" style="background:#F0F4F9;border:1px solid #DDE4EF;border-radius:8px;padding:5px 12px;color:#5C6F8A;font-size:12px;cursor:pointer;font-weight:600;">🏠 기획 홈</button>
   <div class="sec-h"><h2>프로젝트</h2><button class="btn pri sm" onclick="addPjt()">+ 프로젝트 등록</button></div>
   ${projects.length? projects.map(p=>{ const est=pjtEstSum(p.id), b=pjtBilled(p.id), pd=pjtPaid(p.id), pr=b-pd;
@@ -399,9 +400,9 @@ function renderPjt(){ detailId=null; pjtForm=false;
   }).join('') : '<div class="empty">등록된 프로젝트가 없습니다. “프로젝트 등록”으로 추가하세요.</div>'}
   <div class="small muted center" style="margin-top:8px">금액 단위: 원 · 청구·지급·손익은 정산 입력 시 자동 집계</div>`;
 }
-window.pjtDetail=function(id){ detailId=id; pjtForm=false;
+window.pjtDetail=function(id){ tabSilent('pjt'); detailId=id; pjtForm=false; pdEstPage=1; pdSetPage=1;
   const p=projects.find(x=>x.id===id); if(!p){ renderPjt(); return; }
-  const ests=estimates.filter(e=>e.pjtId===id); const setts=[...settlements].filter(s=>s.pjtId===id).sort((a,b)=>(b.issueDate||'').localeCompare(a.issueDate||'')||(b.no||'').localeCompare(a.no||'')); const est=pjtEstSum(id), b=pjtBilled(id), pd=pjtPaid(id), pr=b-pd;
+  const est=pjtEstSum(id), b=pjtBilled(id), pd=pjtPaid(id), pr=b-pd;
   $('v-pjt').innerHTML=`<button class="back" onclick="renderPjtList()">← 프로젝트 목록</button>
     <div class="card"><div style="display:flex; align-items:flex-start; gap:10px"><div style="flex:1">
       <div class="pjt-code">${p.code} <span class="badge type">${TYPE_LABEL[p.type]||'일반'}</span></div><div class="pjt-name">${p.name||''}</div>
@@ -413,16 +414,64 @@ window.pjtDetail=function(id){ detailId=id; pjtForm=false;
       <div class="sumcell"><div class="l">청구 누계</div><div class="v">${won(b)}</div></div>
       <div class="sumcell"><div class="l">지급 누계</div><div class="v">${won(pd)}</div></div>
       <div class="sumcell"><div class="l">실현 손익</div><div class="v ${pr>=0?'pos':'neg'}">${pr>=0?'+':''}${won(pr)}</div></div></div>
-    <div class="sec-h" style="margin-top:22px"><h2>견적 내역 (${ests.length})</h2><button class="btn line sm" onclick="newEst('${id}')">+ 견적 작성</button></div>
-    ${ests.length? ests.map(e=>{ const v=!isActive(e); return `<div class="litem ${v?'void':''}" onclick="openEst('${e.id}')"><div class="d"><div class="ti">${e.title}${e.status==='void'?'<span class="void-tag">폐기</span>':e.status==='closed'?'<span class="void-tag" style="background:#E6F1FB;color:#1D5BA6">종결</span>':((e.rev||1)>1?'<span class="rev-tag">개정 r'+e.rev+'</span>':'')}</div><div class="mt">${e.no} · ${e.date}${e.client?.company?' · '+e.client.company:''}</div></div><div class="amt">${won(estTotal(e))}</div></div>`; }).join('') : '<div class="empty">아직 견적이 없습니다.</div>'}
-    <div class="sec-h" style="margin-top:22px"><h2>정산 내역 (${setts.length})</h2><button class="btn line sm" onclick="newSettle('${id}')">+ 정산서 발행</button></div>
-    ${setts.length? setts.map(s=>{ const v=!setActive(s); const done=s.status==='done'; const isInv=s.docType==='invoice';
-      const stLbl=v?'폐기':(done?'완결':'유효'); const stCol=v?'#9AAABF':(done?'#16A34A':'#1D5BA6');
-      const typeLbl=isInv?'대금청구서':'지급예정서';
-      return `<div class="litem ${v?'void':''}" onclick="openSettle('${s.id}')"><div class="d"><div class="ti">${typeLbl} <span style="font-size:11px;color:#5BA4CF">${s.no||''}</span> <span style="font-size:11px;font-weight:700;color:${stCol}">${stLbl}</span></div><div class="sub">기준월 ${s.baseMonth||'-'} · 발행 ${s.issueDate||'-'}${isInv?'':' · 지급'}</div></div><div class="amt">${won(s.amount||0)}</div></div>`;
-    }).join('') : '<div class="empty">아직 정산 내역이 없습니다.</div>'}`;
+    <div style="display:flex;gap:16px;flex-wrap:wrap;margin-top:22px;">
+      <div style="flex:1;min-width:320px;">
+        <div class="sec-h"><h2 id="pd-est-count">견적 내역 (${estimates.filter(e=>e.pjtId===id).length})</h2><button class="btn line sm" onclick="newEst('${id}')">+ 견적 작성</button></div>
+        <div id="pd-est-list" style="max-height:520px;overflow-y:auto;border:1px solid #ECEFF4;border-radius:10px;padding:2px 4px;"></div>
+      </div>
+      <div style="flex:1;min-width:320px;">
+        <div class="sec-h"><h2 id="pd-set-count">정산 내역 (${settlements.filter(s=>s.pjtId===id).length})</h2><button class="btn line sm" onclick="newSettle('${id}')">+ 정산서 발행</button></div>
+        <div id="pd-set-list" style="max-height:520px;overflow-y:auto;border:1px solid #ECEFF4;border-radius:10px;padding:2px 4px;"></div>
+      </div>
+    </div>`;
+  pdRenderEstList(id);
+  pdRenderSetList(id);
   window.scrollTo(0,0);
 };
+
+function pdRenderEstList(id){
+  const wrap = document.getElementById('pd-est-list'); if(!wrap) return;
+  const ests = estimates.filter(e=>e.pjtId===id);
+  const cnt = document.getElementById('pd-est-count'); if(cnt) cnt.textContent = `견적 내역 (${ests.length})`;
+  const totalPages = Math.max(1, Math.ceil(ests.length/PD_PAGE_SIZE));
+  if (pdEstPage > totalPages) pdEstPage = totalPages;
+  const startIdx = (pdEstPage-1)*PD_PAGE_SIZE;
+  const pageItems = ests.slice(startIdx, startIdx+PD_PAGE_SIZE);
+  const listHtml = pageItems.length ? pageItems.map(e=>{ const v=!isActive(e);
+    return `<div class="litem ${v?'void':''}" onclick="openEst('${e.id}', '${id}')"><div class="d"><div class="ti">${e.title}${e.status==='void'?'<span class="void-tag">폐기</span>':e.status==='closed'?'<span class="void-tag" style="background:#E6F1FB;color:#1D5BA6">종결</span>':((e.rev||1)>1?'<span class="rev-tag">개정 r'+e.rev+'</span>':'')}</div><div class="mt">${e.no} · ${e.date}${e.client?.company?' · '+e.client.company:''}</div></div><div class="amt">${won(estTotal(e))}</div></div>`;
+  }).join('') : '<div class="empty">아직 견적이 없습니다.</div>';
+  wrap.innerHTML = listHtml + pdPagerHtml(totalPages, pdEstPage, ests.length, `pdEstGoPage('${id}',`);
+}
+function pdRenderSetList(id){
+  const wrap = document.getElementById('pd-set-list'); if(!wrap) return;
+  const setts = [...settlements].filter(s=>s.pjtId===id).sort((a,b)=>(b.issueDate||'').localeCompare(a.issueDate||'')||(b.no||'').localeCompare(a.no||''));
+  const cnt = document.getElementById('pd-set-count'); if(cnt) cnt.textContent = `정산 내역 (${setts.length})`;
+  const totalPages = Math.max(1, Math.ceil(setts.length/PD_PAGE_SIZE));
+  if (pdSetPage > totalPages) pdSetPage = totalPages;
+  const startIdx = (pdSetPage-1)*PD_PAGE_SIZE;
+  const pageItems = setts.slice(startIdx, startIdx+PD_PAGE_SIZE);
+  const listHtml = pageItems.length ? pageItems.map(s=>{ const v=!setActive(s); const done=s.status==='done'; const isInv=s.docType==='invoice';
+    const stLbl=v?'폐기':(done?'완결':'유효'); const stCol=v?'#9AAABF':(done?'#16A34A':'#1D5BA6');
+    const typeLbl=isInv?'대금청구서':'지급예정서';
+    return `<div class="litem ${v?'void':''}" onclick="openSettle('${s.id}', '${id}')"><div class="d"><div class="ti">${typeLbl} <span style="font-size:11px;color:#5BA4CF">${s.no||''}</span> <span style="font-size:11px;font-weight:700;color:${stCol}">${stLbl}</span></div><div class="sub">기준월 ${s.baseMonth||'-'} · 발행 ${s.issueDate||'-'}${isInv?'':' · 지급'}</div></div><div class="amt">${won(s.amount||0)}</div></div>`;
+  }).join('') : '<div class="empty">아직 정산 내역이 없습니다.</div>';
+  wrap.innerHTML = listHtml + pdPagerHtml(totalPages, pdSetPage, setts.length, `pdSetGoPage('${id}',`);
+}
+// 견적/정산 상세 내 페이지네이션 UI (견적서·정산서 목록 화면과 동일한 스타일)
+function pdPagerHtml(totalPages, curPage, total, onclickPrefix){
+  if (totalPages<=1) return total ? `<div style="text-align:center;margin:10px 0;font-size:11px;color:#9AAABF;">전체 ${total}건</div>` : '';
+  const startIdx=(curPage-1)*PD_PAGE_SIZE;
+  return `
+    <div style="display:flex;align-items:center;justify-content:center;gap:6px;margin:12px 0 6px;">
+      <button onclick="${onclickPrefix}${Math.max(1,curPage-1)})" ${curPage===1?'disabled':''} style="padding:5px 9px;border:1px solid #DDE4EF;border-radius:7px;background:#fff;color:${curPage===1?'#C3CEDD':'#5C6F8A'};cursor:${curPage===1?'default':'pointer'};font-size:11.5px;">‹</button>
+      ${Array.from({length:totalPages},(_,i)=>i+1).map(n=>`
+        <button onclick="${onclickPrefix}${n})" style="min-width:26px;padding:5px 7px;border:1px solid ${n===curPage?'#1D5BA6':'#DDE4EF'};border-radius:7px;background:${n===curPage?'#1D5BA6':'#fff'};color:${n===curPage?'#fff':'#5C6F8A'};cursor:pointer;font-size:11.5px;font-weight:${n===curPage?700:400};">${n}</button>`).join('')}
+      <button onclick="${onclickPrefix}${Math.min(totalPages,curPage+1)})" ${curPage===totalPages?'disabled':''} style="padding:5px 9px;border:1px solid #DDE4EF;border-radius:7px;background:#fff;color:${curPage===totalPages?'#C3CEDD':'#5C6F8A'};cursor:${curPage===totalPages?'default':'pointer'};font-size:11.5px;">›</button>
+    </div>
+    <div style="text-align:center;margin-bottom:6px;font-size:10.5px;color:#9AAABF;">전체 ${total}건 중 ${startIdx+1}-${Math.min(startIdx+PD_PAGE_SIZE,total)}건</div>`;
+}
+window.pdEstGoPage=function(id,n){ pdEstPage=n; pdRenderEstList(id); const el=document.getElementById('pd-est-list'); if(el) el.scrollTop=0; };
+window.pdSetGoPage=function(id,n){ pdSetPage=n; pdRenderSetList(id); const el=document.getElementById('pd-set-list'); if(el) el.scrollTop=0; };
 window.renderPjtList=renderPjt;
 window.addPjt=function(){ openPjtForm(null); };
 window.editPjt=function(id){ openPjtForm(projects.find(p=>p.id===id)); };
@@ -484,13 +533,136 @@ window.delPjt=async function(id){ if(!confirm('이 프로젝트를 삭제할까�
   try{ await deleteDoc(doc(db,'gihoek_projects',id)); toast('삭제했습니다.'); renderPjt(); }catch(e){ toast('삭제 실패: '+(e.code||e.message)); } };
 
 /* ---------------- 견적 ---------------- */
-let estDraft=null, viewEstId=null;
-function renderEst(){ estDraft=null; viewEstId=null;
+let estDraft=null, viewEstId=null, estPage=1;
+let estFilterPjt='', estFilterClient='', estFilterMonth='', estFilterPjtStatus='';
+const EST_PAGE_SIZE=10;
+
+window.estGoPage = function(p){
+  estPage = p;
+  renderEstList();
+  const listEl = document.getElementById('est-list-wrap');
+  if (listEl) listEl.scrollIntoView({block:'start'});
+};
+window.estFilterChange = function(kind, v){
+  if (kind==='pjt') estFilterPjt = v;
+  else if (kind==='client') estFilterClient = v;
+  else if (kind==='month') estFilterMonth = v;
+  else if (kind==='pjtStatus') estFilterPjtStatus = v;
+  estPage = 1;
+  renderEstList();
+};
+window.estFilterReset = function(){
+  estFilterPjt=''; estFilterClient=''; estFilterMonth=''; estFilterPjtStatus=''; estPage=1;
+  ['est-filter-pjt','est-filter-client','est-filter-month','est-filter-pjtstatus'].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
+  renderEstList();
+};
+
+// 작성된 견적서들에서 실제로 쓰인 값만 뽑아 드롭다운 옵션 구성 (현장명=연결PJT, 거래처, 발행월)
+function estFilterOptions(){
+  const pjtMap = new Map(); // pjtId -> label
+  const clientSet = new Set();
+  const monthSet = new Set();
+  estimates.forEach(e=>{
+    const p = projects.find(x=>x.id===e.pjtId);
+    if (p) pjtMap.set(p.id, p.code || p.name || '(이름없음)');
+    else if (e.pjtId) pjtMap.set(e.pjtId, '삭제된 PJT');
+    if (e.client?.company) clientSet.add(e.client.company);
+    if (e.date && e.date.length>=7) monthSet.add(e.date.slice(0,7));
+  });
+  return {
+    pjtOptions: Array.from(pjtMap.entries()).sort((a,b)=>a[1].localeCompare(b[1],'ko')),
+    clientOptions: Array.from(clientSet).sort((a,b)=>a.localeCompare(b,'ko')),
+    monthOptions: Array.from(monthSet).sort((a,b)=>b.localeCompare(a)), // 최신월 먼저
+  };
+}
+
+function estFilteredList(){
+  return estimates.filter(e=>{
+    if (estFilterPjt && e.pjtId !== estFilterPjt) return false;
+    if (estFilterClient && e.client?.company !== estFilterClient) return false;
+    if (estFilterMonth && !(e.date||'').startsWith(estFilterMonth)) return false;
+    if (estFilterPjtStatus) {
+      const p = projects.find(x=>x.id===e.pjtId);
+      const pStatus = p ? (p.status==='done' ? 'done' : 'run') : null;
+      if (pStatus !== estFilterPjtStatus) return false;
+    }
+    return true;
+  });
+}
+
+// 목록(검색결과+페이지네이션) 부분만 다시 그리는 함수. 드롭다운 옵션은 데이터가 갱신될 때마다 최신값으로 다시 채우되
+// (초기 렌더 시점에 projects/estimates가 아직 안 채워져 있으면 옵션이 비어버리는 문제 대응), 선택값은 그대로 보존한다.
+function renderEstList(){
+  const wrap = document.getElementById('est-list-wrap');
+  if (!wrap) return;
+
+  const opt = estFilterOptions();
+  const pjtSel = document.getElementById('est-filter-pjt');
+  if (pjtSel) {
+    pjtSel.innerHTML = `<option value="">현장명 전체</option>${opt.pjtOptions.map(([id,label])=>`<option value="${id}">${label}</option>`).join('')}`;
+    pjtSel.value = estFilterPjt;
+  }
+  const clientSel = document.getElementById('est-filter-client');
+  if (clientSel) {
+    clientSel.innerHTML = `<option value="">거래처 전체</option>${opt.clientOptions.map(c=>`<option value="${c}">${c}</option>`).join('')}`;
+    clientSel.value = estFilterClient;
+  }
+  const monthSel = document.getElementById('est-filter-month');
+  if (monthSel) {
+    monthSel.innerHTML = `<option value="">발행월 전체</option>${opt.monthOptions.map(m=>`<option value="${m}">${m}</option>`).join('')}`;
+    monthSel.value = estFilterMonth;
+  }
+
+  const filtered = estFilteredList();
+  const isFiltered = estFilterPjt || estFilterClient || estFilterMonth || estFilterPjtStatus;
+  const totalPages = Math.max(1, Math.ceil(filtered.length/EST_PAGE_SIZE));
+  if (estPage > totalPages) estPage = totalPages;
+  const startIdx = (estPage-1)*EST_PAGE_SIZE;
+  const pageItems = filtered.slice(startIdx, startIdx+EST_PAGE_SIZE);
+
+  const listHtml = pageItems.length ? pageItems.map(e=>{ const p=projects.find(x=>x.id===e.pjtId); const v=!isActive(e);
+    const pjtStatusTag = p ? `<span class="badge ${p.status==='done'?'done':'run'}" style="font-size:10px;padding:1px 7px;margin-left:6px;">${p.status==='done'?'종결':'진행중'}</span>` : '';
+    return `<div class="litem ${v?'void':''}" onclick="openEst('${e.id}', null)"><div class="d"><div class="ti">${e.title}${e.status==='void'?'<span class="void-tag">폐기</span>':e.status==='closed'?'<span class="void-tag" style="background:#E6F1FB;color:#1D5BA6">종결</span>':((e.rev||1)>1?'<span class="rev-tag">개정 r'+e.rev+'</span>':'')}</div><div class="mt"><span class="pill">${p?p.code:'삭제된 PJT'}</span>${pjtStatusTag} &nbsp;${e.no} · ${e.date}${e.client?.company?' · '+e.client.company:''}</div></div><div class="amt">${won(estTotal(e))}</div></div>`;
+  }).join('') : `<div class="empty">${isFiltered?'조건에 맞는 견적이 없습니다.':'작성된 견적이 없습니다.'}</div>`;
+
+  const pagerHtml = totalPages>1 ? `
+    <div style="display:flex;align-items:center;justify-content:center;gap:6px;margin-top:14px;">
+      <button onclick="estGoPage(${Math.max(1,estPage-1)})" ${estPage===1?'disabled':''} style="padding:6px 10px;border:1px solid #DDE4EF;border-radius:7px;background:#fff;color:${estPage===1?'#C3CEDD':'#5C6F8A'};cursor:${estPage===1?'default':'pointer'};font-size:12px;">‹ 이전</button>
+      ${Array.from({length:totalPages},(_,i)=>i+1).map(n=>`
+        <button onclick="estGoPage(${n})" style="min-width:30px;padding:6px 8px;border:1px solid ${n===estPage?'#1D5BA6':'#DDE4EF'};border-radius:7px;background:${n===estPage?'#1D5BA6':'#fff'};color:${n===estPage?'#fff':'#5C6F8A'};cursor:pointer;font-size:12px;font-weight:${n===estPage?700:400};">${n}</button>`).join('')}
+      <button onclick="estGoPage(${Math.min(totalPages,estPage+1)})" ${estPage===totalPages?'disabled':''} style="padding:6px 10px;border:1px solid #DDE4EF;border-radius:7px;background:#fff;color:${estPage===totalPages?'#C3CEDD':'#5C6F8A'};cursor:${estPage===totalPages?'default':'pointer'};font-size:12px;">다음 ›</button>
+    </div>
+    <div style="text-align:center;margin-top:6px;font-size:11px;color:#9AAABF;">전체 ${filtered.length}건 중 ${startIdx+1}-${Math.min(startIdx+EST_PAGE_SIZE,filtered.length)}건</div>` : (filtered.length ? `<div style="text-align:center;margin-top:10px;font-size:11px;color:#9AAABF;">전체 ${filtered.length}건</div>` : '');
+
+  wrap.innerHTML = listHtml + pagerHtml;
+}
+
+function renderEst(){ estDraft=null; viewEstId=null; estPage=1; estFilterPjt=''; estFilterClient=''; estFilterMonth=''; estFilterPjtStatus='';
+  const opt = estFilterOptions();
   $('v-est').innerHTML=`<button onclick="tab('home')" style="background:#F0F4F9;border:1px solid #DDE4EF;border-radius:8px;padding:5px 12px;color:#5C6F8A;font-size:12px;cursor:pointer;font-weight:600;">🏠 기획 홈</button>
   <div class="sec-h"><h2>견적</h2><button class="btn pri sm" onclick="newEst()">+ 견적 작성</button></div>
-  ${estimates.length? estimates.map(e=>{ const p=projects.find(x=>x.id===e.pjtId); const v=!isActive(e);
-    return `<div class="litem ${v?'void':''}" onclick="openEst('${e.id}')"><div class="d"><div class="ti">${e.title}${e.status==='void'?'<span class="void-tag">폐기</span>':e.status==='closed'?'<span class="void-tag" style="background:#E6F1FB;color:#1D5BA6">종결</span>':((e.rev||1)>1?'<span class="rev-tag">개정 r'+e.rev+'</span>':'')}</div><div class="mt"><span class="pill">${p?p.code:'삭제된 PJT'}</span> &nbsp;${e.no} · ${e.date}${e.client?.company?' · '+e.client.company:''}</div></div><div class="amt">${won(estTotal(e))}</div></div>`;
-  }).join('') : '<div class="empty">작성된 견적이 없습니다.</div>'}`;
+  <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;">
+    <select id="est-filter-pjt" onchange="estFilterChange('pjt',this.value)" style="flex:1;min-width:150px;padding:9px 10px;border:1px solid #DDE4EF;border-radius:9px;font-size:12.5px;font-family:inherit;background:#fff;color:#1A2540;">
+      <option value="">현장명 전체</option>
+      ${opt.pjtOptions.map(([id,label])=>`<option value="${id}">${label}</option>`).join('')}
+    </select>
+    <select id="est-filter-pjtstatus" onchange="estFilterChange('pjtStatus',this.value)" style="flex:1;min-width:120px;padding:9px 10px;border:1px solid #DDE4EF;border-radius:9px;font-size:12.5px;font-family:inherit;background:#fff;color:#1A2540;">
+      <option value="">진행상태 전체</option>
+      <option value="run">진행중</option>
+      <option value="done">종결</option>
+    </select>
+    <select id="est-filter-client" onchange="estFilterChange('client',this.value)" style="flex:1;min-width:150px;padding:9px 10px;border:1px solid #DDE4EF;border-radius:9px;font-size:12.5px;font-family:inherit;background:#fff;color:#1A2540;">
+      <option value="">거래처 전체</option>
+      ${opt.clientOptions.map(c=>`<option value="${c}">${c}</option>`).join('')}
+    </select>
+    <select id="est-filter-month" onchange="estFilterChange('month',this.value)" style="flex:1;min-width:130px;padding:9px 10px;border:1px solid #DDE4EF;border-radius:9px;font-size:12.5px;font-family:inherit;background:#fff;color:#1A2540;">
+      <option value="">발행월 전체</option>
+      ${opt.monthOptions.map(m=>`<option value="${m}">${m}</option>`).join('')}
+    </select>
+    <button onclick="estFilterReset()" style="padding:9px 14px;border:1px solid #DDE4EF;border-radius:9px;background:#F7F9FC;color:#5C6F8A;font-size:12.5px;cursor:pointer;white-space:nowrap;">초기화</button>
+  </div>
+  <div id="est-list-wrap"></div>`;
+  renderEstList();
 }
 window.renderEst=renderEst;
 
@@ -647,12 +819,14 @@ window.saveEst=async function(){ const d=estDraft;
     toast(d.editId?'개정본을 발행했습니다. (원본 폐기)':'견적을 저장했습니다.'); renderEst(); }
   catch(e){ $('est-save').disabled=false; toast('저장 실패: '+(e.code||e.message)); } };
 
-window.openEst=function(id){ viewEstId=id; const e=estimates.find(x=>x.id===id); if(!e){ renderEst(); return; }
+let estOrigin=null; // 견적 상세에 어디서 들어왔는지: 프로젝트id(프로젝트 상세에서 진입) 또는 null(견적 목록에서 진입)
+window.openEst=function(id, fromPjtId){ viewEstId=id; if(fromPjtId!==undefined) estOrigin=fromPjtId;
+  const e=estimates.find(x=>x.id===id); if(!e){ renderEst(); return; }
   const p=projects.find(x=>x.id===e.pjtId); const sup=estSupply(e), vat=Math.round(sup*0.1);
   tabSilent('est');
   const partyHtml=(label,o)=> `<div class="party"><div class="pl">${label}</div><div class="pc">${o?.company||'-'}</div>
     <div class="pd">${o?.ceo?'대표 '+o.ceo:''}${o?.bizno?' · '+o.bizno:''}</div>${o?.contact?`<div class="pd">담당: ${o.contact}</div>`:''}${o?.address?`<div class="pd">${o.address}</div>`:''}</div>`;
-  $('v-est').innerHTML=`<button class="back" onclick="renderEst()">← 견적 목록</button>
+  $('v-est').innerHTML=`<button class="back" onclick="${estOrigin?`pjtDetail('${estOrigin}')`:'renderEst()'}">← ${estOrigin?'프로젝트로 돌아가기':'견적 목록'}</button>
     <div class="card">
       ${e.status==='void'?`<div class="void-banner">🚫 폐기된 견적입니다.${e.replacedBy?' 개정본: <b>'+e.replacedBy+'</b>':''} 집계에는 반영되지 않습니다.</div>`:''}${e.status==='closed'?`<div class="void-banner" style="background:#E6F1FB;color:#1D5BA6">🔒 종결된 견적입니다. 정산이 완료되어 유효 견적 집계에서 제외됩니다.</div>`:''}
       <div style="display:flex; justify-content:space-between; align-items:flex-start">
@@ -873,39 +1047,75 @@ const TEAM_RATE=190000;
 const zoneGuess=title=>{ const t=title||''; const z=getZONES().find(z=>z.kw.some(k=>t.includes(k))); return z?z.id:''; };
 const setProjects=()=>projects; // alias
 
-let settleDraft=null, viewSetId=null;
+let settleDraft=null, viewSetId=null, settlePage=1;
+const SETTLE_PAGE_SIZE=10;
 const setActive=s=>s.status!=='void';
+const FILTER_SEL_STYLE='flex:1;min-width:120px;padding:9px 10px;border:1px solid #DDE4EF;border-radius:9px;font-size:12.5px;font-family:inherit;background:#fff;color:#1A2540;';
 
 function renderSettle(){ settleDraft=null; viewSetId=null;
-  if(!window.settleFilter) window.settleFilter={docType:'',pjtId:'',client:'',status:''};
+  if(!window.settleFilter) window.settleFilter={docType:'',pjtId:'',client:'',status:'',month:''};
   const f=window.settleFilter;
   const clients=[...new Set(settlements.map(s=>s.recipient&&s.recipient.company).filter(Boolean))].sort();
-  const filtered=settlements.filter(s=>(!f.docType||s.docType===f.docType)&&(!f.pjtId||s.pjtId===f.pjtId||(s.pjtIds&&s.pjtIds.includes(f.pjtId)))&&(!f.client||(s.recipient&&s.recipient.company)===f.client)&&(!f.status||(f.status==='done'?s.status==='done':s.status!=='done')));
+  const months=[...new Set(settlements.map(s=>s.issueDate&&s.issueDate.length>=7?s.issueDate.slice(0,7):null).filter(Boolean))].sort((a,b)=>b.localeCompare(a));
+  const filtered=settlements.filter(s=>{
+    if(f.docType && s.docType!==f.docType) return false;
+    if(f.pjtId && !(s.pjtId===f.pjtId || (s.pjtIds&&s.pjtIds.includes(f.pjtId)))) return false;
+    if(f.client && (s.recipient&&s.recipient.company)!==f.client) return false;
+    if(f.status && (f.status==='done'?s.status!=='done':s.status==='done')) return false;
+    if(f.month && !(s.issueDate||'').startsWith(f.month)) return false;
+    return true;
+  });
   const inv=filtered.filter(s=>s.docType==='invoice'&&setActive(s)).reduce((a,s)=>a+(s.total||0),0);
   const pay=filtered.filter(s=>s.docType==='payment'&&setActive(s)).reduce((a,s)=>a+(s.total||0),0);
   const done=filtered.filter(s=>s.docType==='invoice'&&s.status==='done').reduce((a,s)=>a+(s.total||0),0);
   const sorted=[...filtered].sort((a,b)=>(b.issueDate||'').localeCompare(a.issueDate||'')||(b.no||'').localeCompare(a.no||'')||((b.createdAt?.seconds||0)-(a.createdAt?.seconds||0)));
-  const filterBarHtml=`<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">
-      <select class="sel" style="width:auto;min-width:110px" onchange="setSettleFilter('docType',this.value)">
-        <option value="" ${!f.docType?'selected':''}>구분: 전체</option>
+
+  const totalPages=Math.max(1, Math.ceil(sorted.length/SETTLE_PAGE_SIZE));
+  if(settlePage>totalPages) settlePage=totalPages;
+  const startIdx=(settlePage-1)*SETTLE_PAGE_SIZE;
+  const pageItems=sorted.slice(startIdx, startIdx+SETTLE_PAGE_SIZE);
+  const isFiltered = f.docType||f.pjtId||f.client||f.status||f.month;
+
+  const filterBarHtml=`<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px">
+      <select style="${FILTER_SEL_STYLE}" onchange="setSettleFilter('docType',this.value)">
+        <option value="" ${!f.docType?'selected':''}>구분 전체</option>
         <option value="invoice" ${f.docType==='invoice'?'selected':''}>대금청구서</option>
         <option value="payment" ${f.docType==='payment'?'selected':''}>지급예정서</option>
       </select>
-      <select class="sel" style="width:auto;min-width:130px" onchange="setSettleFilter('pjtId',this.value)">
-        <option value="" ${!f.pjtId?'selected':''}>PJT: 전체</option>
+      <select style="${FILTER_SEL_STYLE}" onchange="setSettleFilter('pjtId',this.value)">
+        <option value="" ${!f.pjtId?'selected':''}>현장명 전체</option>
         ${projects.map(p=>`<option value="${p.id}" ${f.pjtId===p.id?'selected':''}>${p.code}</option>`).join('')}
       </select>
-      <select class="sel" style="width:auto;min-width:130px" onchange="setSettleFilter('client',this.value)">
-        <option value="" ${!f.client?'selected':''}>거래처: 전체</option>
+      <select style="${FILTER_SEL_STYLE}" onchange="setSettleFilter('client',this.value)">
+        <option value="" ${!f.client?'selected':''}>거래처 전체</option>
         ${clients.map(c=>`<option value="${c}" ${f.client===c?'selected':''}>${c}</option>`).join('')}
       </select>
-      <select class="sel" style="width:auto;min-width:100px" onchange="setSettleFilter('status',this.value)">
-        <option value="" ${!f.status?'selected':''}>상태: 전체</option>
+      <select style="${FILTER_SEL_STYLE}" onchange="setSettleFilter('month',this.value)">
+        <option value="" ${!f.month?'selected':''}>발행월 전체</option>
+        ${months.map(m=>`<option value="${m}" ${f.month===m?'selected':''}>${m}</option>`).join('')}
+      </select>
+      <select style="${FILTER_SEL_STYLE}" onchange="setSettleFilter('status',this.value)">
+        <option value="" ${!f.status?'selected':''}>상태 전체</option>
         <option value="done" ${f.status==='done'?'selected':''}>✓ 완결</option>
         <option value="pending" ${f.status==='pending'?'selected':''}>미결</option>
       </select>
-      ${(f.docType||f.pjtId||f.client||f.status)?`<button class="btn line sm" onclick="resetSettleFilter()">필터 초기화</button>`:''}
+      <button onclick="resetSettleFilter()" style="padding:9px 14px;border:1px solid #DDE4EF;border-radius:9px;background:#F7F9FC;color:#5C6F8A;font-size:12.5px;cursor:pointer;white-space:nowrap;">초기화</button>
     </div>`;
+
+  const listHtml = pageItems.length? pageItems.map(s=>{ const p=projects.find(x=>x.id===s.pjtId); const v=!setActive(s);
+      const pjtBadge=(s.pjtIds&&s.pjtIds.length>1)? s.pjtIds.map(pid=>{const pp=projects.find(x=>x.id===pid);return pp?pp.code:pid;}).join('+') : (p?p.code:'-');
+      return `<div class="litem ${v?'void':''}" onclick="openSettle('${s.id}', null)"><div class="d"><div class="ti">${s.docType==='invoice'?'대금청구서':'지급예정서'} <span class="pill">${s.no}</span>${v?'<span class="void-tag">폐기</span>':''}${s.status==='done'?'<span class="void-tag" style="background:#E1F5EE;color:#085041">✓ 완결</span>':''}</div><div class="mt"><span class="pill">${pjtBadge}</span> &nbsp;기준월 ${s.baseMonth} · 발행 ${s.issueDate}${s.recipient?.company?' · '+s.recipient.company:''}</div></div><div class="amt">${won(s.total)}</div></div>`;
+    }).join('') : `<div class="empty">${isFiltered?'조건에 맞는 정산서가 없습니다.':'발행된 정산서가 없습니다.'}</div>`;
+
+  const pagerHtml = totalPages>1 ? `
+    <div style="display:flex;align-items:center;justify-content:center;gap:6px;margin-top:14px;">
+      <button onclick="setSettlePage(${Math.max(1,settlePage-1)})" ${settlePage===1?'disabled':''} style="padding:6px 10px;border:1px solid #DDE4EF;border-radius:7px;background:#fff;color:${settlePage===1?'#C3CEDD':'#5C6F8A'};cursor:${settlePage===1?'default':'pointer'};font-size:12px;">‹ 이전</button>
+      ${Array.from({length:totalPages},(_,i)=>i+1).map(n=>`
+        <button onclick="setSettlePage(${n})" style="min-width:30px;padding:6px 8px;border:1px solid ${n===settlePage?'#1D5BA6':'#DDE4EF'};border-radius:7px;background:${n===settlePage?'#1D5BA6':'#fff'};color:${n===settlePage?'#fff':'#5C6F8A'};cursor:pointer;font-size:12px;font-weight:${n===settlePage?700:400};">${n}</button>`).join('')}
+      <button onclick="setSettlePage(${Math.min(totalPages,settlePage+1)})" ${settlePage===totalPages?'disabled':''} style="padding:6px 10px;border:1px solid #DDE4EF;border-radius:7px;background:#fff;color:${settlePage===totalPages?'#C3CEDD':'#5C6F8A'};cursor:${settlePage===totalPages?'default':'pointer'};font-size:12px;">다음 ›</button>
+    </div>
+    <div style="text-align:center;margin-top:6px;font-size:11px;color:#9AAABF;">전체 ${sorted.length}건 중 ${startIdx+1}-${Math.min(startIdx+SETTLE_PAGE_SIZE,sorted.length)}건</div>` : (sorted.length ? `<div style="text-align:center;margin-top:10px;font-size:11px;color:#9AAABF;">전체 ${sorted.length}건</div>` : '');
+
   $('v-settle').innerHTML=`<button onclick="tab('home')" style="background:#F0F4F9;border:1px solid #DDE4EF;border-radius:8px;padding:5px 12px;color:#5C6F8A;font-size:12px;cursor:pointer;font-weight:600;">🏠 기획 홈</button>
   <div class="sec-h"><h2>정산</h2><button class="btn pri sm" onclick="newSettle()">+ 정산서 발행</button></div>
     <div class="sumgrid" style="grid-template-columns:1fr 1fr 1fr;margin-bottom:16px">
@@ -913,14 +1123,13 @@ function renderSettle(){ settleDraft=null; viewSetId=null;
       <div class="sumcell"><div class="l">지급예정 누계</div><div class="v">${won(pay)}</div></div>
       <div class="sumcell"><div class="l">미수금 (청구−수금)</div><div class="v" style="color:${(inv-done)>0?'#DC2626':'#16A34A'}">${won(inv-done)}</div></div></div>
     ${filterBarHtml}
-    ${sorted.length? sorted.map(s=>{ const p=projects.find(x=>x.id===s.pjtId); const v=!setActive(s);
-      const pjtBadge=(s.pjtIds&&s.pjtIds.length>1)? s.pjtIds.map(pid=>{const pp=projects.find(x=>x.id===pid);return pp?pp.code:pid;}).join('+') : (p?p.code:'-');
-      return `<div class="litem ${v?'void':''}" onclick="openSettle('${s.id}')"><div class="d"><div class="ti">${s.docType==='invoice'?'대금청구서':'지급예정서'} <span class="pill">${s.no}</span>${v?'<span class="void-tag">폐기</span>':''}${s.status==='done'?'<span class="void-tag" style="background:#E1F5EE;color:#085041">✓ 완결</span>':''}</div><div class="mt"><span class="pill">${pjtBadge}</span> &nbsp;기준월 ${s.baseMonth} · 발행 ${s.issueDate}${s.recipient?.company?' · '+s.recipient.company:''}</div></div><div class="amt">${won(s.total)}</div></div>`;
-    }).join('') : `<div class="empty">${(f.docType||f.pjtId||f.client||f.status)?'조건에 맞는 정산서가 없습니다.':'발행된 정산서가 없습니다.'}</div>`}`;
+    ${listHtml}
+    ${pagerHtml}`;
 }
 window.renderSettle=renderSettle;
-window.setSettleFilter=function(key,val){ if(!window.settleFilter) window.settleFilter={docType:'',pjtId:'',client:'',status:''}; window.settleFilter[key]=val; renderSettle(); };
-window.resetSettleFilter=function(){ window.settleFilter={docType:'',pjtId:'',client:'',status:''}; renderSettle(); };
+window.setSettleFilter=function(key,val){ if(!window.settleFilter) window.settleFilter={docType:'',pjtId:'',client:'',status:'',month:''}; window.settleFilter[key]=val; settlePage=1; renderSettle(); };
+window.resetSettleFilter=function(){ window.settleFilter={docType:'',pjtId:'',client:'',status:'',month:''}; settlePage=1; renderSettle(); };
+window.setSettlePage=function(p){ settlePage=p; renderSettle(); const el=document.querySelector('#v-settle .sec-h'); if(el) el.scrollIntoView({block:'start'}); };
 
 window.newSettle=function(pjtId){
   if(!projects.length){ toast('먼저 프로젝트를 등록하세요.'); tab('pjt'); return; }
@@ -1270,14 +1479,16 @@ window.publishSettle=async function(){ const d=settleDraft; const sup=effSupply(
   catch(e){ $('set-save').disabled=false; toast('발행 실패: '+(e.code||e.message)); }
 };
 
-window.openSettle=function(id){ viewSetId=id; const s=settlements.find(x=>x.id===id); if(!s){ renderSettle(); return; }
+let setOrigin=null; // 정산 상세에 어디서 들어왔는지: 프로젝트id 또는 null
+window.openSettle=function(id, fromPjtId){ viewSetId=id; if(fromPjtId!==undefined) setOrigin=fromPjtId;
+  const s=settlements.find(x=>x.id===id); if(!s){ renderSettle(); return; }
   const p=projects.find(x=>x.id===s.pjtId);
   const pjtBadgeDetail=(s.pjtIds&&s.pjtIds.length>1)? s.pjtIds.map(pid=>{const pp=projects.find(x=>x.id===pid);return pp?pp.code:pid;}).join(' + ') : (p?p.code:'-');
   tabSilent('settle');
   const party=(label,o)=>`<div class="party"><div class="pl">${label}</div><div class="pc">${o?.company||'-'}</div><div class="pd">${o?.ceo?'대표 '+o.ceo:''}${o?.bizno?' · '+o.bizno:''}</div>${o?.contact?`<div class="pd">담당: ${o.contact}</div>`:''}</div>`;
   const canLink=(s.docType==='invoice' && (s.method==='manual'||s.method==='qty'));
   const linkedEsts=Object.keys(s.perEst||{}).filter(k=>s.perEst[k]>0);
-  $('v-settle').innerHTML=`<button class="back" onclick="renderSettle()">← 정산 목록</button>
+  $('v-settle').innerHTML=`<button class="back" onclick="${setOrigin?`pjtDetail('${setOrigin}')`:'renderSettle()'}">← ${setOrigin?'프로젝트로 돌아가기':'정산 목록'}</button>
     <div class="card">
       ${!setActive(s)?'<div class="void-banner">🚫 폐기된 정산서입니다. 집계에서 제외됩니다.</div>':''}
       <div style="display:flex;justify-content:space-between;align-items:flex-start">
@@ -1504,7 +1715,7 @@ function renderAccLedger(){
         :'<div class="empty">'+((accLCat||accLVendor)?'조건에 맞는 내역이 없습니다. (필터 적용 중)':'이 달 비용이 없습니다. “비용 입력”으로 추가하세요.')+'</div>'}</div>
     <div class="note-amber">실제 운영: 영수증·카드내역·계좌 거래내역·주문내역 파일을 춘식이에게 주시면 직접비/간접비로 분류해 이 장부에 채워 넣습니다. 앱에서는 직접 입력·수정·조회를 합니다. 🔗 정산 연동 항목(지급완료된 지급예정서)은 자동 반영되며, 직접 수정할 수 없습니다 — 정산 화면에서 지급완료를 취소하면 제외됩니다.</div>`;
 }
-window.openSettleFromLedger=function(id){ tab('settle'); openSettle(id); };
+window.openSettleFromLedger=function(id){ tab('settle'); openSettle(id, null); };
 window.accSetFilter=function(k,v){ if(k==='sort')accLSort=v; else if(k==='vendor')accLVendor=v; else if(k==='cat')accLCat=v; renderAccLedger(); };
 window.accResetFilter=function(){ accLSort='date_asc'; accLVendor=''; accLCat=''; renderAccLedger(); };
 
