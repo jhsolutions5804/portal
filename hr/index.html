@@ -1,4 +1,4 @@
-<!DOCTYPE html><!-- HR module build: 20260827a · ver 1.0.1 · 초과근로 누계 수당 만원 반올림 제거, 1원 단위 정확 표시 -->
+<!DOCTYPE html><!-- HR module build: 20260829a · ver 2.0.0 · 근로시간 관리 전면 개편: 급여명세서(기본/연장/야간/휴일/주휴수당 실근무기반 자동계산, 포괄임금제 폐지), 근로시간 탭 캘린더화(관리자 CRUD+업무일지 팝업), 타임존 버그 수정 -->
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
@@ -716,7 +716,7 @@ body { font-family:-apple-system,'Apple SD Gothic Neo','Pretendard',sans-serif; 
     <button class="tab-btn" data-navkey="roster" onclick="goTab('roster')">👥 근로자 명부</button>
     <button class="tab-btn" data-navkey="labor" onclick="goTab('labor')">📝 근로계약서</button>
     <button class="tab-btn" data-navkey="annual" onclick="goTab('annual')">📋 연봉계약서</button>
-    <button class="tab-btn" data-navkey="overtime" onclick="goTab('overtime')">⏱ 초과근로</button>
+    <button class="tab-btn" data-navkey="overtime" onclick="goTab('overtime')">⏱ 근로시간</button>
     <button class="tab-btn" data-navkey="payslip" onclick="goTab('payslip')">💰 급여명세서</button>
     <button class="tab-btn" data-navkey="retire" onclick="goTab('retire')">🧾 퇴직금</button>
     <button class="tab-btn" data-navkey="leave" onclick="goTab('leave')">🌴 연차</button>
@@ -765,7 +765,7 @@ const HR_TABS = {
   roster:   { id:'tab-roster',   title:'근로자 명부', fn:()=>renderRosterMain() },
   labor:    { id:'tab-labor',    title:'근로계약서',  fn:()=>renderLaborMain() },
   annual:   { id:'tab-annual',   title:'연봉계약서',  fn:()=>renderAnnualMain() },
-  overtime: { id:'tab-overtime', title:'초과근로',    fn:()=>renderOvertimeMain() },
+  overtime: { id:'tab-overtime', title:'근로시간',    fn:()=>renderOvertimeMain() },
   payslip:  { id:'tab-payslip',  title:'급여명세서',  fn:()=>renderPayslipMain2() },
   retire:   { id:'tab-retire',   title:'퇴직금 정산', fn:()=>renderRetireMain() },
   leave:    { id:'tab-leave',    title:'연차 현황',   fn:()=>renderLeaveStatusMain() },
@@ -795,7 +795,7 @@ async function renderHome() {
       <div class="hm-fc full" onclick="goTab('roster')"><div class="hm-step">1</div><div class="hm-fb"><div class="stage">입사 · 인사 마스터 (모든 단계의 기준)</div><div class="ttl">근로자 명부</div><div class="hm-pills"><span class="hm-pill">등록</span><span class="hm-pill">조회 · 상세</span></div></div><div class="hm-chev">›</div></div>
       <div class="hm-fc" onclick="goTab('labor')"><div class="hm-step">2</div><div class="hm-fb"><div class="stage">시급 입력 → 연봉 자동 산정</div><div class="ttl">근로계약서</div></div><div class="hm-chev">›</div></div>
       <div class="hm-fc" onclick="goTab('annual')"><div class="hm-step">3</div><div class="hm-fb"><div class="stage">근로계약서 시급 연동</div><div class="ttl">연봉계약서</div></div><div class="hm-chev">›</div></div>
-      <div class="hm-fc" onclick="goTab('overtime')"><div class="hm-step">4</div><div class="hm-fb"><div class="stage">근무 · 통상임금 자동 계산</div><div class="ttl">초과근로</div></div><div class="hm-chev">›</div></div>
+      <div class="hm-fc" onclick="goTab('overtime')"><div class="hm-step">4</div><div class="hm-fb"><div class="stage">근무 · 통상임금 자동 계산</div><div class="ttl">근로시간</div></div><div class="hm-chev">›</div></div>
       <div class="hm-fc" onclick="goTab('payslip')"><div class="hm-step">5</div><div class="hm-fb"><div class="stage">급여 · 연봉 + 초과근로 연동</div><div class="ttl">급여명세서</div></div><div class="hm-chev">›</div></div>
       <div class="hm-fc" onclick="goTab('retire')"><div class="hm-step">6</div><div class="hm-fb"><div class="stage">퇴직 · 재직기간 × 평균임금</div><div class="ttl">퇴직금 정산</div></div><div class="hm-chev">›</div></div>
       <div class="hm-fc" onclick="goTab('leave')"><div class="hm-step">7</div><div class="hm-fb"><div class="stage">근로기준법 자동 산정 · 전 직원</div><div class="ttl">연차 현황</div></div><div class="hm-chev">›</div></div>
@@ -867,10 +867,10 @@ async function loadHomeKpis() {
   if (!window._db) { setTimeout(loadHomeKpis, 600); return; }
   try {
     const { getDocs, collection, doc, getDoc } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
-    const now = new Date().toISOString().slice(0,10);
+    const now = (() => { const d=new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); })();
     const ym  = now.slice(0,7);
     const d30 = new Date(); d30.setDate(d30.getDate()+30);
-    const d30s = d30.toISOString().slice(0,10);
+    const d30s = d30.getFullYear()+'-'+String(d30.getMonth()+1).padStart(2,'0')+'-'+String(d30.getDate()).padStart(2,'0');
 
     const wSnap = await getDocs(collection(window._db,'workers'));
     const workers = []; wSnap.forEach(d=>workers.push({id:d.id, ...d.data()}));
@@ -907,7 +907,7 @@ async function loadHomeKpis() {
       <div class="hm-kpi" onclick="hrShowList('roster')"><div class="lab">재직 인원</div><div class="val">${headcount}<small> 명</small></div><div class="act">명부 보기 ›</div></div>
       <div class="hm-kpi ${renew>0?'warn':''}" onclick="hrShowList('renew')"><div class="lab">계약 갱신 필요</div><div class="val">${renew}<small> 명 · D-30 이내</small></div><div class="act">갱신하러 가기 ›</div></div>
       <div class="hm-kpi ${payDone<headcount?'warn':''}" onclick="hrShowList('paymissing')"><div class="lab">이번 달 급여명세서</div><div class="val">${payDone}<small> / ${headcount} 작성</small></div><div class="act">작성하러 가기 ›</div></div>
-      <div class="hm-kpi" onclick="hrShowList('overtime')"><div class="lab">이번 달 초과근로</div><div class="val">${otHours}<small> h · ${manWon}만원</small></div><div class="act">현황 보기 ›</div></div>`;
+      <div class="hm-kpi" onclick="hrShowList('overtime')"><div class="lab">이번 달 초과근로수당</div><div class="val">${otHours}<small> h · ${manWon}만원</small></div><div class="act">현황 보기 ›</div></div>`;
   } catch(e) {
     const kpi=document.getElementById('hm-kpi');
     if (kpi) kpi.innerHTML = '<div style="grid-column:1/-1;color:#9AAABF;font-size:12px;padding:12px;">현황을 불러오지 못했습니다.</div>';
@@ -934,21 +934,14 @@ window.addEventListener('DOMContentLoaded', () => {
 function calcAnnualSalary(hourly, empType) {
   if (!hourly) return { basic:0, fixedOt:0, fixedNight:0, weekly:0, total:0, annual:0 };
   const h = Number(hourly);
-  if (empType === 'office') {
-    const basic      = Math.round(h * 8 * 5 * 4.345);
-    const fixedOt    = Math.round(h * 12 * 4.345);
-    const fixedNight = 0;
-    const weekly     = Math.round(h * 8 * 4.345);
-    const total      = basic + fixedOt + fixedNight + weekly;
-    return { basic, fixedOt, fixedNight, weekly, total, annual: total * 12 };
-  } else {
-    const basic      = Math.round(h * 8 * 5 * 4.345);
-    const fixedOt    = 0;
-    const fixedNight = Math.round(h * 0.5 * 8 * 5 * 4.345);
-    const weekly     = Math.round(h * 8 * 4.345);
-    const total      = basic + fixedOt + fixedNight + weekly;
-    return { basic, fixedOt, fixedNight, weekly, total, annual: total * 12 };
-  }
+  // 포괄임금제 폐지: 고정연장·고정야간수당은 더 이상 연봉계약서에 고정값으로 포함하지 않는다.
+  // 실제 연장·야간근로수당은 매달 실제 근무기록을 기준으로 급여명세서 작성 시 자동 계산된다 (psCalcAll 참고).
+  const basic      = Math.round(h * 8 * 5 * 4.345);
+  const fixedOt    = 0;
+  const fixedNight = 0;
+  const weekly     = Math.round(h * 8 * 4.345);
+  const total       = basic + fixedOt + fixedNight + weekly;
+  return { basic, fixedOt, fixedNight, weekly, total, annual: total * 12 };
 }
 
 
@@ -1575,13 +1568,57 @@ function psCalcAll() {
   const sal0 = ps.annualData
     ? psCalcPay(ps.annualData.hourly, ps.workerData?.empType)
     : { basic:0, fixedOt:0, fixedNight:0, weekly:0, total:0 };
-  // 지급내역 직접 수정 오버라이드 (undefined면 연봉계약서 자동값)
-  const _pBasic      = ps._basic      !== undefined ? Number(ps._basic)      : sal0.basic;
-  const _pFixedOt    = ps._fixedOt    !== undefined ? Number(ps._fixedOt)    : sal0.fixedOt;
-  const _pFixedNight = ps._fixedNight !== undefined ? Number(ps._fixedNight) : sal0.fixedNight;
-  const _pWeekly     = ps._weekly     !== undefined ? Number(ps._weekly)     : sal0.weekly;
-  const sal = { ...sal0, basic:_pBasic, fixedOt:_pFixedOt, fixedNight:_pFixedNight, weekly:_pWeekly,
-                total: _pBasic + _pFixedOt + _pFixedNight + _pWeekly };
+
+  // ── 실근무시간 기반 기본근로수당·연장근로수당·야간근로수당 자동계산 ──
+  // 기본근로수당 "금액"은 시급×209h 기준(calcAnnualSalary, 변경 없음)이지만,
+  // 초과/부족 "판정 기준"은 해당 월 캘린더 기준 소정근로시간(monthlyStandardHours, 공휴일 제외 평일수×8h)을 쓴다.
+  // → 실근무시간이 그 달 소정근로시간을 채우면 기본근로수당 100% + 초과분은 연장근로수당(시급×1.5).
+  //   못 채우면 부족분만큼 기본근로수당에서 차감. 야간근로수당은 22시~06시 실근무시간×시급×0.5.
+  const hourly       = Number(ps.annualData?.hourly || 0);
+  const attHours     = Number(ps.attHours || 0);
+  const leaveHours   = Number(ps.leaveHours || 0);
+  const nightHours   = Number(ps.nightHours || 0);
+  const actualHours  = attHours + leaveHours;
+  const [psYear, psMonthNum] = (ps.month || '').split('-').map(Number);
+  const monthlyThreshold = (psYear && psMonthNum) ? monthlyStandardHours(psYear, psMonthNum) : 209;
+  const diffHours    = actualHours - monthlyThreshold;
+  let basicAuto = sal0.basic, otHours = 0, otPayAuto = 0, shortHours = 0, shortDeduct = 0;
+  if (hourly > 0 && ps.annualData) {
+    if (diffHours >= 0) {
+      otHours   = diffHours;
+      otPayAuto = Math.round(hourly * otHours * 1.5);
+    } else {
+      shortHours   = -diffHours;
+      shortDeduct  = Math.round(hourly * shortHours);
+      basicAuto    = Math.max(0, sal0.basic - shortDeduct);
+    }
+  }
+  const nightPayAuto = hourly > 0 ? Math.round(hourly * nightHours * 0.5) : 0;
+
+  // 주휴수당: 근로기준법 55조 — 그 주 소정근로일 개근 + 주15시간 이상 요건 판정 기반 계산.
+  // 출퇴근기록이 그 달에 전혀 없으면(미사용) 기존 고정계산(h×8×4.345)으로 폴백.
+  const weeklyResult = (psYear && psMonthNum)
+    ? hrCalcWeeklyHolidayPay(hourly, psYear, psMonthNum, ps.attDates, ps.leaveDocsRaw, ps.workerData?.name, sal0.weekly)
+    : { weeklyPay: sal0.weekly, qualifyingWeeks: null, totalWeeks: null, weekDetails: [], estimated: true };
+
+  // 휴일근로수당: 근로기준법 56조 2항 — 토·일·공휴일 실근무시간 중 8시간 이내분 1.5배, 8시간 초과분 2.0배
+  const holidayResult = hrCalcHolidayPay(hourly, ps.holidayRecords);
+
+  // 지급내역 직접 수정 오버라이드 (undefined면 실근무 기반 자동값)
+  // ※ 필드명(fixedOt/fixedNight)은 과거 저장된 급여명세서와의 호환을 위해 그대로 유지하되,
+  //   값의 의미는 "고정수당"에서 "실근무 기반 연장/야간근로수당"으로 변경됨.
+  const _pBasic      = ps._basic      !== undefined ? Number(ps._basic)      : basicAuto;
+  const _pFixedOt    = ps._fixedOt    !== undefined ? Number(ps._fixedOt)    : otPayAuto;
+  const _pFixedNight = ps._fixedNight !== undefined ? Number(ps._fixedNight) : nightPayAuto;
+  const _pWeekly     = ps._weekly     !== undefined ? Number(ps._weekly)     : weeklyResult.weeklyPay;
+  const _pHoliday    = ps._holidayPay !== undefined ? Number(ps._holidayPay) : holidayResult.holidayPay;
+  const sal = { ...sal0, basic:_pBasic, fixedOt:_pFixedOt, fixedNight:_pFixedNight, weekly:_pWeekly, holidayPay:_pHoliday,
+                total: _pBasic + _pFixedOt + _pFixedNight + _pWeekly + _pHoliday,
+                // 급여명세서 화면에 실근무 정보를 함께 보여주기 위한 참고값
+                attHours, leaveHours, nightHours, actualHours, standardHours: monthlyThreshold,
+                otHours, shortHours, shortDeduct, holidayHours: holidayResult.holidayHours,
+                weeklyQualifyingWeeks: weeklyResult.qualifyingWeeks, weeklyTotalWeeks: weeklyResult.totalWeeks,
+                weeklyEstimated: weeklyResult.estimated, weeklyDetails: weeklyResult.weekDetails };
   if (sal0.annual !== undefined) sal.annual = sal.total * 12;
 
   const bonus       = Number(ps.bonus||0);
@@ -1641,7 +1678,7 @@ window.renderPayslipPC = () => {
   ps.workerData = null; ps.annualData = null;
   ps.bonus=''; ps.specialBonus=''; ps.extraPay=''; ps.dormitory=''; ps.bankAccount='';
   ps._pension=undefined; ps._health=undefined; ps._ltcare=undefined; ps._employ=undefined; ps._incomeTax=undefined; ps._localTax=undefined;
-  ps._basic=undefined; ps._fixedOt=undefined; ps._fixedNight=undefined; ps._weekly=undefined;
+  ps._basic=undefined; ps._fixedOt=undefined; ps._fixedNight=undefined; ps._weekly=undefined; ps._holidayPay=undefined;
 
   // 최근 13개월
   const months = [];
@@ -1716,7 +1753,7 @@ window.psPcMonthChange = (month) => {
 };
 
 window.psPcWorkerSelect = async (wid) => {
-  if (!wid) { ps.workerData=null; ps.annualData=null; ps.workerId=''; renderPayslipPCRight(); return; }
+  if (!wid) { ps.workerData=null; ps.annualData=null; ps.workerId=''; ps.attHours=0; ps.leaveHours=0; ps.nightHours=0; ps.attDates=new Set(); ps.leaveDocsRaw=[]; ps.holidayRecords=[]; renderPayslipPCRight(); return; }
   const workers = window._psWorkers || [];
   ps.workerData = workers.find(w=>w.id===wid) || null;
   ps.workerId = wid;
@@ -1752,6 +1789,13 @@ window.psPcWorkerSelect = async (wid) => {
     ps.bonus = otAmt > 0 ? String(otAmt) : '';
   } catch(e) { ps.annualData = null; }
 
+  // 근태 데이터 연동 (출퇴근기록 누계·유급휴가·야간·휴일근로 → 기본/연장/야간/휴일/주휴수당 자동계산용)
+  // ※ PC 화면은 모바일 작성폼(psWorkerSelect)과 별도 함수라 반드시 여기서도 호출해야 함 — 누락 시
+  //   근태데이터가 0으로 처리되어 실제 근무와 무관하게 기본급이 대폭 삭감되는 오류가 발생한다.
+  const attData = await psFetchAttendanceData(wid, ps.workerData?.name, ps.month);
+  ps.attHours = attData.attHours; ps.leaveHours = attData.leaveHours; ps.nightHours = attData.nightHours;
+  ps.attDates = attData.attDates; ps.leaveDocsRaw = attData.leaveDocs; ps.holidayRecords = attData.holidayRecords;
+
   renderPayslipPCRight();
 };
 
@@ -1774,12 +1818,18 @@ window.renderPayslipPCRight = () => {
       <div style="background:#fff;border-radius:12px;padding:14px;">
         <div style="font-size:12px;font-weight:700;color:#1A2540;margin-bottom:10px;">💳 지급 내역</div>
         <div style="display:flex;flex-direction:column;gap:6px;font-size:12px;">
-          ${[['기본급','basic'],['고정연장','fixedOt'],['고정야간','fixedNight'],['주휴수당','weekly']]
+          ${[['기본근로수당','basic'],['연장근로수당','fixedOt'],['야간근로수당','fixedNight'],['주휴수당','weekly'],['휴일근로수당','holidayPay']]
             .map(([l,k])=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;border-bottom:1px solid #F0F4F9;">
               <span style="color:#5C6F8A;min-width:64px;">${l}</span>
               <input type="text" inputmode="numeric" value="${Number(c.sal[k]||0).toLocaleString('ko-KR')}"
                 oninput="fmtMoney(this)" onchange="ps['_${k}']=this.value===''?undefined:numClean(this.value);renderPayslipPCRight()"
                 style="width:120px;text-align:right;padding:3px 8px;border:1px solid #DDE3EE;border-radius:6px;font-size:12px;font-weight:600;color:#1A2540;box-sizing:border-box;"></div>`).join('')}
+          <div style="font-size:10px;color:#9AAABF;line-height:1.6;background:#F7F9FC;border-radius:6px;padding:6px 8px;">
+            실근무 ${(c.sal.attHours||0).toFixed(1)}h + 유급휴가 ${(c.sal.leaveHours||0).toFixed(1)}h = 인정 ${(c.sal.actualHours||0).toFixed(1)}h (기준 ${c.sal.standardHours||209}h)
+            ${(c.sal.otHours||0)>0?` · 연장 ${c.sal.otHours.toFixed(1)}h`:''}${(c.sal.shortHours||0)>0?` · 부족 ${c.sal.shortHours.toFixed(1)}h`:''}
+            ${(c.sal.nightHours||0)>0?` · 야간 ${c.sal.nightHours.toFixed(1)}h`:''}${(c.sal.holidayHours||0)>0?` · 휴일 ${c.sal.holidayHours.toFixed(1)}h`:''}<br>
+            주휴: ${c.sal.weeklyEstimated?'출퇴근기록 없어 추정값':`개근 ${c.sal.weeklyQualifyingWeeks}/${c.sal.weeklyTotalWeeks}주`}
+          </div>
           <div style="margin-top:4px;">
             <div style="color:#5C6F8A;margin-bottom:3px;">상여금(초과근로)</div>
             ${inp('ps-bonus', ps.bonus)}
@@ -1920,7 +1970,7 @@ window.renderPayslipWrite = async () => {
   ps.workerData = null; ps.annualData = null;
   ps.bonus=''; ps.specialBonus=''; ps.extraPay=''; ps.dormitory=''; ps.bankAccount='';
   ps._pension=undefined; ps._health=undefined; ps._ltcare=undefined; ps._employ=undefined; ps._incomeTax=undefined; ps._localTax=undefined;
-  ps._basic=undefined; ps._fixedOt=undefined; ps._fixedNight=undefined; ps._weekly=undefined;
+  ps._basic=undefined; ps._fixedOt=undefined; ps._fixedNight=undefined; ps._weekly=undefined; ps._holidayPay=undefined;
 
   const workers = await getWorkersList();
   window._psWorkers = workers;
@@ -1949,7 +1999,7 @@ window.renderPayslipWrite = async () => {
   renderPayslipWriteForm(el, workers, months, calcPayDate);
 
   window.psWorkerSelect = async (wid) => {
-    if (!wid) { ps.workerId=''; ps.workerData=null; ps.annualData=null; window.psRefresh(); return; }
+    if (!wid) { ps.workerId=''; ps.workerData=null; ps.annualData=null; ps.attHours=0; ps.leaveHours=0; ps.nightHours=0; ps.attDates=new Set(); ps.leaveDocsRaw=[]; ps.holidayRecords=[]; window.psRefresh(); return; }
     ps.workerId = wid;
     ps.workerData = workers.find(w=>w.id===wid) || null;
     // 명부에서 계좌번호 불러오기
@@ -1980,6 +2030,10 @@ window.renderPayslipWrite = async () => {
       } catch(e) { console.error('초과근로 연동 오류:', e); }
     }
 
+    // 근태 데이터 연동 (출퇴근기록 누계·유급휴가 반영시간·야간근로시간 → 연장/야간근로수당 자동계산용)
+    const attData = await psFetchAttendanceData(wid, ps.workerData?.name, ps.month);
+    ps.attHours = attData.attHours; ps.leaveHours = attData.leaveHours; ps.nightHours = attData.nightHours; ps.attDates = attData.attDates; ps.leaveDocsRaw = attData.leaveDocs; ps.holidayRecords = attData.holidayRecords;
+
     window.psRefresh();
   };
 
@@ -1993,6 +2047,11 @@ window.renderPayslipWrite = async () => {
         const otAmt = await window.getOvertimeAmountForPayslip(ps.workerData.name, month);
         ps.bonus = otAmt; // 0이어도 덮어씀
       } catch(e) { console.error('초과근로 연동 오류:', e); }
+    }
+    // 근태 데이터도 기준월 변경에 맞춰 재연동
+    if (ps.workerId) {
+      const attData = await psFetchAttendanceData(ps.workerId, ps.workerData?.name, month);
+      ps.attHours = attData.attHours; ps.leaveHours = attData.leaveHours; ps.nightHours = attData.nightHours; ps.attDates = attData.attDates; ps.leaveDocsRaw = attData.leaveDocs; ps.holidayRecords = attData.holidayRecords;
     }
     window.psRefresh(); // await 완료 후 렌더링
   };
@@ -2040,15 +2099,22 @@ function renderPayslipWriteForm(el, workers, months, calcPayDate) {
       <div style="background:#F8FAFD;border-radius:8px;overflow:hidden;margin-bottom:10px;">
         ${ps.annualData ? `
         ${[
-          ['기본근로수당', c.sal.basic,      '연봉계약서 연동'],
-          ['고정연장수당', c.sal.fixedOt,    '연봉계약서 연동'],
-          ['고정야간수당', c.sal.fixedNight,  '연봉계약서 연동'],
-          ['주휴수당',    c.sal.weekly,      '연봉계약서 연동'],
-        ].filter(([,v])=>v>0).map(([l,v,note])=>`
+          ['기본근로수당', c.sal.basic,      `${c.sal.standardHours||209}h 기준(캘린더), 실근무 반영`],
+          ['연장근로수당', c.sal.fixedOt,    `월 소정 ${c.sal.standardHours||209}h 초과분×1.5`],
+          ['야간근로수당', c.sal.fixedNight,  '22시~06시 근무×0.5'],
+          ['주휴수당',    c.sal.weekly,      c.sal.weeklyEstimated ? '출퇴근기록 없어 추정값(시급×8×4.345)' : `개근 ${c.sal.weeklyQualifyingWeeks}/${c.sal.weeklyTotalWeeks}주`],
+          ['휴일근로수당', c.sal.holidayPay,  (c.sal.holidayHours||0)>0 ? `토·일·공휴일 근무 ${c.sal.holidayHours.toFixed(1)}h` : '해당 근무 없음'],
+        ].map(([l,v,note])=>`
           <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 12px;border-bottom:1px solid #F0F4FA;font-size:12px;">
             <div><span style="color:${C2.sub};font-weight:600;">${l}</span><span style="font-size:10px;color:${C2.mute};margin-left:6px;">${note}</span></div>
             <span style="color:${C2.text};font-weight:600;">₩${v.toLocaleString()}</span>
           </div>`).join('')}
+        <div style="padding:8px 12px;font-size:10.5px;color:${C2.mute};line-height:1.6;background:#EEF2F7;">
+          실근무 ${(c.sal.attHours||0).toFixed(1)}h + 유급휴가 ${(c.sal.leaveHours||0).toFixed(1)}h = 인정시간 ${(c.sal.actualHours||0).toFixed(1)}h (기준 ${c.sal.standardHours||209}h)
+          ${(c.sal.otHours||0)>0?` → 연장 ${c.sal.otHours.toFixed(1)}h`:''}${(c.sal.shortHours||0)>0?` → 부족 ${c.sal.shortHours.toFixed(1)}h(기본근로수당 ₩${(c.sal.shortDeduct||0).toLocaleString()} 차감)`:''}
+          · 야간근로 ${(c.sal.nightHours||0).toFixed(1)}h
+          ${!c.sal.weeklyEstimated?`<br>주휴수당: 소정근로일 개근한 주만 인정 — ${c.sal.weeklyQualifyingWeeks}/${c.sal.weeklyTotalWeeks}주 충족`:''}
+        </div>
         ` : `<div style="text-align:center;padding:16px;font-size:12px;color:${C2.mute};">⚠️ 연봉계약서를 먼저 등록해야 지급내역이 자동 연동됩니다.</div>`}
       </div>
       ${field2('상여금', `
@@ -2137,16 +2203,16 @@ window.psPreview = () => {
 
   const payRow = (l, v, note='') => `
     <tr>
-      <td style="padding:7px 10px;border:1px solid #DDE4EF;font-size:10pt;">${l}</td>
-      <td style="padding:7px 10px;border:1px solid #DDE4EF;text-align:right;font-size:10pt;font-weight:600;">${v}</td>
-      <td style="padding:7px 10px;border:1px solid #DDE4EF;font-size:9pt;color:#888;">${note}</td>
+      <td style="padding:8px 10px;border:1px solid #E4EAF2;font-size:10pt;white-space:nowrap;">${l}</td>
+      <td style="padding:8px 10px;border:1px solid #E4EAF2;text-align:right;font-size:10pt;font-weight:700;white-space:nowrap;">${v}</td>
+      <td style="padding:8px 10px;border:1px solid #E4EAF2;font-size:8.5pt;color:#8A96A8;">${note}</td>
     </tr>`;
 
   const deductRow = (l, v, note='') => `
     <tr>
-      <td style="padding:7px 10px;border:1px solid #DDE4EF;font-size:10pt;">${l}</td>
-      <td style="padding:7px 10px;border:1px solid #DDE4EF;text-align:right;font-size:10pt;font-weight:600;color:#DC2626;">-${psWonR(v)}</td>
-      <td style="padding:7px 10px;border:1px solid #DDE4EF;font-size:9pt;color:#888;">${note}</td>
+      <td style="padding:8px 10px;border:1px solid #E4EAF2;font-size:10pt;white-space:nowrap;">${l}</td>
+      <td style="padding:8px 10px;border:1px solid #E4EAF2;text-align:right;font-size:10pt;font-weight:700;color:#DC2626;white-space:nowrap;">-${psWonR(v)}</td>
+      <td style="padding:8px 10px;border:1px solid #E4EAF2;font-size:8.5pt;color:#8A96A8;">${note}</td>
     </tr>`;
 
   const win = window.open('','_blank');
@@ -2174,30 +2240,31 @@ window.psPreview = () => {
       </div>
 
       <!-- 근로자 기본 정보 -->
-      <table style="margin-bottom:14px;">
+      <table style="margin-bottom:14px;border-radius:8px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,0.06);">
+        <colgroup><col style="width:18%"><col style="width:32%"><col style="width:18%"><col style="width:32%"></colgroup>
         <thead><tr style="background:#E8F0FB;">
-          <th colspan="4" style="padding:8px 10px;text-align:left;font-size:10pt;color:#1D5BA6;border:1px solid #DDE4EF;">👤 근로자 기본 정보</th>
+          <th colspan="4" style="padding:9px 10px;text-align:left;font-size:10pt;color:#1D5BA6;border:1px solid #DDE4EF;">👤 근로자 기본 정보</th>
         </tr></thead>
         <tbody>
           <tr>
-            <td style="padding:7px 10px;border:1px solid #DDE4EF;font-weight:600;color:#5C6F8A;width:18%;">이름</td>
-            <td style="padding:7px 10px;border:1px solid #DDE4EF;width:32%;">${w.name||'-'}</td>
-            <td style="padding:7px 10px;border:1px solid #DDE4EF;font-weight:600;color:#5C6F8A;width:18%;">사번</td>
-            <td style="padding:7px 10px;border:1px solid #DDE4EF;width:32%;">${w.empNo||'-'}</td>
+            <td style="padding:8px 10px;border:1px solid #E4EAF2;font-weight:700;color:#5C6F8A;white-space:nowrap;">이름</td>
+            <td style="padding:8px 10px;border:1px solid #E4EAF2;">${w.name||'-'}</td>
+            <td style="padding:8px 10px;border:1px solid #E4EAF2;font-weight:700;color:#5C6F8A;white-space:nowrap;">사번</td>
+            <td style="padding:8px 10px;border:1px solid #E4EAF2;">${w.empNo||'-'}</td>
           </tr>
           <tr>
-            <td style="padding:7px 10px;border:1px solid #DDE4EF;font-weight:600;color:#5C6F8A;">소속/직급</td>
-            <td colspan="3" style="padding:7px 10px;border:1px solid #DDE4EF;">${(w.dept||'-')+' / '+(w.rank||'-')}</td>
+            <td style="padding:8px 10px;border:1px solid #E4EAF2;font-weight:700;color:#5C6F8A;white-space:nowrap;">소속/직급</td>
+            <td colspan="3" style="padding:8px 10px;border:1px solid #E4EAF2;">${(w.dept||'-')+' / '+(w.rank||'-')}</td>
           </tr>
           <tr>
-            <td style="padding:7px 10px;border:1px solid #DDE4EF;font-weight:600;color:#5C6F8A;">입사일</td>
-            <td style="padding:7px 10px;border:1px solid #DDE4EF;">${w.hireDate||'-'}</td>
-            <td style="padding:7px 10px;border:1px solid #DDE4EF;font-weight:600;color:#5C6F8A;">생년월일</td>
-            <td style="padding:7px 10px;border:1px solid #DDE4EF;">${w.jumin?(w.jumin.slice(0,2)+'.'+w.jumin.slice(2,4)+'.'+w.jumin.slice(4,6)):'-'}</td>
+            <td style="padding:8px 10px;border:1px solid #E4EAF2;font-weight:700;color:#5C6F8A;white-space:nowrap;">입사일</td>
+            <td style="padding:8px 10px;border:1px solid #E4EAF2;">${w.hireDate||'-'}</td>
+            <td style="padding:8px 10px;border:1px solid #E4EAF2;font-weight:700;color:#5C6F8A;white-space:nowrap;">생년월일</td>
+            <td style="padding:8px 10px;border:1px solid #E4EAF2;">${w.jumin?(w.jumin.slice(0,2)+'.'+w.jumin.slice(2,4)+'.'+w.jumin.slice(4,6)):'-'}</td>
           </tr>
           <tr>
-            <td style="padding:7px 10px;border:1px solid #DDE4EF;font-weight:600;color:#5C6F8A;">계좌번호</td>
-            <td colspan="3" style="padding:7px 10px;border:1px solid #DDE4EF;">${d.bankAccount||'-'}</td>
+            <td style="padding:8px 10px;border:1px solid #E4EAF2;font-weight:700;color:#5C6F8A;white-space:nowrap;">계좌번호</td>
+            <td colspan="3" style="padding:8px 10px;border:1px solid #E4EAF2;">${d.bankAccount||'-'}</td>
           </tr>
         </tbody>
       </table>
@@ -2205,33 +2272,36 @@ window.psPreview = () => {
       <!-- 지급/공제 나란히 -->
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;">
         <!-- 지급 내역 -->
-        <table>
+        <table style="border-radius:8px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,0.06);">
+          <colgroup><col style="width:32%"><col style="width:30%"><col style="width:38%"></colgroup>
           <thead><tr style="background:#E8F0FB;">
-            <th style="padding:8px 10px;text-align:left;font-size:10pt;color:#1D5BA6;border:1px solid #DDE4EF;">지급 항목</th>
-            <th style="padding:8px 10px;text-align:right;font-size:10pt;color:#1D5BA6;border:1px solid #DDE4EF;">금액</th>
-            <th style="padding:8px 10px;text-align:left;font-size:9pt;color:#1D5BA6;border:1px solid #DDE4EF;">비고</th>
+            <th style="padding:9px 10px;text-align:left;font-size:10pt;color:#1D5BA6;border:1px solid #DDE4EF;white-space:nowrap;">지급 항목</th>
+            <th style="padding:9px 10px;text-align:right;font-size:10pt;color:#1D5BA6;border:1px solid #DDE4EF;white-space:nowrap;">금액</th>
+            <th style="padding:9px 10px;text-align:left;font-size:9pt;color:#1D5BA6;border:1px solid #DDE4EF;">비고</th>
           </tr></thead>
           <tbody>
-            ${payRow('기본근로수당', psWonR(c.sal.basic), '시급×8×5×4.345')}
-            ${payRow('고정연장수당', c.sal.fixedOt?psWonR(c.sal.fixedOt):'—', w.empType==='office'?'시급×12×4.345':'현장직 해당없음')}
-            ${payRow('고정야간수당', c.sal.fixedNight?psWonR(c.sal.fixedNight):'—', w.empType==='field'?'시급×0.5×8×5×4.345':'사무직 해당없음')}
-            ${payRow('주휴수당', psWonR(c.sal.weekly), '시급×8×4.345')}
+            ${payRow('기본근로수당', psWonR(c.sal.basic), `월소정 ${c.sal.standardHours||209}h 기준(실근무 ${(c.sal.actualHours||0).toFixed(1)}h)`)}
+            ${payRow('연장근로수당', c.sal.fixedOt?psWonR(c.sal.fixedOt):'—', (c.sal.otHours||0)>0?`${c.sal.otHours.toFixed(1)}h×1.5`:'해당없음')}
+            ${payRow('야간근로수당', c.sal.fixedNight?psWonR(c.sal.fixedNight):'—', (c.sal.nightHours||0)>0?`${c.sal.nightHours.toFixed(1)}h×0.5`:'해당없음')}
+            ${payRow('주휴수당', psWonR(c.sal.weekly), c.sal.weeklyEstimated ? '시급×8×4.345(추정)' : `개근 ${c.sal.weeklyQualifyingWeeks}/${c.sal.weeklyTotalWeeks}주`)}
+            ${payRow('휴일근로수당', c.sal.holidayPay?psWonR(c.sal.holidayPay):'—', (c.sal.holidayHours||0)>0?`${c.sal.holidayHours.toFixed(1)}h(8h초과분 2.0배)`:'해당없음')}
             ${payRow('상여금', c.bonus?psWonR(c.bonus):'—', '')}
             ${payRow('특별성과급', c.specialBonus?psWonR(c.specialBonus):'—', '')}
             ${payRow('특근수당', c.extraPay?psWonR(c.extraPay):'—', '')}
             <tr style="background:#E8F0FB;">
-              <td style="padding:8px 10px;border:1px solid #DDE4EF;font-weight:700;color:#1D5BA6;">지급계</td>
-              <td style="padding:8px 10px;border:1px solid #DDE4EF;text-align:right;font-weight:700;color:#1D5BA6;">${psWonR(c.totalPay)}</td>
-              <td style="padding:8px 10px;border:1px solid #DDE4EF;"></td>
+              <td style="padding:9px 10px;border:1px solid #DDE4EF;font-weight:800;color:#1D5BA6;white-space:nowrap;">지급계</td>
+              <td style="padding:9px 10px;border:1px solid #DDE4EF;text-align:right;font-weight:800;color:#1D5BA6;white-space:nowrap;">${psWonR(c.totalPay)}</td>
+              <td style="padding:9px 10px;border:1px solid #DDE4EF;"></td>
             </tr>
           </tbody>
         </table>
         <!-- 공제 내역 -->
-        <table>
+        <table style="border-radius:8px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,0.06);">
+          <colgroup><col style="width:32%"><col style="width:30%"><col style="width:38%"></colgroup>
           <thead><tr style="background:#FEE2E2;">
-            <th style="padding:8px 10px;text-align:left;font-size:10pt;color:#DC2626;border:1px solid #DDE4EF;">공제 항목</th>
-            <th style="padding:8px 10px;text-align:right;font-size:10pt;color:#DC2626;border:1px solid #DDE4EF;">금액</th>
-            <th style="padding:8px 10px;text-align:left;font-size:9pt;color:#DC2626;border:1px solid #DDE4EF;">비고</th>
+            <th style="padding:9px 10px;text-align:left;font-size:10pt;color:#DC2626;border:1px solid #DDE4EF;white-space:nowrap;">공제 항목</th>
+            <th style="padding:9px 10px;text-align:right;font-size:10pt;color:#DC2626;border:1px solid #DDE4EF;white-space:nowrap;">금액</th>
+            <th style="padding:9px 10px;text-align:left;font-size:9pt;color:#DC2626;border:1px solid #DDE4EF;">비고</th>
           </tr></thead>
           <tbody>
             ${deductRow('국민연금', c.pension, '월 보수액 × 4.5%')}
@@ -2242,28 +2312,32 @@ window.psPreview = () => {
             ${deductRow('지방소득세', c.localTax, '소득세 × 10%')}
             ${c.dormitory?deductRow('기숙사', c.dormitory, '직접 입력'):''}
             <tr style="background:#FEE2E2;">
-              <td style="padding:8px 10px;border:1px solid #DDE4EF;font-weight:700;color:#DC2626;">공제계</td>
-              <td style="padding:8px 10px;border:1px solid #DDE4EF;text-align:right;font-weight:700;color:#DC2626;">-${psWonR(c.totalDeduct)}</td>
-              <td style="padding:8px 10px;border:1px solid #DDE4EF;"></td>
+              <td style="padding:9px 10px;border:1px solid #DDE4EF;font-weight:800;color:#DC2626;white-space:nowrap;">공제계</td>
+              <td style="padding:9px 10px;border:1px solid #DDE4EF;text-align:right;font-weight:800;color:#DC2626;white-space:nowrap;">-${psWonR(c.totalDeduct)}</td>
+              <td style="padding:9px 10px;border:1px solid #DDE4EF;"></td>
             </tr>
           </tbody>
         </table>
       </div>
 
       <!-- 실지급액 -->
-      <div style="background:#1D5BA6;border-radius:10px;padding:14px 20px;margin-bottom:20px;display:flex;justify-content:space-between;align-items:center;">
+      <div style="background:linear-gradient(135deg,#1D5BA6,#2E7DD1);border-radius:10px;padding:14px 20px;margin-bottom:20px;display:flex;justify-content:space-between;align-items:center;box-shadow:0 2px 8px rgba(29,91,166,0.25);">
         <span style="font-size:14pt;font-weight:700;color:#fff;">실 지급액</span>
         <span style="font-size:18pt;font-weight:800;color:#fff;">${psWonR(c.netPay)}</span>
       </div>
 
       <!-- 하단 산출식 + 회사 정보 -->
       <div style="border-top:1px solid #DDE4EF;padding-top:12px;">
-        <div style="font-size:9pt;color:#888;margin-bottom:10px;line-height:1.8;">
-          <strong>산출식</strong><br/>
+        <div style="font-size:9pt;color:#8A96A8;margin-bottom:10px;line-height:1.9;">
+          <strong style="color:#5C6F8A;">산출식</strong><br/>
           국민연금: 지급계×4.5% &nbsp;|&nbsp; 건강보험: 지급계×3.545% &nbsp;|&nbsp;
           장기요양: 건강보험×12.81% &nbsp;|&nbsp; 고용보험: 지급계×0.9%<br/>
           소득세: 간이세액표(부양가족 1인 기준) &nbsp;|&nbsp; 지방소득세: 소득세×10%<br/>
-          '기본근로수당: 시급×8×5×4.345 | 연장수당: 시급×(10 또는 12)×4.345 | 주휴수당: 시급×8×4.345'
+          기본근로수당: 시급×209h(그 달 소정근로시간 대비 실근무 부족 시 부족분만큼 차감) &nbsp;|&nbsp;
+          연장근로수당: 소정근로시간 초과분×시급×1.5<br/>
+          야간근로수당: 22:00~06:00 실근무시간×시급×0.5 &nbsp;|&nbsp;
+          휴일근로수당: 토·일·공휴일 근무시간 중 8h 이내×1.5, 8h 초과분×2.0<br/>
+          주휴수당: 그 주 소정근로일 개근 시 1일(8h)분 지급 — 결근한 주는 미지급 (포괄임금제 미적용, 실제 근무기록 기준 매월 자동 산정)
         </div>
         <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px;">
           <div style="font-size:10pt;color:#5C6F8A;">
@@ -2384,7 +2458,7 @@ window.psViewWorker = async (wid, wname) => {
 window.psViewDetail = (d, wid) => {
   // 저장된 데이터로 미리보기
   const savedC = {
-    sal: { basic:d.basic||0, fixedOt:d.fixedOt||0, fixedNight:d.fixedNight||0, weekly:d.weekly||0 },
+    sal: { basic:d.basic||0, fixedOt:d.fixedOt||0, fixedNight:d.fixedNight||0, weekly:d.weekly||0, holidayPay:d.holidayPay||0 },
     bonus:d.bonus||0, specialBonus:d.specialBonus||0, extraPay:d.extraPay||0,
     totalPay:d.grossPay||0, pension:d.pension||0, health:d.health||0,
     ltcare:d.ltcare||0, employ:d.employ||0, dormitory:d.dormitory||0,
@@ -2483,7 +2557,7 @@ window.psViewWorker = async (wid, wname) => {
 window.psViewDetail = (d, wid) => {
   // 저장된 데이터로 미리보기
   const savedC = {
-    sal: { basic:d.basic||0, fixedOt:d.fixedOt||0, fixedNight:d.fixedNight||0, weekly:d.weekly||0 },
+    sal: { basic:d.basic||0, fixedOt:d.fixedOt||0, fixedNight:d.fixedNight||0, weekly:d.weekly||0, holidayPay:d.holidayPay||0 },
     bonus:d.bonus||0, specialBonus:d.specialBonus||0, extraPay:d.extraPay||0,
     totalPay:d.grossPay||0, pension:d.pension||0, health:d.health||0,
     ltcare:d.ltcare||0, employ:d.employ||0, dormitory:d.dormitory||0,
@@ -3017,6 +3091,229 @@ const KR_HOLIDAYS = new Set([
   '2027-09-14','2027-09-15','2027-09-16','2027-10-04','2027-10-09','2027-12-25',
 ]);
 
+// ── 월 소정근로시간(공휴일 제외 평일수×8h) / 월 최대초과근로시간(겹치는 ISO주수×12h, 근로기준법 연장근로 한도) ──
+// attendance/index.html의 동일 함수와 로직을 통일 — 공휴일 갱신 시 양쪽 KR_HOLIDAYS 동시 반영 필요
+function monthlyStandardHours(year, month) {
+  const first = new Date(year, month-1, 1);
+  const last  = new Date(year, month, 0);
+  let workDays = 0;
+  const cur = new Date(first);
+  while (cur <= last) {
+    const dow = cur.getDay();
+    // ⚠️ toISOString()은 UTC 변환이라 KST(+9) 브라우저에서 날짜가 하루 밀린다 — 로컬 연/월/일로 직접 문자열 생성해야 함
+    const key = cur.getFullYear()+'-'+String(cur.getMonth()+1).padStart(2,'0')+'-'+String(cur.getDate()).padStart(2,'0');
+    if (dow!==0 && dow!==6 && !KR_HOLIDAYS.has(key)) workDays++;
+    cur.setDate(cur.getDate()+1);
+  }
+  return workDays*8;
+}
+function _isoWeekKey(d) {
+  const t = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+  const dayNum = (t.getUTCDay()+6)%7;
+  t.setUTCDate(t.getUTCDate()-dayNum+3);
+  const firstThursday = new Date(Date.UTC(t.getUTCFullYear(),0,4));
+  const weekNum = 1 + Math.round(((t-firstThursday)/86400000 - 3 + (firstThursday.getUTCDay()+6)%7)/7);
+  return `${t.getUTCFullYear()}-W${weekNum}`;
+}
+function monthlyMaxOvertimeHours(year, month) {
+  const first = new Date(year, month-1, 1);
+  const last  = new Date(year, month, 0);
+  const weeks = new Set();
+  const cur = new Date(first);
+  while (cur <= last) { weeks.add(_isoWeekKey(cur)); cur.setDate(cur.getDate()+1); }
+  return weeks.size*12;
+}
+window._laborHourHelpers = { monthlyStandardHours, monthlyMaxOvertimeHours };
+
+// ── worker_attendance_log(직원 개인별 출퇴근 기록) 기준 해당 월 근로시간 요약 ──
+// attendance/index.html에서 직원이 직접 입력한 출퇴근시간을 집계해, 소정/초과 근로시간 잔여를 계산한다.
+// 유급휴가 사용일수를 근무시간으로 환산 (1일=8h, 반차=4h) — edoc의 동일 함수와 로직 통일.
+// 무급 휴가(생리휴가·육아휴직·가족돌봄휴가)는 제외, 승인/게시된 것만 인정, 해당 연월에 속하는 날짜만 카운트.
+function hrComputeLeaveHoursForMonth(leaveDocs, workerName, year, month) {
+  const ym = year + '-' + String(month).padStart(2,'0');
+  let hours = 0;
+  for (const lv of leaveDocs) {
+    const nm = lv.authorName || lv.name || '';
+    if (nm !== workerName) continue;
+    if (lv.status !== 'posted' && lv.status !== 'approved') continue;
+    if (!/\(유급\)/.test(lv.leaveType || '')) continue;
+    if (!lv.startDate || !lv.endDate) continue;
+    const perDay = /반차/.test(lv.leaveType || '') ? 4 : 8;
+    const cur = new Date(lv.startDate);
+    const end = new Date(lv.endDate);
+    while (cur <= end) {
+      const key = cur.getFullYear() + '-' + String(cur.getMonth() + 1).padStart(2, '0');
+      if (key === ym) hours += perDay;
+      cur.setDate(cur.getDate() + 1);
+    }
+  }
+  return hours;
+}
+
+// ── 근로기준법 56조 3항: 22:00~익일 06:00 사이 근로시간을 야간근로로 산정 (통상임금의 50% 가산 대상) ──
+// 익일로 넘어가는 근무(예: 22:00~02:00)와, 자정을 넘기지 않고 새벽대에 걸치는 근무(예: 03:00~11:00) 모두 처리한다.
+function hrCalcNightHours(checkIn, checkOut) {
+  if (!checkIn || !checkOut) return 0;
+  const [ih, im] = checkIn.split(':').map(Number);
+  const [oh, om] = checkOut.split(':').map(Number);
+  let startMin = ih * 60 + im;
+  let endMin = oh * 60 + om;
+  if (endMin <= startMin) endMin += 24 * 60; // 익일 퇴근 대응
+  // 전날 22시~당일 06시, 당일 22시~익일 06시 — 두 야간대 윈도우와의 겹침을 각각 합산
+  const windows = [[-120, 360], [1320, 1800]];
+  let mins = 0;
+  for (const [ws, we] of windows) {
+    const os = Math.max(startMin, ws);
+    const oe = Math.min(endMin, we);
+    if (oe > os) mins += (oe - os);
+  }
+  return mins / 60;
+}
+
+// ── 근로기준법 55조: 주휴수당은 "그 주 소정근로일 개근" + "주 15시간 이상"을 충족한 주(週)만 인정 ──
+// 소정근로일: 평일(월~금) 중 공휴일 제외. 결근 판단: 그날 출퇴근기록이 있거나, 승인/게시된 휴가(유급·무급 불문 — 연차 등 승인된 휴가 사용일은 결근으로 보지 않음)로
+// 커버되면 결근 아님. 소정근로일 중 하나라도 둘 다 없으면 그 주 전체 주휴수당 미지급.
+// ⚠️ 출퇴근기록이 그 달에 전혀 없으면(=아직 이 기능을 안 쓰는 경우) 판정 불가로 보고 기존 고정계산(h×8×4.345)으로 폴백한다.
+function hrCalcWeeklyHolidayPay(hourly, year, month, attDates, leaveDocs, workerName, fallbackWeekly) {
+  if (!attDates || attDates.size === 0) {
+    return { weeklyPay: Math.round(fallbackWeekly||0), qualifyingWeeks: null, totalWeeks: null, weekDetails: [], estimated: true };
+  }
+  const isLeaveCovered = (dateStr) => (leaveDocs||[]).some(lv => {
+    if (lv.status !== 'approved' && lv.status !== 'posted') return false;
+    const nm = lv.authorName || lv.name || '';
+    if (nm !== workerName) return false;
+    return lv.startDate && lv.endDate && dateStr >= lv.startDate && dateStr <= lv.endDate;
+  });
+  const first = new Date(year, month-1, 1);
+  const last  = new Date(year, month, 0);
+  const weekMap = {}; // isoWeekKey -> [dateStr,...] (그 달에 속하는 소정근로일만)
+  const cur = new Date(first);
+  while (cur <= last) {
+    const dow = cur.getDay();
+    // ⚠️ toISOString()은 UTC 변환이라 KST 브라우저에서 날짜가 하루 밀려 attDates(실제 출근기록, 로컬날짜)와 매칭이 안 된다
+    const dateStr = cur.getFullYear()+'-'+String(cur.getMonth()+1).padStart(2,'0')+'-'+String(cur.getDate()).padStart(2,'0');
+    if (dow !== 0 && dow !== 6 && !KR_HOLIDAYS.has(dateStr)) {
+      const wk = _isoWeekKey(cur);
+      (weekMap[wk] = weekMap[wk] || []).push(dateStr);
+    }
+    cur.setDate(cur.getDate() + 1);
+  }
+  let qualifyingWeeks = 0;
+  const weekDetails = [];
+  for (const [wk, dates] of Object.entries(weekMap)) {
+    // 15시간 기준은 근로자의 실제 계약상 주간 근로시간(풀타임 8h×5일=40h)으로 판단해야 하며,
+    // 달력상 월 경계에 걸려 그 달에 속하는 소정근로일이 1~2일뿐인 주라고 해서 미달로 보면 안 된다.
+    // 이 시스템은 전 직원 풀타임(주 40시간) 계약을 전제하므로 항상 충족으로 처리한다.
+    // (파트타임 직원을 관리하게 되면 이 부분을 실제 계약 근로시간 기준으로 재검토해야 함)
+    const meetsHours = true;
+    const allPresent = dates.every(d => attDates.has(d) || isLeaveCovered(d));
+    const qualifies = meetsHours && allPresent;
+    if (qualifies) qualifyingWeeks++;
+    weekDetails.push({ week: wk, dates, allPresent, meetsHours, qualifies });
+  }
+  const weeklyPay = Math.round((hourly||0) * 8 * qualifyingWeeks);
+  return { weeklyPay, qualifyingWeeks, totalWeeks: Object.keys(weekMap).length, weekDetails, estimated: false };
+}
+
+// ── 근로기준법 56조 2항: 휴일근로 가산수당 — 8시간 이내분은 통상임금의 50% 가산, 8시간 초과분은 100% 가산 ──
+// (여기서 반환하는 금액은 가산분만이 아니라, 그 시간에 대한 정상임금 100%+가산분을 합친 "휴일근로수당" 총액이다.
+//  주말·공휴일에 근무한 시간은 평소 소정근로시간에 포함되지 않는 별도 근로이므로 전액을 이 항목으로 지급한다.)
+// holidayRecords: [{date, workHours}, ...] — 그 달의 토·일·공휴일에 실제 근무기록이 있는 날짜만 모아둔 배열
+function hrCalcHolidayPay(hourly, holidayRecords) {
+  if (!hourly || !holidayRecords || !holidayRecords.length) return { holidayPay: 0, holidayHours: 0 };
+  let pay = 0, hours = 0;
+  for (const r of holidayRecords) {
+    const h = Number(r.workHours) || 0;
+    if (h <= 0) continue;
+    hours += h;
+    const within8 = Math.min(h, 8);
+    const over8   = Math.max(0, h - 8);
+    pay += Math.round(hourly * within8 * 1.5) + Math.round(hourly * over8 * 2.0);
+  }
+  return { holidayPay: pay, holidayHours: hours };
+}
+
+// ── 급여명세서용 해당 월 근태 데이터 일괄 조회: 근무시간 누계(평일분)·유급휴가 반영시간·야간근로시간·휴일근로기록·일자별 원시데이터(주휴수당 개근판정용) ──
+async function psFetchAttendanceData(workerId, workerName, ym) {
+  const result = { attHours: 0, leaveHours: 0, nightHours: 0, attDates: new Set(), leaveDocs: [], holidayRecords: [] };
+  if (!workerId || !window._db) return result;
+  const [year, month] = ym.split('-').map(Number);
+  try {
+    const { getDocs, collection, query, where } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+    const snap = await getDocs(query(collection(window._db, 'worker_attendance_log'), where('workerId','==',workerId), where('yearMonth','==',ym)));
+    snap.forEach(d => {
+      const dd = d.data();
+      const hrs = Number(dd.workHours) || 0;
+      if (dd.date) result.attDates.add(dd.date);
+      // 토·일·공휴일 근무는 평일 근무시간(소정근로시간 대비 초과/부족 판정용)에서 제외하고, 휴일근로수당으로 별도 산정
+      const dow = dd.date ? new Date(dd.date).getDay() : -1;
+      const isHoliday = dow === 0 || dow === 6 || (dd.date && KR_HOLIDAYS.has(dd.date));
+      if (isHoliday) {
+        result.holidayRecords.push({ date: dd.date, workHours: hrs });
+      } else {
+        result.attHours += hrs;
+      }
+      result.nightHours += hrCalcNightHours(dd.checkIn, dd.checkOut);
+    });
+  } catch(e) { console.warn('[급여] 출퇴근기록 조회 실패:', e.message); }
+  if (workerName) {
+    try {
+      const { getDocs, collection } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+      const leaveSnap = await getDocs(collection(window._db, 'edoc_leave'));
+      const leaveDocs = []; leaveSnap.forEach(d => leaveDocs.push(d.data()));
+      result.leaveHours = hrComputeLeaveHoursForMonth(leaveDocs, workerName, year, month);
+      result.leaveDocs = leaveDocs;
+    } catch(e) { console.warn('[급여] 유급휴가 조회 실패:', e.message); }
+  }
+  return result;
+}
+
+window.otGetAttendanceSummary = async (workerId, year, month, workerName) => {
+  const { collection, getDocs, query, where } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+  const ym = `${year}-${String(month).padStart(2,'0')}`;
+  const snap = await getDocs(query(collection(window._db,'worker_attendance_log'), where('workerId','==',workerId), where('yearMonth','==',ym)));
+  let attHours = 0, days = 0;
+  snap.forEach(d => { attHours += Number(d.data().workHours)||0; days++; });
+
+  // 유급휴가 반영: 인사 화면은 관리자 전용이라 edoc_leave 전체 조회 가능
+  let leaveHours = 0;
+  if (workerName) {
+    try {
+      const leaveSnap = await getDocs(collection(window._db, 'edoc_leave'));
+      const leaveDocs = []; leaveSnap.forEach(d => leaveDocs.push(d.data()));
+      leaveHours = hrComputeLeaveHoursForMonth(leaveDocs, workerName, year, month);
+    } catch(e) { console.warn('[근로시간] 유급휴가 반영 실패:', e.message); }
+  }
+
+  const total = attHours + leaveHours;
+  const standard = monthlyStandardHours(year, month);
+  const maxOt = monthlyMaxOvertimeHours(year, month);
+  const regularUsed = Math.min(total, standard);
+  const otUsed = Math.max(0, total - standard);
+  return {
+    yearMonth: ym, total, attHours, leaveHours, days, standard, maxOt,
+    maxTotal: standard+maxOt,
+    regularUsed, otUsed,
+    regularRemain: Math.max(0, standard-regularUsed),
+    otRemain: Math.max(0, maxOt-otUsed),
+  };
+};
+// 근로시간 현황 카드 HTML (PC·모바일 공통)
+window.otRenderAttendanceCard = (s) => `
+  <div style="background:#F0F4F9;border-radius:10px;padding:12px 14px;margin-bottom:12px;">
+    <div style="font-weight:700;color:#1D5BA6;font-size:12px;margin-bottom:8px;">⏰ ${s.yearMonth} 근로시간 현황 (출퇴근 기록 + 유급휴가 자동 집계)</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:11.5px;color:#5C6F8A;">
+      <div style="display:flex;justify-content:space-between;"><span>소정근로시간</span><span style="font-weight:700;color:#1A2540;">${s.standard.toFixed(1)}h</span></div>
+      <div style="display:flex;justify-content:space-between;"><span>최대초과한도</span><span style="font-weight:700;color:#1A2540;">${s.maxOt.toFixed(1)}h</span></div>
+      <div style="display:flex;justify-content:space-between;"><span>출퇴근 근무시간</span><span style="font-weight:700;color:#1A2540;">${(s.attHours??s.total).toFixed(1)}h</span></div>
+      <div style="display:flex;justify-content:space-between;"><span>유급휴가 반영</span><span style="font-weight:700;color:#1A2540;">${(s.leaveHours??0).toFixed(1)}h</span></div>
+      <div style="display:flex;justify-content:space-between;"><span>근무시간 누계</span><span style="font-weight:700;color:#1A2540;">${s.total.toFixed(1)}h</span></div>
+      <div style="display:flex;justify-content:space-between;"><span>최대근무가능</span><span style="font-weight:700;color:#1A2540;">${s.maxTotal.toFixed(1)}h</span></div>
+      <div style="display:flex;justify-content:space-between;"><span>정규 잔여</span><span style="font-weight:700;color:#1D5BA6;">${s.regularRemain.toFixed(1)}h</span></div>
+      <div style="display:flex;justify-content:space-between;"><span>초과 가능 잔여</span><span style="font-weight:700;color:${s.otUsed>s.maxOt?'#DC2626':'#1D5BA6'};">${s.otRemain.toFixed(1)}h</span></div>
+    </div>
+  </div>`;
+
 function calcWorkDays(startStr, endStr) {
   if (!startStr) return { days:0, months:0, years:0 };
   const start = new Date(startStr);
@@ -3034,7 +3331,8 @@ function calcWorkDays(startStr, endStr) {
   const cur = new Date(start);
   while (cur <= end) {
     const dow = cur.getDay();
-    const key = cur.toISOString().slice(0,10);
+    // ⚠️ toISOString() UTC 변환 문제로 KST에서 날짜가 하루 밀리는 버그 수정
+    const key = cur.getFullYear()+'-'+String(cur.getMonth()+1).padStart(2,'0')+'-'+String(cur.getDate()).padStart(2,'0');
     if (dow !== 0 && dow !== 6 && !KR_HOLIDAYS.has(key)) workDays++;
     cur.setDate(cur.getDate()+1);
   }
@@ -3512,19 +3810,12 @@ function laborSalaryPreviewHtml(f) {
 
   const isOffice = empType === 'office';
   const empLabel = isOffice ? '💼 사무직' : '🔧 현장직';
-  const rows = isOffice
-    ? [['기본근로수당 (시급×8×5×4.345)', sal.basic],
-       ['고정연장수당 (시급×12×4.345)', sal.fixedOt],
-       ['고정야간수당', null],
-       ['주휴수당 (시급×8×4.345)', sal.weekly],
-       ['월 지급계', sal.total],
-       ['계약연봉 (월×12)', sal.annual]]
-    : [['기본근로수당 (시급×8×5×4.345)', sal.basic],
-       ['고정연장수당', null],
-       ['고정야간수당 (시급×0.5×8×5×4.345)', sal.fixedNight],
-       ['주휴수당 (시급×8×4.345)', sal.weekly],
-       ['월 지급계', sal.total],
-       ['계약연봉 (월×12)', sal.annual]];
+  const rows = [
+    ['기본근로수당 (시급×8×5×4.345)', sal.basic],
+    ['주휴수당 (시급×8×4.345)', sal.weekly],
+    ['월 지급계', sal.total],
+    ['계약연봉 (월×12)', sal.annual],
+  ];
 
   return '<div style="margin-top:8px;border-radius:8px;overflow:hidden;border:1px solid #DDE4EF;">'
     + '<div style="background:#1D5BA6;padding:7px 12px;font-size:11px;font-weight:700;color:#fff;">' + empLabel + ' 급여 구성</div>'
@@ -3535,6 +3826,7 @@ function laborSalaryPreviewHtml(f) {
         return '<div style="display:flex;justify-content:space-between;padding:7px 12px;border-bottom:1px solid #F0F4FA;font-size:11px;background:'+(isTotal?'#E8F0FB':'#fff')+';"><span style="color:#5C6F8A;">'+l+'</span>'
           +'<span style="color:'+(l.includes('연봉')?'#1D5BA6':isTotal?'#1D5BA6':isNull?'#9AAABF':'#1A2540')+';font-weight:'+(isTotal?700:400)+';">'+(isNull?'—':'₩'+Math.round(v).toLocaleString())+'</span></div>';
       }).join('')
+    + '<div style="padding:7px 12px;font-size:10px;color:#9AAABF;line-height:1.5;background:#F7F9FC;">※ 포괄임금제 미적용 — 연장근로수당(해당 월 소정근로시간 초과분×1.5)·야간근로수당(22시~06시 근무×0.5)은 매달 실제 근무기록 기준으로 급여명세서 작성 시 별도 자동계산되어 지급됩니다.</div>'
     + '</div>';
 }
 
@@ -3846,18 +4138,17 @@ function renderAnnualForm(el, workers) {
   const isOff = annualForm2.empType === 'office';
   const salPreview = (() => {
     if (!annualForm2.hourly) return '';
-    const rows = isOff
-      ? [['기본근로수당',sal.basic,false],['고정연장수당',sal.fixedOt,false],['고정야간수당',0,true],
-         ['주휴수당',sal.weekly,false],['월 지급계',sal.total,false],['계약연봉 (월×12)',sal.annual,false]]
-      : [['기본근로수당',sal.basic,false],['고정연장수당',0,true],['고정야간수당',sal.fixedNight,false],
-         ['주휴수당',sal.weekly,false],['월 지급계',sal.total,false],['계약연봉 (월×12)',sal.annual,false]];
+    const rows = [['기본근로수당',sal.basic,false],
+       ['주휴수당',sal.weekly,false],['월 지급계',sal.total,false],['계약연봉 (월×12)',sal.annual,false]];
     return '<div style="margin-top:8px;border-radius:8px;overflow:hidden;border:1px solid #DDE4EF;">'
       +'<div style="background:#1D5BA6;padding:6px 12px;font-size:11px;font-weight:700;color:#fff;">'+(isOff?'💼 사무직':'🔧 현장직')+' 급여 구성</div>'
       +rows.map(function(r){var l=r[0],v=r[1],z=r[2];var isTot=l.includes('지급계')||l.includes('연봉');
         return '<div style="display:flex;justify-content:space-between;padding:6px 12px;border-bottom:1px solid #F0F4FA;font-size:11px;background:'+(isTot?'#E8F0FB':'#fff')+';">'
           +'<span style="color:#5C6F8A;">'+l+'</span>'
           +'<span style="color:'+(l.includes('연봉')?'#1D5BA6':isTot?'#1D5BA6':z?'#9AAABF':'#1A2540')+';font-weight:'+(isTot?700:400)+';margin-left:8px;">'+(z?'—':'₩'+Math.round(v).toLocaleString())+'</span></div>';
-      }).join('')+'</div>';
+      }).join('')
+      +'<div style="padding:6px 12px;font-size:10px;color:#9AAABF;line-height:1.5;background:#F7F9FC;">※ 포괄임금제 미적용 — 연장근로수당·야간근로수당은 매달 실제 근무기록 기준으로 급여명세서 작성 시 별도 자동계산됩니다.</div>'
+      +'</div>';
   })();
 
   el.innerHTML = wrap2(`
@@ -3966,18 +4257,17 @@ window.annualUpdateSalaryPreview = () => {
   if (!el) return;
   if (!annualForm2.hourly) { el.innerHTML=''; return; }
   const isOff = annualForm2.empType === 'office';
-  const rows = isOff
-    ? [['기본근로수당',sal.basic,false],['고정연장수당',sal.fixedOt,false],['고정야간수당',0,true],
-       ['주휴수당',sal.weekly,false],['월 지급계',sal.total,false],['계약연봉 (월×12)',sal.annual,false]]
-    : [['기본근로수당',sal.basic,false],['고정연장수당',0,true],['고정야간수당',sal.fixedNight,false],
-       ['주휴수당',sal.weekly,false],['월 지급계',sal.total,false],['계약연봉 (월×12)',sal.annual,false]];
+  const rows = [['기본근로수당',sal.basic,false],
+     ['주휴수당',sal.weekly,false],['월 지급계',sal.total,false],['계약연봉 (월×12)',sal.annual,false]];
   el.innerHTML = '<div style="margin-top:8px;border-radius:8px;overflow:hidden;border:1px solid #DDE4EF;">'
     +'<div style="background:#1D5BA6;padding:6px 12px;font-size:11px;font-weight:700;color:#fff;">'+(isOff?'💼 사무직':'🔧 현장직')+' 급여 구성</div>'
     +rows.map(function(r){var l=r[0],v=r[1],z=r[2];var isTot=l.includes('지급계')||l.includes('연봉');
       return '<div style="display:flex;justify-content:space-between;padding:6px 12px;border-bottom:1px solid #F0F4FA;font-size:11px;background:'+(isTot?'#E8F0FB':'#fff')+';">'
         +'<span style="color:#5C6F8A;">'+l+'</span>'
         +'<span style="color:'+(l.includes('연봉')?'#1D5BA6':isTot?'#1D5BA6':z?'#9AAABF':'#1A2540')+';font-weight:'+(isTot?700:400)+';margin-left:8px;">'+(z?'—':'₩'+Math.round(v).toLocaleString())+'</span></div>';
-    }).join('') + '</div>';
+    }).join('')
+    +'<div style="padding:6px 12px;font-size:10px;color:#9AAABF;line-height:1.5;background:#F7F9FC;">※ 포괄임금제 미적용 — 연장근로수당·야간근로수당은 매달 실제 근무기록 기준으로 급여명세서 작성 시 별도 자동계산됩니다.</div>'
+    + '</div>';
   // 계약연봉 표시 업데이트
   const salaryEl = el.nextElementSibling;
   if (salaryEl && salaryEl.tagName === 'DIV') {
@@ -4042,12 +4332,11 @@ window.annualPreview2=()=>{
       <p style="margin-bottom:8px;">② 월급여 임금 구성:</p>
       <table style="width:100%;border-collapse:collapse;margin-bottom:6px;">
         <thead><tr style="background:#E8F0FB;"><th style="border:1px solid #333;padding:6px 8px;text-align:left;font-size:10pt;">항목</th><th style="border:1px solid #333;padding:6px 8px;text-align:right;font-size:10pt;">금액</th><th style="border:1px solid #333;padding:6px 8px;text-align:left;font-size:10pt;">산출근거</th></tr></thead>
-        <tbody>${f.empType==='office'
-          ? tr('기본근로수당',w(sal.basic),'시급×8×5×4.345')+tr('고정연장수당',w(sal.fixedOt),'시급×12×4.345')+tr('고정야간수당','—','—')+tr('주휴수당',w(sal.weekly),'시급×8×4.345')
-          : tr('기본근로수당',w(sal.basic),'시급×8×5×4.345')+tr('고정연장수당','—','—')+tr('고정야간수당',w(sal.fixedNight),'시급×0.5×8×5×4.345')+tr('주휴수당',w(sal.weekly),'시급×8×4.345')
+        <tbody>${tr('기본근로수당',w(sal.basic),'시급×8×5×4.345')}${tr('주휴수당',w(sal.weekly),'시급×8×4.345')
         }${tr('상여금','','회사 내규에 따름')}${tr('특별성과급','','회사 내규에 따름')}${tr('특근수당','','주말, 공휴일 출근 시 지급')}
         <tr style="background:#E8F0FB;"><td style="border:1px solid #333;padding:6px 8px;font-weight:700;font-size:10pt;">합계</td><td style="border:1px solid #333;padding:6px 8px;text-align:right;font-weight:700;font-size:10pt;">${w(sal.total)}</td><td style="border:1px solid #333;padding:6px 8px;"></td></tr></tbody>
       </table>
+      <p style="font-size:9pt;color:#555;margin-bottom:4px;">※ 본 계약은 포괄임금제를 적용하지 않습니다. 기본근로수당은 월 209시간을 기준으로 산정하되, 연장근로수당(해당 월 소정근로시간 초과분에 대해 통상시급의 1.5배)과 야간근로수당(22:00~06:00 근로시간에 대해 통상시급의 0.5배 가산)은 매월 실제 근무기록을 기준으로 산정하여 별도 지급합니다.</p>
       <p style="font-size:9pt;color:#555;margin-bottom:10px;">※ 위 임금구성은 소정근로시간(주52시간)을 기준으로 작성됨</p>
       <p style="font-weight:700;margin:14px 0 5px;">제3조 (지급시기 및 방법)</p>
       <p style="margin-bottom:4px;">① 연봉을 12개월로 균등 분할해 익월 말일에 지급한다.</p>
@@ -4310,7 +4599,7 @@ window.renderOvertimePC = async () => {
     <div style="max-width:1100px;margin:0 auto;padding:16px;">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">${homeBtn()}</div>
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
-        <div style="font-size:16px;font-weight:700;color:#1A2540;">⏱ 초과근로</div>
+        <div style="font-size:16px;font-weight:700;color:#1A2540;">⏱ 근로시간</div>
         <div style="display:flex;align-items:center;gap:8px;">
           <button onclick="otPcChangeMonth(-1)" style="border:none;background:#F0F4F9;border-radius:6px;padding:4px 10px;cursor:pointer;font-size:14px;">◀</button>
           <span id="ot-pc-label" style="font-size:14px;font-weight:600;color:#1A2540;">${_otPcYear}년 ${String(_otPcMonth).padStart(2,'0')}월</span>
@@ -4330,22 +4619,7 @@ window.renderOvertimePC = async () => {
             <div id="ot-pc-workers" style="display:flex;flex-direction:column;gap:4px;max-height:260px;overflow-y:auto;"></div>
           </div>
           <div style="background:#fff;border-radius:12px;padding:14px;">
-            <div style="font-size:12px;font-weight:700;color:#1A2540;margin-bottom:10px;">➕ 초과근로 입력</div>
-            <div style="display:flex;flex-direction:column;gap:8px;">
-              <input type="date" id="ot-pc-date" style="padding:7px 10px;border:1px solid #DDE3EE;border-radius:8px;font-size:13px;width:100%;box-sizing:border-box;">
-              <select id="ot-pc-worker-sel" onchange="otPcCalcPreview()" style="padding:7px 10px;border:1px solid #DDE3EE;border-radius:8px;font-size:13px;width:100%;box-sizing:border-box;">
-                <option value="">직원 선택</option>
-              </select>
-              <div id="ot-pc-wage-info" style="font-size:11px;color:#5C6F8A;background:#F7F9FC;padding:7px 10px;border-radius:7px;min-height:18px;"></div>
-              <div style="display:flex;align-items:center;gap:6px;">
-                <label style="font-size:12px;color:#5C6F8A;white-space:nowrap;">시간(h)</label>
-                <input type="number" id="ot-pc-hours" step="0.5" min="0.5" max="24" oninput="otPcCalcPreview()" placeholder="0.5" style="padding:7px 10px;border:1px solid #DDE3EE;border-radius:8px;font-size:13px;flex:1;min-width:0;">
-              </div>
-              <textarea id="ot-pc-reason" rows="2" placeholder="사유 (선택)" style="padding:7px 10px;border:1px solid #DDE3EE;border-radius:8px;font-size:13px;width:100%;box-sizing:border-box;resize:vertical;font-family:inherit;"></textarea>
-              <div id="ot-pc-preview" style="font-size:12px;color:#1D5BA6;font-weight:600;min-height:18px;"></div>
-              <button onclick="otPcSave()" style="padding:9px;background:#1D5BA6;border:none;border-radius:8px;color:#fff;font-size:13px;font-weight:700;cursor:pointer;width:100%;">저장</button>
-              <button onclick="otClearAllData()" style="padding:7px;background:#fff0f0;border:1px dashed #fca5a5;border-radius:8px;color:#dc2626;font-size:11px;cursor:pointer;width:100%;">🗑 전체 초기화</button>
-            </div>
+            <button onclick="otClearAllData()" style="padding:7px;background:#fff0f0;border:1px dashed #fca5a5;border-radius:8px;color:#dc2626;font-size:11px;cursor:pointer;width:100%;">🗑 초과근로수당 데이터 전체 초기화</button>
           </div>
         </div>
         <div style="flex:1;min-width:0;">
@@ -4503,38 +4777,236 @@ window.otPcShowPersonDetail = async (id, name, rank) => {
   if(!panel) return;
   panel.innerHTML = `<div style="color:#9AAABF;font-size:13px;text-align:center;padding:40px 0;"><div class="spinner"></div></div>`;
   try {
-    const { collection, getDocs, query, where, orderBy } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+    const { collection, getDocs, query, where } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
     const ym = `${_otPcYear}-${String(_otPcMonth).padStart(2,'0')}`;
-    const snap = await getDocs(query(collection(window._db,'overtime'), where('workerId','==',id), where('yearMonth','==',ym)));
-    const rows = [];
-    snap.forEach(d => rows.push({id:d.id,...d.data()}));
-    rows.sort((a,b)=>a.date.localeCompare(b.date));
-    const totalH = rows.reduce((s,r)=>s+(Number(r.hours)||0),0);
-    const totalA = rows.reduce((s,r)=>s+(Number(r.amount)||0),0);
     const wage = await otGetWage(id,name);
-    const fmt = v => v.toLocaleString()+'원';
+    const attSummary = await otGetAttendanceSummary(id, _otPcYear, _otPcMonth, name);
+
+    // 근로 내역(출퇴근기록) — 관리자가 직접 조회·수정
+    const attSnap = await getDocs(query(collection(window._db,'worker_attendance_log'), where('workerId','==',id), where('yearMonth','==',ym)));
+    const attRows = [];
+    attSnap.forEach(d => attRows.push({docId:d.id, ...d.data()}));
+    attRows.sort((a,b)=>(a.date||'').localeCompare(b.date||''));
+    attRows.forEach(r => { _otAttCache[r.docId] = r; });
+
+    // 해당 근로자의 연차(승인/게시)만 — 결근과 구분해서 표시하기 위함
+    let leaveDocs = [];
+    try {
+      const leaveSnap = await getDocs(collection(window._db, 'edoc_leave'));
+      leaveSnap.forEach(d => {
+        const ld = d.data();
+        if (ld.authorName === name && (ld.status==='approved' || ld.status==='posted')) leaveDocs.push(ld);
+      });
+    } catch(e) { console.warn('연차 조회 실패:', e.message); }
+
     panel.innerHTML = `
-      <div style="font-size:14px;font-weight:700;color:#1A2540;margin-bottom:12px;">${name} ${rank||''}</div>
-      ${wage?`<div style="font-size:12px;color:#5C6F8A;margin-bottom:10px;">통상임금 ${wage.rate.toLocaleString()}원/h</div>`:''}
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px;">
-        <div style="background:#F0F4F9;border-radius:8px;padding:10px;text-align:center;"><div style="font-size:11px;color:#9AAABF;">누계 시간</div><div style="font-size:18px;font-weight:700;color:#1A2540;">${totalH}h</div></div>
-        <div style="background:#F0F4F9;border-radius:8px;padding:10px;text-align:center;"><div style="font-size:11px;color:#9AAABF;">누계 수당</div><div style="font-size:18px;font-weight:700;color:#1D5BA6;">${fmt(totalA)}</div></div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+        <div style="font-size:14px;font-weight:700;color:#1A2540;">${name} ${rank||''}</div>
+        <button onclick="otAttOpenEdit('${id}','${otEsc(name)}','${date_today_str()}')" style="background:#1D5BA6;border:none;border-radius:7px;color:#fff;padding:6px 12px;font-size:12px;font-weight:600;cursor:pointer;">➕ 기록 추가</button>
       </div>
-      ${rows.length===0?'<div style="color:#9AAABF;text-align:center;padding:20px;">이번 달 초과근로 내역이 없습니다.</div>':
-      `<table style="width:100%;border-collapse:collapse;font-size:12px;">
-        <thead><tr style="background:#F7F9FC;">${['날짜','시간','수당','사유',''].map(h=>`<th style="padding:7px 10px;text-align:left;color:#5C6F8A;font-weight:600;">${h}</th>`).join('')}</tr></thead>
-        <tbody>${rows.map(r=>{_otDetailCache[r.id]=r; return `<tr style="border-bottom:1px solid #F0F4F9;cursor:pointer;" onclick="otShowDetail('${r.id}')">
-          <td style="padding:8px 10px;">${r.date}</td>
-          <td style="padding:8px 10px;">${r.hours}h</td>
-          <td style="padding:8px 10px;">${(r.amount||0).toLocaleString()}원</td>
-          <td style="padding:8px 10px;color:#5C6F8A;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${otEsc(r.reason||'')}">${r.reason?otEsc(r.reason):'<span style="color:#C3CEDD;">-</span>'}</td>
-          <td style="padding:8px 10px;">
-            <button onclick="event.stopPropagation();otPcEdit('${r.id}','${id}','${name}','${rank||''}')" style="background:#E8F0FB;border:none;border-radius:5px;color:#1D5BA6;padding:3px 8px;font-size:11px;cursor:pointer;margin-right:4px;">수정</button>
-            <button onclick="event.stopPropagation();otPcDelete('${r.id}','${id}','${name}','${rank||''}')" style="background:#FEE2E2;border:none;border-radius:5px;color:#DC2626;padding:3px 8px;font-size:11px;cursor:pointer;">삭제</button>
-          </td>
-        </tr>`;}).join('')}</tbody>
-      </table>`}`;
+      ${otRenderAttendanceCard(attSummary)}
+      ${wage?`<div style="font-size:12px;color:#5C6F8A;margin-bottom:10px;">통상임금 ${wage.rate.toLocaleString()}원/h</div>`:''}
+      <div style="font-size:12px;font-weight:700;color:#1A2540;margin:14px 0 8px;">🗓 근로 내역 (${ym}) — 날짜를 클릭하면 조회·수정할 수 있습니다</div>
+      ${otRenderAttendanceCalendar(id, name, rank, attRows, leaveDocs)}
+      <div style="display:flex;gap:14px;margin-top:10px;font-size:10.5px;color:#9AAABF;flex-wrap:wrap;">
+        <span><span style="display:inline-block;width:9px;height:9px;border-radius:2px;background:#1D5BA6;margin-right:4px;"></span>정상 근무</span>
+        <span><span style="display:inline-block;width:9px;height:9px;border-radius:2px;background:#FDE68A;margin-right:4px;"></span>연차·휴가</span>
+        <span><span style="display:inline-block;width:9px;height:9px;border-radius:2px;background:#FEE2E2;margin-right:4px;"></span>평일 결근(기록없음)</span>
+        <span><span style="display:inline-block;width:9px;height:9px;border-radius:2px;background:#EDE9FE;margin-right:4px;"></span>휴일근무</span>
+        <span><span style="width:9px;height:9px;border-radius:50%;background:#F59E0B;display:inline-block;margin-right:4px;"></span>관리자 수정</span>
+      </div>`;
   } catch(e){ panel.innerHTML=`<div style="color:#dc2626;">오류: ${e.message}</div>`; }
+};
+
+// ── 근로 내역 캘린더 렌더 ──
+function otRenderAttendanceCalendar(workerId, workerName, rank, attRows, leaveDocs){
+  const byDate = {};
+  attRows.forEach(r => { byDate[r.date] = r; });
+  leaveDocs = leaveDocs || [];
+
+  // 특정 날짜가 승인/게시된 연차 기간에 포함되는지 확인 → 휴가종류 반환(없으면 null)
+  function leaveOnDate(dateStr){
+    const lv = leaveDocs.find(l => l.startDate && l.endDate && dateStr >= l.startDate && dateStr <= l.endDate);
+    return lv ? (lv.leaveType || '휴가') : null;
+  }
+
+  const first = new Date(_otPcYear, _otPcMonth-1, 1);
+  const lastDate = new Date(_otPcYear, _otPcMonth, 0).getDate();
+  const firstDow = first.getDay();
+  const todayStr = date_today_str();
+  const DOW = ['일','월','화','수','목','금','토'];
+
+  let html = `<div style="background:#fff;border-radius:12px;padding:14px;">
+    <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:3px;margin-bottom:4px;">
+      ${DOW.map((w,i)=>`<div style="text-align:center;font-size:10.5px;font-weight:700;color:${i===0?'#E05':(i===6?'#1D5BA6':'#9AAABF')};padding:4px 0;">${w}</div>`).join('')}
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:3px;">`;
+
+  for (let i=0;i<firstDow;i++) html += `<div></div>`;
+  for (let day=1; day<=lastDate; day++){
+    const dateStr = `${_otPcYear}-${String(_otPcMonth).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+    const dow = (firstDow + day - 1) % 7;
+    const isWeekend = dow===0 || dow===6;
+    const isHoliday = KR_HOLIDAYS.has(dateStr);
+    const isOffDay = isWeekend || isHoliday;
+    const rec = byDate[dateStr];
+    const leaveType = leaveOnDate(dateStr);
+    const isToday = dateStr === todayStr;
+
+    let bg = 'transparent', fg = '#1A2540', fw = '500';
+    if (rec && isOffDay) { bg = '#EDE9FE'; fg = '#5B21B6'; fw = '700'; }              // 휴일근무
+    else if (rec) { bg = '#1D5BA6'; fg = '#fff'; fw = '700'; }                        // 정상근무
+    else if (!isOffDay && leaveType) { bg = '#FDE68A'; fg = '#92400E'; fw = '700'; }  // 연차·휴가(결근 아님)
+    else if (!isOffDay) { bg = '#FEE2E2'; fg = '#DC2626'; fw = '700'; }               // 평일 결근(기록·연차 둘 다 없음)
+    else if (dow===0) fg = '#E05'; else if (dow===6) fg = '#1D5BA6';
+
+    const border = isToday ? 'border:1.5px solid #F59E0B;' : '';
+    const subLabel = rec ? `<div style="font-size:8.5px;margin-top:1px;">${(rec.workHours||0).toFixed(1)}h</div>`
+                    : leaveType ? `<div style="font-size:8px;margin-top:1px;">${otEsc(leaveType.replace(/\(.+?\)/,''))}</div>` : '';
+    const adminDot = rec?.updatedByAdmin ? `<span style="position:absolute;top:2px;right:3px;width:5px;height:5px;border-radius:50%;background:#F59E0B;"></span>` : '';
+
+    html += `<div onclick="otAttOpenEdit('${workerId}','${otEsc(workerName)}','${dateStr}')"
+      title="${leaveType?otEsc(leaveType):''}"
+      style="position:relative;text-align:center;padding:6px 2px 5px;border-radius:8px;font-size:11.5px;background:${bg};color:${fg};font-weight:${fw};${border}cursor:pointer;">
+      ${adminDot}${day}${subLabel}
+    </div>`;
+  }
+  html += `</div></div>`;
+  return html;
+}
+
+function date_today_str(){
+  const d = new Date();
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+}
+
+const _otAttCache = {}; // docId -> 출퇴근기록 원본 (수정 모달용)
+
+// ── 근로 내역 추가/수정 모달 ──
+window.otAttOpenEdit = (workerId, workerName, dateStr) => {
+  const existing = Object.values(_otAttCache).find(r => r.workerId===workerId && r.date===dateStr);
+  let modal = document.getElementById('ot-att-modal');
+  if (!modal) {
+    modal = document.createElement('div');
+    modal.id = 'ot-att-modal';
+    modal.style.cssText = 'position:fixed;inset:0;background:rgba(19,51,92,0.45);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px;';
+    modal.onclick = (e)=>{ if(e.target===modal) modal.remove(); };
+    document.body.appendChild(modal);
+  }
+  modal.innerHTML = `
+    <div style="background:#fff;border-radius:16px;width:360px;max-width:100%;padding:20px;box-shadow:0 20px 60px rgba(0,0,0,0.3);">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+        <div style="font-size:14px;font-weight:800;color:#1A2540;">${workerName} 근로 내역 ${existing?'수정':'추가'}</div>
+        <button onclick="otShowDailyReport('${otEsc(workerName)}','${dateStr}')" style="background:#F0F4F9;border:none;border-radius:6px;color:#5C6F8A;padding:4px 8px;font-size:11px;cursor:pointer;">📋 업무일지</button>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:10px;">
+        <div>
+          <label style="font-size:11px;color:#5C6F8A;display:block;margin-bottom:4px;">날짜</label>
+          <input type="date" id="ot-att-date" value="${dateStr}" ${existing?'disabled':''} style="width:100%;padding:8px 10px;border:1px solid #DDE3EE;border-radius:8px;font-size:13px;box-sizing:border-box;${existing?'background:#F7F9FC;color:#9AAABF;':''}">
+        </div>
+        <div style="display:flex;gap:8px;">
+          <div style="flex:1;">
+            <label style="font-size:11px;color:#5C6F8A;display:block;margin-bottom:4px;">출근시간</label>
+            <input type="time" id="ot-att-checkin" value="${existing?.checkIn||'07:00'}" step="600" style="width:100%;padding:8px 10px;border:1px solid #DDE3EE;border-radius:8px;font-size:13px;box-sizing:border-box;">
+          </div>
+          <div style="flex:1;">
+            <label style="font-size:11px;color:#5C6F8A;display:block;margin-bottom:4px;">퇴근시간</label>
+            <input type="time" id="ot-att-checkout" value="${existing?.checkOut||'18:00'}" step="600" style="width:100%;padding:8px 10px;border:1px solid #DDE3EE;border-radius:8px;font-size:13px;box-sizing:border-box;">
+          </div>
+        </div>
+        <div style="max-width:140px;">
+          <label style="font-size:11px;color:#5C6F8A;display:block;margin-bottom:4px;">휴게시간(분)</label>
+          <input type="number" id="ot-att-break" value="${existing?.breakMinutes??120}" min="0" step="10" style="width:100%;padding:8px 10px;border:1px solid #DDE3EE;border-radius:8px;font-size:13px;box-sizing:border-box;">
+        </div>
+        <div id="ot-att-status" style="font-size:11px;color:#DC2626;min-height:14px;"></div>
+        <div style="display:flex;gap:8px;margin-top:6px;">
+          <button onclick="document.getElementById('ot-att-modal').remove()" style="flex:1;padding:10px;background:#F0F4F9;border:none;border-radius:9px;color:#5C6F8A;font-size:13px;cursor:pointer;">취소</button>
+          ${existing?`<button onclick="otAttDelete('${existing.docId}','${workerId}','${otEsc(workerName)}','')" style="flex:1;padding:10px;background:#FEE2E2;border:none;border-radius:9px;color:#DC2626;font-size:13px;font-weight:700;cursor:pointer;">삭제</button>`:''}
+          <button onclick="otAttSave('${workerId}','${otEsc(workerName)}','${existing?dateStr:''}')" style="flex:2;padding:10px;background:#1D5BA6;border:none;border-radius:9px;color:#fff;font-size:13px;font-weight:700;cursor:pointer;">저장</button>
+        </div>
+      </div>
+    </div>`;
+};
+
+window.otAttSave = async (workerId, workerName, lockedDate) => {
+  const dateInput = document.getElementById('ot-att-date');
+  const date = lockedDate || dateInput.value;
+  const checkIn = document.getElementById('ot-att-checkin').value;
+  const checkOut = document.getElementById('ot-att-checkout').value;
+  const breakMinutes = Number(document.getElementById('ot-att-break').value)||0;
+  const statusEl = document.getElementById('ot-att-status');
+  if (!date || !checkIn || !checkOut) { statusEl.textContent = '날짜·출근·퇴근 시간을 모두 입력해주세요.'; return; }
+
+  const [ih,im] = checkIn.split(':').map(Number);
+  const [oh,om] = checkOut.split(':').map(Number);
+  let mins = (oh*60+om) - (ih*60+im);
+  if (mins <= 0) mins += 24*60;
+  mins -= breakMinutes;
+  const workHours = Math.round((mins/60)*10)/10;
+
+  try {
+    const { doc, setDoc, serverTimestamp } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+    const key = `${workerId}_${date}`;
+    await setDoc(doc(window._db,'worker_attendance_log',key), {
+      workerId, name: workerName, date, yearMonth: date.slice(0,7),
+      checkIn, checkOut, breakMinutes, workHours,
+      updatedAt: serverTimestamp(), updatedByAdmin: true,
+    }, { merge:true });
+    document.getElementById('ot-att-modal').remove();
+    const workers = window._psWorkers || (await getWorkersList());
+    otPcShowPersonDetail(workerId, workerName, (workers.find(w=>w.id===workerId)||{}).rank||'');
+  } catch(e) { statusEl.textContent = '저장 실패: '+e.message; }
+};
+
+window.otAttDelete = async (docId, workerId, name, rank) => {
+  if(!confirm('이 근로 내역을 삭제하시겠습니까?')) return;
+  try {
+    const { doc, deleteDoc } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+    await deleteDoc(doc(window._db,'worker_attendance_log',docId));
+    const modal = document.getElementById('ot-att-modal');
+    if (modal) modal.remove();
+    otPcShowPersonDetail(workerId,name,rank);
+  } catch(e){ alert('오류: '+e.message); }
+};
+
+// ── 해당 날짜 업무일지 팝업 ──
+window.otShowDailyReport = async (workerName, dateStr) => {
+  let modal = document.getElementById('ot-daily-modal');
+  if (!modal) {
+    modal = document.createElement('div');
+    modal.id = 'ot-daily-modal';
+    modal.style.cssText = 'position:fixed;inset:0;background:rgba(19,51,92,0.45);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px;';
+    modal.onclick = (e)=>{ if(e.target===modal) modal.remove(); };
+    document.body.appendChild(modal);
+  }
+  modal.innerHTML = `<div style="background:#fff;border-radius:16px;width:480px;max-width:100%;max-height:80vh;overflow-y:auto;padding:20px;box-shadow:0 20px 60px rgba(0,0,0,0.3);">
+    <div style="font-size:14px;font-weight:800;color:#1A2540;margin-bottom:14px;">📋 ${workerName} — ${dateStr} 업무일지</div>
+    <div id="ot-daily-body" style="text-align:center;color:#9AAABF;padding:30px 0;">불러오는 중...</div>
+    <button onclick="document.getElementById('ot-daily-modal').remove()" style="margin-top:14px;width:100%;padding:10px;background:#F0F4F9;border:none;border-radius:9px;color:#5C6F8A;font-size:13px;cursor:pointer;">닫기</button>
+  </div>`;
+
+  const bodyEl = document.getElementById('ot-daily-body');
+  try {
+    const { collection, getDocs, query, where } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+    const snap = await getDocs(query(collection(window._db,'edoc_daily'), where('authorName','==',workerName), where('date','==',dateStr)));
+    if (snap.empty) {
+      bodyEl.innerHTML = '<div style="color:#9AAABF;text-align:center;padding:20px 0;">해당 날짜에 작성된 업무일지가 없습니다.</div>';
+      return;
+    }
+    const rows = [];
+    snap.forEach(d => rows.push(d.data()));
+    bodyEl.innerHTML = rows.map(d => `
+      <div style="text-align:left;border:1px solid #F0F4F9;border-radius:10px;padding:12px 14px;margin-bottom:10px;">
+        <div style="font-size:12.5px;font-weight:700;color:#1A2540;margin-bottom:8px;">${otEsc(d.title||'(제목없음)')} ${d.pjtName?`· ${otEsc(d.pjtName)}`:''}</div>
+        <div style="font-size:11.5px;color:#5C6F8A;line-height:1.6;">
+          <div><b>금일 진행:</b> ${otEsc(d.todayWork||'-')}</div>
+          <div style="margin-top:4px;"><b>익일 예정:</b> ${otEsc(d.tomorrowWork||'-')}</div>
+          ${d.issue?`<div style="margin-top:4px;"><b>특이사항:</b> ${otEsc(d.issue)}</div>`:''}
+        </div>
+      </div>`).join('');
+  } catch(e) {
+    bodyEl.innerHTML = `<div style="color:#DC2626;text-align:center;padding:20px 0;">불러오기 실패: ${e.message}</div>`;
+  }
 };
 
 window.otPcDelete = async (docId, workerId, name, rank) => {
@@ -4566,7 +5038,7 @@ window.renderOvertimeMobile = () => {
         ${selectMain('➕','초과근로 입력','renderOvertimeAdd()','날짜·직원·시간 입력 → 수당 자동 계산')}
       </div>
       <div style="margin-top:12px;padding:10px 12px;background:#F0F4F9;border-radius:8px;font-size:11px;color:#5C6F8A;line-height:1.6;">
-        💡 <strong>통상임금</strong> = (기본+고정연장+고정야간+주휴) ÷ 209<br>
+        💡 <strong>통상임금</strong> = (기본근로수당+주휴수당) ÷ 209<br>
         연봉계약서 기준 자동 계산 · 누계 수당은 급여명세서 <strong>상여금</strong>에 자동 연동
       </div>
       <div style="margin-top:10px;">
@@ -4780,12 +5252,12 @@ async function otLoadPersonDetail(workerId, name, rank) {
 
     // 통상임금 정보
     const wage = await otGetWage(workerId, name);
+    const attSummary = await otGetAttendanceSummary(workerId, otYear, otMonth, name);
+    const attHtml = otRenderAttendanceCard(attSummary);
     const wageHtml = wage
       ? `<div style="background:#F0F4F9;border-radius:8px;padding:10px 12px;margin-bottom:12px;font-size:11px;color:#5C6F8A;">
           <div style="font-weight:700;color:#1D5BA6;margin-bottom:4px;">📐 통상임금 계산 기준</div>
           <div style="display:flex;justify-content:space-between;"><span>기본근로수당</span><span>${(wage.basic||0).toLocaleString()}원</span></div>
-          <div style="display:flex;justify-content:space-between;"><span>고정연장수당</span><span>${(wage.fixedOt||0).toLocaleString()}원</span></div>
-          <div style="display:flex;justify-content:space-between;"><span>고정야간수당</span><span>${(wage.fixedNight||0).toLocaleString()}원</span></div>
           <div style="display:flex;justify-content:space-between;"><span>주휴수당</span><span>${(wage.weekly||0).toLocaleString()}원</span></div>
           <div style="display:flex;justify-content:space-between;border-top:1px solid #DDE4EF;margin-top:4px;padding-top:4px;font-weight:700;color:#1D5BA6;">
             <span>시간당 통상임금</span><span>${(wage.rate||0).toLocaleString()}원/h</span>
@@ -4793,7 +5265,7 @@ async function otLoadPersonDetail(workerId, name, rank) {
         </div>`
       : `<div style="background:#fff3cd;border-radius:8px;padding:10px;margin-bottom:12px;font-size:11px;color:#856404;">⚠️ 연봉계약서가 없습니다. 연봉계약서 등록 후 사용 가능합니다.</div>`;
 
-    let html = wageHtml + `
+    let html = attHtml + wageHtml + `
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px;">
         <div style="background:#F0F4F9;border-radius:10px;padding:12px;">
           <div style="font-size:11px;color:#9AAABF;">누계 시간</div>
@@ -5036,7 +5508,7 @@ window.otDeletePerson = async (docId, workerId, name, rank) => {
 <script>
 // ════════════════════════════════
 // 🧾 퇴직금 정산
-// 1일 평균임금 = (퇴직 전 3개월: 기본+고정연장+고정야간+주휴+상여금) ÷ 그 기간 일수
+// 1일 평균임금 = (퇴직 전 3개월: 기본근로수당+연장근로수당+야간근로수당+주휴수당+상여금) ÷ 그 기간 일수
 //   · 특별성과급·특근수당 제외, 정기상여/연차수당 가산 없음
 //   · 평균임금 < 통상임금이면 통상임금(1일=통상시급×8) 적용
 //   · 계속근로 1년 미만 0원
