@@ -2,7 +2,7 @@
 
 > 앱: `portal/pjt/index.html` · 워커 컬렉션: `pjt_workers_fab`
 > Firestore: `user_schedules`, `daily_reports_{날짜}`, `daily_report_docs`, `pjt_workers_fab`, `edoc_leave`
-> 최초 작성: 2026-07-01 · 최종 개정: 2026-08-22 (근태 출역 인원수 카운트 버그 수정, v5.3.5 / daily-report 2.4.2) · 작성: 춘식이(Claude)
+> 최초 작성: 2026-07-01 · 최종 개정: 2026-08-29 (업무일지 출퇴근시간 입력 추가) -22 (근태 출역 인원수 카운트 버그 수정, v5.3.5 / daily-report 2.4.2) · 작성: 춘식이(Claude)
 
 ---
 
@@ -149,3 +149,11 @@ user_schedules/{auto-id}: { sdate, edate?, stime?, tag, text, reg, ..., savedAt 
 
 
 
+
+---
+
+## 업무일지(daily-report) 출퇴근시간 입력 추가 (2026-08-29)
+
+`daily-report/index.html` 작성 폼에 "④ 근무시간" 카드 신규 — 출근/퇴근시간(10분 단위 스냅, `step="600"` 무시하는 브라우저 대응해 change 이벤트로 재보정) + 휴게시간(기본 2h) 입력, 근무시간 자동표시. Firestore 저장 시 `checkIn`/`checkOut` 필드로 함께 저장. 카드 번호 4~9로 재정렬(금일작업→5, 명일예정→6, 기술인투입→7, 사용장비→8, 특이사항→9).
+
+이 출퇴근시간은 **업무일지 자체의 참고 정보**이며, 인사 근로시간 자동계산에 쓰이는 `worker_attendance_log`(edoc 출퇴근 기록 탭에서 별도 기록)와는 무관한 별개 데이터임 — 혼동 주의. 상세: `2_8_hr_worktime.md`.
