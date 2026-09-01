@@ -155,6 +155,10 @@ body{font-family:-apple-system,'Apple SD Gothic Neo','Pretendard',sans-serif;bac
 .dot-purple{background:#5e35b1}
 .dot-red{background:#c0392b}
 .dot-orange{background:#e67e22}
+.dot-brown{background:#5D3A00}
+.dot-yellow{background:#8D6E00}
+.dot-teal{background:#00695C}
+.dot-gray{background:#7A8AA0}
 .dots-row{display:flex;gap:2px;flex-wrap:wrap;justify-content:center}
 .cal-detail{margin-top:16px;border-top:1px solid #e5e5e5;padding-top:14px}
 .cal-detail-title{font-size:14px;font-weight:600;color:#1d1d1f;margin-bottom:12px}
@@ -332,12 +336,22 @@ body{font-family:-apple-system,'Apple SD Gothic Neo','Pretendard',sans-serif;bac
   .home-kpi-val.blue{color:#1D5BA6}
   .home-kpi-sub{font-size:11px;color:#86868b;margin-top:4px}
   .home-row2{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:20px}
+  /* 일정관리 Daily/Weekly/Monthly 토글 */
+  .sched-view-toggle{display:flex;gap:6px;margin-bottom:16px}
+  .svt-btn{padding:8px 18px;border:1px solid #d1d1d6;border-radius:9px;background:#fff;color:#5C6F8A;font-size:13px;font-weight:600;cursor:pointer;transition:background .12s,color .12s,border-color .12s}
+  .svt-btn:hover{background:#f5f7fa}
+  .svt-btn.active{background:#1D5BA6;border-color:#1D5BA6;color:#fff}
   .home-card{background:#fff;border-radius:12px;border:1px solid #e5e5e5;padding:18px 20px}
   .home-section-hd{font-size:13px;font-weight:700;color:#1d1d1f;margin-bottom:14px;display:flex;align-items:center;gap:6px}
   .home-shortcuts{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
   .home-sc{background:#f9fafc;border:1px solid #e5e5e5;border-radius:10px;padding:14px 16px;cursor:pointer;transition:box-shadow .15s,border-color .15s;display:flex;align-items:center;gap:12px}
   .home-sc:hover{box-shadow:0 2px 12px rgba(0,0,0,.08);border-color:#1D5BA6}
   .home-sc .sci{font-size:22px;flex-shrink:0}
+  .home-info-list{display:flex;flex-direction:column;gap:12px}
+  .home-info-row{display:flex;justify-content:space-between;align-items:baseline;padding-bottom:10px;border-bottom:1px solid #F0F4F9}
+  .home-info-row:last-child{border-bottom:none;padding-bottom:0}
+  .home-info-k{font-size:12px;color:#8a8a8e;flex-shrink:0}
+  .home-info-v{font-size:13.5px;font-weight:700;color:#1d1d1f;text-align:right}
   .home-sc .sct{font-size:13px;font-weight:700;color:#1d1d1f}
   .home-sc .scd{font-size:11px;color:#86868b;margin-top:2px}
 
@@ -378,13 +392,13 @@ body{font-family:-apple-system,'Apple SD Gothic Neo','Pretendard',sans-serif;bac
   .ppt-btn-wrap{display:flex;justify-content:flex-end;padding-top:4px}
 
   /* ── 캘린더 탭 좌우 분할 ── */
-  #tab-calendar{grid-template-columns:420px 1fr;gap:16px;height:calc(100vh - 82px)}
+  #tab-calendar{grid-template-columns:minmax(560px,1.3fr) 1fr;gap:16px;height:calc(100vh - 82px)}
   .cal-left-panel{min-width:0;overflow-y:auto;display:flex;flex-direction:column}
   .cal-right-panel{background:#fff;border-radius:12px;border:1px solid #e5e5e5;overflow-y:auto;display:flex;flex-direction:column}
   .cal-right-empty{flex:1;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:8px;color:#86868b;font-size:13px}
   .cal-right-hd{padding:14px 18px;border-bottom:1px solid #e5e5e5;font-size:14px;font-weight:700;color:#1d1d1f;flex-shrink:0}
   .cal-right-body{flex:1;overflow-y:auto;padding:12px 16px}
-  .cal-day{padding:6px 4px;border-radius:10px;cursor:pointer;min-height:72px;display:flex;flex-direction:column;align-items:center;gap:2px;transition:background 0.12s}
+  .cal-day{padding:8px 5px;border-radius:10px;cursor:pointer;min-height:92px;display:flex;flex-direction:column;align-items:center;gap:2px;transition:background 0.12s}
   .cal-day-num{font-size:14px;width:30px;height:30px;display:flex;align-items:center;justify-content:center;border-radius:50%}
 
   /* ── 주간 탭 7열 grid ── */
@@ -410,9 +424,13 @@ body{font-family:-apple-system,'Apple SD Gothic Neo','Pretendard',sans-serif;bac
   body>*:not(#dr-print-area){display:none!important}
   #dr-print-area{display:block!important}
 }
-}}
+}
 
+@media (max-width:899px){
   /* ── 모바일 홈탭 기본 CSS (iframe 포함) ── */
+  .sched-view-toggle{display:flex;gap:5px;margin-bottom:12px}
+  .svt-btn{flex:1;padding:8px 4px;border:1px solid #d1d1d6;border-radius:8px;background:#fff;color:#5C6F8A;font-size:12px;font-weight:600;cursor:pointer}
+  .svt-btn.active{background:#1D5BA6;border-color:#1D5BA6;color:#fff}
   .home-kpi-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px}
   .home-kpi-card{background:#fff;border-radius:12px;border:1px solid #e5e5e5;padding:14px 16px}
   .home-kpi-lbl{font-size:11px;color:#86868b;margin-bottom:4px;font-weight:500;text-transform:uppercase;letter-spacing:.3px}
@@ -425,8 +443,14 @@ body{font-family:-apple-system,'Apple SD Gothic Neo','Pretendard',sans-serif;bac
   .home-shortcuts{display:grid;grid-template-columns:1fr 1fr;gap:8px}
   .home-sc{background:#f9fafc;border:1px solid #e5e5e5;border-radius:10px;padding:12px;cursor:pointer;display:flex;align-items:center;gap:10px}
   .home-sc .sci{font-size:20px;flex-shrink:0}
+  .home-info-list{display:flex;flex-direction:column;gap:10px}
+  .home-info-row{display:flex;justify-content:space-between;align-items:baseline;padding-bottom:8px;border-bottom:1px solid #F0F4F9}
+  .home-info-row:last-child{border-bottom:none;padding-bottom:0}
+  .home-info-k{font-size:11.5px;color:#8a8a8e;flex-shrink:0}
+  .home-info-v{font-size:13px;font-weight:700;color:#1d1d1f;text-align:right}
   .home-sc .sct{font-size:13px;font-weight:700;color:#1d1d1f}
   .home-sc .scd{font-size:11px;color:#86868b;margin-top:1px}
+}
 </style>
 </head>
 <body>
@@ -440,9 +464,7 @@ body{font-family:-apple-system,'Apple SD Gothic Neo','Pretendard',sans-serif;bac
   </div>
   <div class="pc-topnav-tabs">
     <button class="pc-tnav-btn" data-tab="home" onclick="switchTabPC('home',this)">🏠 홈</button>
-    <button class="pc-tnav-btn active" data-tab="today" onclick="switchTabPC('today',this)">📅 오늘</button>
-    <button class="pc-tnav-btn" data-tab="twoweek" onclick="switchTabPC('twoweek',this)">📆 주간</button>
-    <button class="pc-tnav-btn" data-tab="calendar" onclick="switchTabPC('calendar',this)">🗓️ 캘린더</button>
+    <button class="pc-tnav-btn active" data-tab="schedule" onclick="switchTabPC('schedule',this)">📅 일정관리</button>
     <button class="pc-tnav-btn" data-tab="attend" onclick="switchTabPC('attend',this)">👷 근태</button>
     <button class="pc-tnav-btn" data-tab="progress" onclick="switchTabPC('progress',this)">📊 공정</button>
     <button class="pc-tnav-btn" data-tab="settings" onclick="switchTabPC('settings',this)">⚙️ 설정</button>
@@ -465,12 +487,10 @@ body{font-family:-apple-system,'Apple SD Gothic Neo','Pretendard',sans-serif;bac
         <div class="logo-sub" id="hdr-sub-mo">귀뚜라미범양냉방 · EHU 설치</div>
       </div>
       <span class="date-badge" id="today-badge"></span>
-      <a href="#" onclick="window.open('../daily-report/ph4.html','_blank');return false;" style="font-size:12px;color:#1D5BA6;background:#e8f0fb;padding:5px 11px;border-radius:8px;text-decoration:none;font-weight:600;white-space:nowrap;">📋 공사일보</a>
+      <a href="javascript:void(0)" onclick="openDRWrite()" style="font-size:12px;color:#1D5BA6;background:#e8f0fb;padding:5px 11px;border-radius:8px;text-decoration:none;font-weight:600;white-space:nowrap;">📋 공사일보</a>
     </div>
     <div class="tab-bar">
-      <button class="tab active" onclick="switchTab('today',this)">오늘</button>
-      <button class="tab" onclick="switchTab('twoweek',this)">주간</button>
-      <button class="tab" onclick="switchTab('calendar',this)">캘린더</button>
+      <button class="tab active" onclick="switchTab('schedule',this)">📅 일정관리</button>
       <button class="tab" onclick="switchTab('attend',this)">근태</button>
       <button class="tab" onclick="switchTab('progress',this)">공정</button>
       <button class="tab" onclick="switchTab('settings',this)">설정</button>
@@ -505,7 +525,7 @@ body{font-family:-apple-system,'Apple SD Gothic Neo','Pretendard',sans-serif;bac
         </div>
       </div>
 
-      <!-- 2행: 바로가기 + 설정 -->
+      <!-- 2행: 바로가기 + 기본정보 -->
       <div class="home-row2">
         <!-- 바로가기 -->
         <div class="home-card">
@@ -519,11 +539,11 @@ body{font-family:-apple-system,'Apple SD Gothic Neo','Pretendard',sans-serif;bac
               <div class="sci">👷</div>
               <div><div class="sct">근태 · 공수</div><div class="scd">출역 및 공수 입력</div></div>
             </div>
-            <div class="home-sc" onclick="goHomeTab('today')">
+            <div class="home-sc" onclick="goHomeTab('schedule')">
               <div class="sci">📅</div>
               <div><div class="sct">오늘 일정</div><div class="scd">일정 확인 및 보고</div></div>
             </div>
-            <div class="home-sc" onclick="window.open('../daily-report/ph4.html','_blank')">
+            <div class="home-sc" onclick="openDRWrite()">
               <div class="sci">📋</div>
               <div><div class="sct">공사일보 작성</div><div class="scd">오늘 공사일보 작성</div></div>
             </div>
@@ -538,11 +558,28 @@ body{font-family:-apple-system,'Apple SD Gothic Neo','Pretendard',sans-serif;bac
           </div>
         </div>
 
-        <!-- 프로젝트 설정 섹션은 상단 설정 탭으로 이동 -->
+        <!-- 기본정보 -->
+        <div class="home-card">
+          <div class="home-section-hd">📋 기본정보</div>
+          <div class="home-info-list">
+            <div class="home-info-row"><span class="home-info-k">현장명</span><span class="home-info-v" id="home-info-name">—</span></div>
+            <div class="home-info-row"><span class="home-info-k">거래처</span><span class="home-info-v" id="home-info-client">—</span></div>
+            <div class="home-info-row"><span class="home-info-k">PJT 내용</span><span class="home-info-v" id="home-info-content">—</span></div>
+            <div class="home-info-row"><span class="home-info-k">품목</span><span class="home-info-v" id="home-info-item">—</span></div>
+            <div class="home-info-row"><span class="home-info-k">물량</span><span class="home-info-v" id="home-info-qty">—</span></div>
+            <div class="home-info-row"><span class="home-info-k">공사 시작일</span><span class="home-info-v" id="home-info-start">—</span></div>
+          </div>
+        </div>
       </div>
     </div>
 
     <!-- TODAY -->
+    <div id="tab-schedule">
+      <div class="sched-view-toggle">
+        <button class="svt-btn active" data-view="daily" onclick="setScheduleView('daily')">Daily</button>
+        <button class="svt-btn" data-view="weekly" onclick="setScheduleView('weekly')">Weekly</button>
+        <button class="svt-btn" data-view="monthly" onclick="setScheduleView('monthly')">Monthly</button>
+      </div>
     <div id="tab-today">
       <div class="pc-today-l">
       <div class="today-nav">
@@ -613,6 +650,10 @@ body{font-family:-apple-system,'Apple SD Gothic Neo','Pretendard',sans-serif;bac
           <span class="legend-item"><span class="legend-dot" style="background:#5e35b1"></span>교육</span>
           <span class="legend-item"><span class="legend-dot" style="background:#c0392b"></span>휴무</span>
           <span class="legend-item"><span class="legend-dot" style="background:#e67e22"></span>연차</span>
+          <span class="legend-item"><span class="legend-dot" style="background:#5D3A00"></span>회의</span>
+          <span class="legend-item"><span class="legend-dot" style="background:#8D6E00"></span>안전</span>
+          <span class="legend-item"><span class="legend-dot" style="background:#00695C"></span>품질</span>
+          <span class="legend-item"><span class="legend-dot" style="background:#7A8AA0"></span>기타</span>
         </div>
         <div class="cal-grid" id="cal-grid">
           <div class="cal-dow">일</div><div class="cal-dow">월</div><div class="cal-dow">화</div>
@@ -631,6 +672,7 @@ body{font-family:-apple-system,'Apple SD Gothic Neo','Pretendard',sans-serif;bac
         </div>
       </div>
     </div>
+    </div><!-- /#tab-schedule -->
 
     <!-- ATTENDANCE -->
     <div id="tab-attend" style="display:none">
@@ -776,6 +818,17 @@ body{font-family:-apple-system,'Apple SD Gothic Neo','Pretendard',sans-serif;bac
   </div>
 </div><!-- /.app -->
 </div><!-- /.ws-wrapper -->
+
+<!-- 공사일보 작성 모달(페이지 내 iframe) -->
+<div class="us-modal" id="dr-write-modal">
+  <div class="us-sheet" style="max-width:520px;max-height:94vh;display:flex;flex-direction:column;padding:0;overflow:hidden;">
+    <div class="us-head" style="flex-shrink:0;">
+      <span class="us-head-title">📋 공사일보 작성</span>
+      <button class="us-close" onclick="closeDRWrite()">✕</button>
+    </div>
+    <iframe id="dr-write-iframe" src="about:blank" style="flex:1;width:100%;border:none;min-height:70vh;"></iframe>
+  </div>
+</div>
 
 <!-- 공사일보 조회 모달 -->
 <div class="us-modal" id="dr-list-modal">
@@ -1637,11 +1690,21 @@ const ALL_SCHEDULE={};
 
 // ===== 2026년 한국 공휴일 =====
 const HOLIDAYS={
-  '2026-01-01':'신정','2026-01-28':'설날 연휴','2026-01-29':'설날','2026-01-30':'설날 연휴',
-  '2026-03-01':'삼일절','2026-05-05':'어린이날','2026-05-24':'부처님오신날',
-  '2026-06-06':'현충일','2026-08-15':'광복절',
-  '2026-09-24':'추석 연휴','2026-09-25':'추석','2026-09-26':'추석 연휴',
-  '2026-10-03':'개천절','2026-10-09':'한글날','2026-12-25':'크리스마스',
+  '2024-01-01':'신정','2024-02-09':'설날 연휴','2024-02-10':'설날','2024-02-11':'설날 연휴','2024-02-12':'대체공휴일',
+  '2024-03-01':'삼일절','2024-04-10':'국회의원선거','2024-05-05':'어린이날','2024-05-06':'대체공휴일','2024-05-15':'부처님오신날',
+  '2024-06-06':'현충일','2024-08-15':'광복절','2024-09-16':'추석 연휴','2024-09-17':'추석','2024-09-18':'추석 연휴',
+  '2024-10-03':'개천절','2024-10-09':'한글날','2024-12-25':'크리스마스',
+  '2025-01-01':'신정','2025-01-28':'설날 연휴','2025-01-29':'설날','2025-01-30':'설날 연휴',
+  '2025-03-01':'삼일절','2025-05-05':'어린이날','2025-05-06':'대체공휴일','2025-06-06':'현충일',
+  '2025-08-15':'광복절','2025-10-03':'개천절','2025-10-05':'추석 연휴','2025-10-06':'추석','2025-10-07':'추석 연휴','2025-10-09':'한글날',
+  '2025-12-25':'크리스마스',
+  '2026-01-01':'신정','2026-02-16':'설날 연휴','2026-02-17':'설날','2026-02-18':'설날 연휴',
+  '2026-03-01':'삼일절','2026-03-02':'대체공휴일','2026-05-05':'어린이날','2026-05-25':'대체공휴일',
+  '2026-06-03':'지방선거일','2026-06-06':'현충일','2026-07-17':'제헌절','2026-08-17':'대체공휴일(광복절)','2026-09-24':'추석 연휴','2026-09-25':'추석','2026-09-28':'대체공휴일',
+  '2026-10-05':'대체공휴일(개천절)','2026-10-09':'한글날','2026-12-25':'크리스마스',
+  '2027-01-01':'신정','2027-02-08':'설날 연휴','2027-02-09':'설날','2027-02-10':'설날 연휴','2027-03-01':'삼일절',
+  '2027-05-05':'어린이날','2027-05-13':'부처님오신날','2027-06-06':'현충일','2027-08-16':'대체공휴일(광복절)',
+  '2027-09-14':'추석 연휴','2027-09-15':'추석','2027-09-16':'추석 연휴','2027-10-04':'대체공휴일(개천절)','2027-10-09':'한글날','2027-12-25':'크리스마스',
 };
 
 // ===== 유틸 =====
@@ -1971,8 +2034,9 @@ function renderTwoWeek(){
   _twNav+='<div style="flex:1;text-align:center;font-size:13px;font-weight:700;color:#1D5BA6">'+_twRange+((window._twBlock||0)===0?' · 이번 2주':'')+'</div>';
   _twNav+='<button class="nav-arrow" onclick="changeTwoWeek(1)">›</button>';
   _twNav+='<button onclick="goTwoWeekToday()" style="font-size:11px;font-weight:600;color:#1D5BA6;background:#e8f0fb;border:none;border-radius:8px;padding:5px 10px;cursor:pointer;white-space:nowrap;margin-left:4px">오늘</button>';
+  _twNav+='<button onclick="saveSheetPng(\'tw-capture-area\',\'주간일정_'+toKey(w0Start)+'.png\')" style="font-size:11px;font-weight:600;color:#1D5BA6;background:#e8f0fb;border:none;border-radius:8px;padding:5px 10px;cursor:pointer;white-space:nowrap;margin-left:4px">🖼️ 이미지 저장</button>';
   _twNav+='</div>';
-  el.innerHTML=_twNav+html;
+  el.innerHTML=_twNav+'<div id="tw-capture-area" style="background:#fff;padding:4px;">'+html+'</div>';
 }
 window.changeTwoWeek=function(dir){window._twBlock=(window._twBlock||0)+dir;renderTwoWeek();};
 window.goTwoWeekToday=function(){window._twBlock=0;renderTwoWeek();};
@@ -1989,16 +2053,17 @@ function getDots(key){
   const isOff=dow===0||dow===6||!!HOLIDAYS[key]||allDotItems.some(i=>i.tag==='off');
   if(isOff)types.add('off');
   allDotItems.forEach(i=>{
-    if(i.tag==='fcu')types.add('in');
-    else if(i.tag==='in')types.add('in');
-    else if(i.tag==='inspect')types.add('check');
-    else if(i.tag==='edu')types.add('edu');
-    else if(i.tag==='leave')types.add('leave');
+    const t=i.tag||'admin';
+    if(t==='off') return;
+    if(t==='fcu') types.add('in');
+    else if(t==='inspect') types.add('check');
+    else types.add(t);
   });
   if(getLeavesFromSchedule(key).length)types.add('leave');
   return[...types];
 }
-const DOT_MAP={in:'dot-blue',check:'dot-green',edu:'dot-purple',off:'dot-red',leave:'dot-orange'};
+const DOT_MAP={in:'dot-blue',check:'dot-green',edu:'dot-purple',off:'dot-red',leave:'dot-orange',
+  meeting:'dot-brown',safety:'dot-yellow',quality:'dot-teal',admin:'dot-gray'};
 function renderCal(){
   const months=['1월','2월','3월','4월','5월','6월','7월','8월','9월','10월','11월','12월'];
   document.getElementById('cal-month-label').textContent=curYear+'년 '+months[curMonth];
@@ -3034,12 +3099,17 @@ function hideFixedItem(dateKey,text){
   closeUsDetail();renderToday();
 }
 
+var scheduleViewMode='daily'; // 'daily' | 'weekly' | 'monthly' — 일정관리 탭 내부 서브뷰
 function switchTab(name,btn){
-  var ALL_TABS=['home','today','twoweek','calendar','progress','attend','settings'];
-  // 알 수 없는 탭 이름(예: 포털 서브탭 key)이 들어오면 home으로 폴백 (빈 화면 방지)
+  var ALL_TABS=['home','schedule','progress','attend','settings'];
+  // 알 수 없는 탭 이름(예: 포털 서브탭 key, 혹은 예전 today/twoweek/calendar 키) → schedule로 흡수, 그 외는 home 폴백
+  if(name==='today'||name==='twoweek'||name==='calendar'){
+    scheduleViewMode = name==='today'?'daily':(name==='twoweek'?'weekly':'monthly');
+    name='schedule';
+  }
   if(ALL_TABS.indexOf(name)<0) name='home';
   // grid 레이아웃 탭 목록 (CSS에 grid 선언 있는 탭)
-  var GRID_TABS={today:'grid',progress:'grid',calendar:'grid'};
+  var GRID_TABS={progress:'grid'};
   ALL_TABS.forEach(function(t){
     var el=document.getElementById('tab-'+t);
     if(!el) return;
@@ -3055,13 +3125,30 @@ function switchTab(name,btn){
   document.querySelectorAll('.pc-tnav-btn').forEach(function(b){b.classList.remove('active');});
   var _pcNav=document.querySelector('.pc-tnav-btn[data-tab="'+name+'"]');
   if(_pcNav) _pcNav.classList.add('active');
-  if(name==='home')    renderHome();
-  if(name==='twoweek') renderTwoWeek();
-  if(name==='calendar')initCal();
-  if(name==='progress')initProgress();
-  if(name==='attend')  renderAttend();
-  if(name==='settings')loadPjtSettings();
+  if(name==='home')     renderHome();
+  if(name==='schedule') setScheduleView(scheduleViewMode);
+  if(name==='progress') initProgress();
+  if(name==='attend')   renderAttend();
+  if(name==='settings') loadPjtSettings();
 }
+
+// 일정관리 탭 내부 Daily/Weekly/Monthly 서브뷰 전환
+function setScheduleView(mode){
+  scheduleViewMode = mode;
+  var PANE_MAP = {daily:'tab-today', weekly:'tab-twoweek', monthly:'tab-calendar'};
+  var GRID_PANES = {daily:'grid', monthly:'grid'};
+  Object.keys(PANE_MAP).forEach(function(k){
+    var el=document.getElementById(PANE_MAP[k]);
+    if(!el) return;
+    el.style.display = (k===mode) ? (GRID_PANES[k]||'') : 'none';
+  });
+  document.querySelectorAll('.svt-btn').forEach(function(b){
+    b.classList.toggle('active', b.getAttribute('data-view')===mode);
+  });
+  if(mode==='weekly')  renderTwoWeek();
+  if(mode==='monthly') initCal();
+}
+window.setScheduleView=setScheduleView;
 
 function switchTabPC(name,btn){
   switchTab(name,null);
@@ -3072,7 +3159,7 @@ function switchTabPC(name,btn){
 function goHomeTab(tabName){
   switchTab(tabName,null);
   document.querySelectorAll('.pc-tnav-btn').forEach(function(b){
-    b.classList.toggle('active', b.dataset.tab===tabName);
+    b.classList.toggle('active', b.dataset.tab===(tabName==='today'||tabName==='twoweek'||tabName==='calendar'?'schedule':tabName));
   });
 }
 
@@ -3091,12 +3178,29 @@ function openDailyReportList(){
   document.getElementById('dr-list-modal').classList.add('on');
   loadDRList();
 }
+// 공사일보 작성(daily-report/ph4.html)을 새 탭이 아니라 페이지 내 iframe으로 연다.
+window.openDRWrite=function(){
+  const modal=document.getElementById('dr-write-modal');
+  const frame=document.getElementById('dr-write-iframe');
+  frame.src='../daily-report/ph4.html?embed=1&t='+Date.now();
+  modal.classList.add('on');
+};
+window.closeDRWrite=function(){
+  document.getElementById('dr-write-modal').classList.remove('on');
+  document.getElementById('dr-write-iframe').src='about:blank';
+  if (typeof renderHome==='function') renderHome();
+};
 function closeDRList(){
   document.getElementById('dr-list-modal').classList.remove('on');
 }
-function closeDRDetail(){
+// 상세보기를 닫으면 목록으로 복귀. backToList=false면(예: 저장 후) 그냥 완전히 닫는다.
+function closeDRDetail(backToList){
   document.getElementById('dr-detail-modal').classList.remove('on');
   document.getElementById('dr-print-area').innerHTML='';
+  if (backToList !== false) {
+    document.getElementById('dr-list-modal').classList.add('on');
+    loadDRList();
+  }
 }
 
 async function loadDRList(){
@@ -3225,8 +3329,7 @@ async function deleteDRDetail(){
   var ok=window._fbDeleteReportDoc?await window._fbDeleteReportDoc(dateKey):false;
   if(!ok){ alert('삭제에 실패했습니다. 다시 시도해 주세요.'); return; }
   _drCurrentDoc=null;
-  closeDRDetail();
-  openDailyReportList();
+  closeDRDetail(); // 기본값(true)이라 목록으로 자동 복귀됨
 }
 
 function printDRDetail(){
@@ -3365,6 +3468,27 @@ async function renderHome(){
 
   // 비동기 데이터 수신 후 KPI 재갱신
   _updateHomeKPI();
+
+  // ── 비동기: 홈 화면 기본정보 카드 채우기 (최초 1회 로드, 이후 캐시 재사용) ──
+  if(window._loadPjtSettingsData){
+    try{
+      var infoData = window._homePjtInfoCache || await window._loadPjtSettingsData(PROJECT_KEY);
+      window._homePjtInfoCache = infoData;
+      _fillHomeInfo(infoData);
+    }catch(e){}
+  }
+}
+
+// 기본정보 카드 채우기(홈 화면 우측 패널)
+function _fillHomeInfo(d){
+  if(!d) return;
+  var setTxt=function(id,v,fallback){ var el=document.getElementById(id); if(el) el.textContent=(v!=null&&v!==''?v:(fallback||'미설정')); };
+  setTxt('home-info-name', d.name);
+  setTxt('home-info-client', d.client);
+  setTxt('home-info-content', d.content);
+  setTxt('home-info-item', d.item);
+  setTxt('home-info-qty', d.qty!=null?d.qty+'대':null);
+  setTxt('home-info-start', d.startDate);
 }
 
 // 시작일 저장
@@ -3389,6 +3513,8 @@ async function loadPjtSettings(){
     set('set-qty', d.qty);
     set('set-start', d.startDate||localStorage.getItem('ph4_pjt_start_date')||'');
     applyPjtHeader(d);
+    window._homePjtInfoCache = d; // 홈 화면 기본정보 캐시도 최신화
+    if(typeof _fillHomeInfo==='function') _fillHomeInfo(d);
   }catch(e){ console.warn('설정 로드 실패',e); }
 }
 // 헤더(명칭·부제) 실시간 반영 — 값 없으면 기존 하드코딩 유지
@@ -3419,6 +3545,8 @@ async function savePjtSettings(){
     await window._savePjtSettingsData(PROJECT_KEY, data);
     if(startDate){ try{ localStorage.setItem('ph4_pjt_start_date', startDate); }catch(e){} }
     applyPjtHeader(data);
+    window._homePjtInfoCache = data; // 홈 화면 기본정보도 즉시 최신값으로
+    if(typeof _fillHomeInfo==='function') _fillHomeInfo(data);
     if(msg){ msg.style.color='#16A34A'; msg.textContent='✓ 저장했습니다.'; }
     renderHome();
   }catch(e){
