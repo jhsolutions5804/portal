@@ -1,4 +1,4 @@
-<!DOCTYPE html><!-- build: 20260820 · ver: 3.3.0 · 경량 PJT 워크스페이스 · 공사일보 메인 PJT 수준 고도화(작성자 마스터명부/품목현황·근태 자동반영/장비/PDF/조회·수정·삭제/투입인원×공수=합계공수) + 품목현황 일괄 등록·수정 -->
+<!DOCTYPE html><!-- build: 20260820b · ver: 3.4.0 · 경량 PJT 워크스페이스 · 일정등록 폼을 메인 PJT(FAB)와 동일하게 개편(카테고리 자동추정/할일체크/시분선택/등록자 자동입력) + 공사일보 고도화 + 품목현황 일괄 등록·수정 -->
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
@@ -18,6 +18,19 @@ body{font-family:-apple-system,'Apple SD Gothic Neo','Pretendard',sans-serif;bac
 .tab{flex:1;min-width:74px;padding:10px 4px;font-size:12.5px;font-weight:400;color:#86868b;border:none;background:none;cursor:pointer;border-bottom:2px solid transparent;transition:all 0.15s;font-family:inherit;white-space:nowrap}
 .tab.active{color:#1d1d1f;font-weight:700;border-bottom-color:#1D5BA6}
 .content{padding:16px}
+.sched-view-toggle{display:flex;gap:5px;margin-bottom:14px}
+.svt-btn{flex:1;padding:8px 4px;border:1px solid #d1d1d6;border-radius:8px;background:#fff;color:#5C6F8A;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit}
+.svt-btn.active{background:#1D5BA6;border-color:#1D5BA6;color:#fff}
+.wk-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
+.wk-day-col{border:1px solid #eee;border-radius:8px;padding:5px;min-height:90px;background:#fafbfc}
+.wk-day-col.wk-today{border-color:#1D5BA6;background:#eaf2fc}
+.wk-day-col.wk-sat{background:#f6f8fb}
+.wk-day-head{text-align:center;margin-bottom:4px}
+.wk-day-num{font-size:12px;font-weight:700;color:#1d1d1f}
+.wk-day-dow{font-size:8.5px;color:#86868b}
+.wk-holi{font-size:7.5px;color:#DC2626;line-height:1.1}
+.wk-item{font-size:8.5px;padding:2px 3px;border-radius:4px;margin-bottom:2px;background:#fff;border:1px solid #eee;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.wk-empty{font-size:9px;color:#c7c7cc;text-align:center;padding:6px 0}
 .card{background:#fff;border:1px solid #e5e5e5;border-radius:12px;padding:14px 16px;margin-bottom:12px}
 .card-title{font-size:13px;font-weight:700;color:#1A2540;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between}
 .info-row{display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid #f0f0f0;font-size:13px}
@@ -213,6 +226,13 @@ textarea.f-input{resize:vertical;min-height:70px}
 
   /* 일정관리 캘린더: 좌(달력)+우(상세) 2단 분할 */
   .cal-wrap{display:grid;grid-template-columns:420px 1fr;gap:16px;align-items:start}
+  .sched-view-toggle{gap:8px}
+  .svt-btn{flex:none;padding:9px 22px;font-size:13.5px}
+  .wk-day-col{min-height:130px;padding:8px}
+  .wk-day-num{font-size:14px}
+  .wk-day-dow{font-size:10px}
+  .wk-holi{font-size:9px}
+  .wk-item{font-size:10.5px;padding:3px 5px;white-space:normal}
   .cal-day{min-height:74px}
   .cal-right{min-height:400px}
 
@@ -220,6 +240,7 @@ textarea.f-input{resize:vertical;min-height:70px}
   .item-summary-row{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:16px}
 }
 </style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 </head>
 <body>
 <div class="ws-wrapper">
@@ -316,12 +337,6 @@ textarea.f-input{resize:vertical;min-height:70px}
 
     <!-- 품목현황 -->
     <div id="pane-items" style="display:none">
-      <div class="day-nav">
-        <button class="nav-arrow" onclick="itemsDayShift(-1)">‹</button>
-        <div class="day-title" id="items-day-title">—</div>
-        <button class="nav-arrow" onclick="itemsDayShift(1)">›</button>
-      </div>
-      <div style="font-size:11px;color:#9AAABF;margin:-4px 0 10px 2px">※ 선택한 날짜까지 누적된 완료 상태가 표시됩니다. 체크는 항상 선택한 날짜 기준으로 기록됩니다.</div>
       <div class="item-summary-row" id="item-summary-row"></div>
       <div class="card">
         <div class="card-title">
@@ -364,8 +379,48 @@ textarea.f-input{resize:vertical;min-height:70px}
       </div>
     </div>
 
-    <!-- 일정관리 (캘린더) -->
+    <!-- 일정관리 -->
     <div id="pane-sched" style="display:none">
+      <div class="sched-view-toggle">
+        <button class="svt-btn active" data-view="daily" onclick="setSchedView('daily')">Daily</button>
+        <button class="svt-btn" data-view="weekly" onclick="setSchedView('weekly')">Weekly</button>
+        <button class="svt-btn" data-view="monthly" onclick="setSchedView('monthly')">Monthly</button>
+      </div>
+
+      <!-- Daily -->
+      <div id="sched-daily-pane">
+        <div class="today-nav">
+          <button class="nav-arrow" onclick="schedDayShift(-1)">‹</button>
+          <div style="flex:1;text-align:center">
+            <div class="today-title" id="sched-daily-title">—</div>
+          </div>
+          <button class="nav-arrow" onclick="schedDayShift(1)">›</button>
+        </div>
+        <div style="display:flex;justify-content:flex-end;margin:8px 0 12px">
+          <button onclick="schedDayGoToday()" style="font-size:11px;font-weight:600;color:#1D5BA6;background:#e8f0fb;border:none;border-radius:8px;padding:5px 10px;cursor:pointer;">오늘</button>
+        </div>
+        <button class="add-btn" id="sched-daily-addbtn" style="margin-bottom:14px;display:none" onclick="openSchedForm(schedDailyKey())">+ 이 날 일정 등록</button>
+        <div id="sched-daily-list"></div>
+      </div>
+
+      <!-- Weekly -->
+      <div id="sched-weekly-pane" style="display:none">
+        <div class="today-nav">
+          <button class="nav-arrow" onclick="schedWeekShift(-1)">‹</button>
+          <div style="flex:1;text-align:center;font-size:13px;font-weight:700;color:#1D5BA6" id="sched-week-title">—</div>
+          <button class="nav-arrow" onclick="schedWeekShift(1)">›</button>
+        </div>
+        <div style="display:flex;justify-content:flex-end;gap:6px;margin:8px 0 12px">
+          <button onclick="schedWeekGoToday()" style="font-size:11px;font-weight:600;color:#1D5BA6;background:#e8f0fb;border:none;border-radius:8px;padding:5px 10px;cursor:pointer;">오늘</button>
+          <button onclick="saveSchedWeekPng()" style="font-size:11px;font-weight:600;color:#1D5BA6;background:#e8f0fb;border:none;border-radius:8px;padding:5px 10px;cursor:pointer;">🖼️ 이미지 저장</button>
+        </div>
+        <div id="sched-week-capture" style="background:#fff;">
+          <div class="wk-grid" id="sched-week-grid"></div>
+        </div>
+      </div>
+
+      <!-- Monthly (캘린더, 기존 그대로) -->
+      <div id="sched-monthly-pane" style="display:none">
       <div class="cal-wrap">
         <div class="cal-left">
           <div class="cal-nav">
@@ -395,6 +450,7 @@ textarea.f-input{resize:vertical;min-height:70px}
             <div id="cal-detail-body"></div>
           </div>
         </div>
+      </div>
       </div>
     </div>
 
@@ -646,9 +702,6 @@ function getToday(){
 let pjtData=null;
 let stageList=[];
 let itemsCache=[];
-let itemsDate=getToday();
-let _itemChecksCache={}; // { dateKey: {itemId:{stage:true,...}} } — item_checks 컬렉션 캐시(날짜별 신규 체크만)
-let _itemChecksLoaded=false; // 컬렉션 전체를 이미 1회 로드했는지
 let workersCache=[];
 let loginUserLabel='';
 
@@ -691,7 +744,6 @@ async function init(){
       document.getElementById('e-start').value=pjtData.startDate||'';
       renderStageTags();
     }
-    itemsDate=getToday();
     loadItems();
     loadWorkers().then(function(){ renderAttGrid(); loadWorkerTotals(); });
     attDate=getToday(); renderAttDay();
@@ -797,7 +849,7 @@ window.saveItem=async function(){
   const btn=document.getElementById('it-save-btn'); btn.disabled=true; btn.textContent='추가 중...';
   try{
     const ref=doc(collection(db,'pjt_registry',pjtId,'items'));
-    await setDoc(ref, { name, order: itemsCache.length, createdAt: serverTimestamp() });
+    await setDoc(ref, { name, stages:{}, order: itemsCache.length, createdAt: serverTimestamp() });
     closeItemAdd();
     await loadItems();
   }catch(e){ toast('추가 실패: '+e.message); }
@@ -843,7 +895,7 @@ window.bulkAddItems=async function(){
     let order=itemsCache.length;
     names.forEach(function(name){
       const ref=doc(collection(db,'pjt_registry',pjtId,'items'));
-      batch.set(ref, {name:name, order:order++, createdAt: serverTimestamp()});
+      batch.set(ref, {name:name, stages:{}, order:order++, createdAt: serverTimestamp()});
     });
     await batch.commit();
     document.getElementById('bulk-add-text').value='';
@@ -882,78 +934,34 @@ window.saveBulkItemEdits=async function(){
   finally{ btn.disabled=false; btn.textContent='수정사항 저장'; }
 };
 
-// ── 품목현황: 날짜별 누적 체크 (메인 PJT와 동일한 모델) ──
-// Firestore: item_checks/{dateKey} = { itemId: { stage: true, ... }, ... } — 해당 날짜 신규 체크만 저장
-// 화면 표시: 선택 날짜까지 모든 날짜 체크를 누적 병합해서 완료 여부 계산
-
-window.itemsDayShift=function(n){
-  const d=new Date(itemsDate+'T00:00:00'); d.setDate(d.getDate()+n);
-  itemsDate=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
-  renderItemsDayTitle();
-  renderItemGrid();
-  renderItemSummary();
-};
-function renderItemsDayTitle(){
-  const d=new Date(itemsDate+'T00:00:00');
-  const el=document.getElementById('items-day-title');
-  if(el) el.textContent=(d.getMonth()+1)+'월 '+d.getDate()+'일'+(itemsDate===getToday()?' (오늘)':'');
-}
-
-// item_checks 컬렉션 전체를 1회 로드해서 캐시 (프로젝트 단위라 규모가 크지 않음)
-async function ensureItemChecksLoaded(){
-  if(_itemChecksLoaded) return;
-  try{
-    const snap=await getDocs(collection(db,'pjt_registry',pjtId,'item_checks'));
-    _itemChecksCache={};
-    snap.forEach(function(d){ _itemChecksCache[d.id]=d.data()||{}; });
-    _itemChecksLoaded=true;
-  }catch(e){ _itemChecksCache={}; }
-}
-
-// 선택 날짜까지 누적 병합: { itemId: { stage:true, ... } }
-function getCumulativeItemChecks(dateKey){
-  const merged={};
-  Object.keys(_itemChecksCache).sort().forEach(function(dk){
-    if(dk>dateKey) return;
-    const dayData=_itemChecksCache[dk]||{};
-    Object.keys(dayData).forEach(function(itemId){
-      merged[itemId]=Object.assign({}, merged[itemId]||{}, dayData[itemId]||{});
-    });
-  });
-  return merged;
-}
-
 window.toggleItemStage=async function(id, encodedStage){
-  if(!isAdmin) return;
   const stage=decodeURIComponent(encodedStage);
   const item=itemsCache.find(x=>x.id===id);
   if(!item) return;
-  const cum=getCumulativeItemChecks(itemsDate);
-  const currentlyDone=!!(cum[id] && cum[id][stage]);
-  const willCheck=!currentlyDone;
+  const stages=Object.assign({}, item.stages||{});
+  const willCheck=!stages[stage];
+  stages[stage]=willCheck;
   try{
-    const checkRef=doc(db,'pjt_registry',pjtId,'item_checks',itemsDate);
-    if(willCheck){
-      await setDoc(checkRef, {[id]:{[stage]:true}}, {merge:true});
-    } else {
-      try{ await updateDoc(checkRef, {[id+'.'+stage]: deleteField()}); }catch(e){ /* 문서/필드 없으면 무시 */ }
-    }
-    // 로컬 캐시 갱신
-    _itemChecksCache[itemsDate]=_itemChecksCache[itemsDate]||{};
-    _itemChecksCache[itemsDate][id]=Object.assign({}, _itemChecksCache[itemsDate][id]||{});
-    if(willCheck) _itemChecksCache[itemsDate][id][stage]=true;
-    else delete _itemChecksCache[itemsDate][id][stage];
+    await updateDoc(doc(db,'pjt_registry',pjtId,'items',id), {stages});
+    item.stages=stages;
     renderItemGrid();
     renderItemSummary();
     await recalcProgress();
+    // 공사일보 자동반영용: 오늘 날짜에 체크/해제 이력 기록
+    const today=getToday();
+    const checkRef=doc(db,'pjt_registry',pjtId,'item_checks',today);
+    const fieldPath=id+'.'+stage;
+    if(willCheck){
+      await setDoc(checkRef, {[id]:{[stage]:true}}, {merge:true});
+    } else {
+      try{ await updateDoc(checkRef, {[fieldPath]: deleteField()}); }catch(e){ /* 문서/필드 없으면 무시 */ }
+    }
   }catch(e){ toast('저장 실패: '+e.message); }
 };
 async function loadItems(){
   try{
     const snap=await getDocs(query(collection(db,'pjt_registry',pjtId,'items'), orderBy('order','asc')));
     itemsCache=[]; snap.forEach(d=>itemsCache.push(Object.assign({id:d.id}, d.data())));
-    await ensureItemChecksLoaded();
-    renderItemsDayTitle();
     renderItemGrid();
     renderItemSummary();
     await recalcProgress();
@@ -962,10 +970,9 @@ async function loadItems(){
 function renderItemSummary(){
   const el=document.getElementById('item-summary-row');
   if(!itemsCache.length || !stageList.length){ el.innerHTML=''; return; }
-  const cum=getCumulativeItemChecks(itemsDate);
   let doneItems=0;
   const pcts=itemsCache.map(function(it){
-    let d=0; stageList.forEach(function(s){ if(cum[it.id] && cum[it.id][s]) d++; });
+    let d=0; stageList.forEach(function(s){ if(it.stages && it.stages[s]) d++; });
     const p=d/stageList.length*100;
     if(p>=100) doneItems++;
     return p;
@@ -980,7 +987,6 @@ function renderItemGrid(){
   const wrap=document.getElementById('item-grid-wrap');
   if(!itemsCache.length){ wrap.innerHTML='<div class="empty">등록된 품목이 없습니다. '+(isAdmin?'상단 [+ 품목 추가]로 등록하세요.':'') +'</div>'; return; }
   if(!stageList.length){ wrap.innerHTML='<div class="empty">공정 단계가 설정되지 않았습니다. (홈 탭에서 설정)</div>'; return; }
-  const cum=getCumulativeItemChecks(itemsDate);
   let html='<table class="item-grid"><thead><tr><th style="text-align:left">품목</th>';
   stageList.forEach(function(s){ html+='<th>'+escapeHtml(s)+'</th>'; });
   if(isAdmin) html+='<th></th>';
@@ -988,7 +994,7 @@ function renderItemGrid(){
   itemsCache.forEach(function(it){
     html+='<tr><td class="item-name">'+escapeHtml(it.name)+'</td>';
     stageList.forEach(function(s){
-      const done=!!(cum[it.id] && cum[it.id][s]);
+      const done=it.stages && it.stages[s];
       html+='<td><button class="chk-cell'+(done?' done':'')+'" '+(isAdmin?('onclick="toggleItemStage(\''+it.id+'\',\''+encodeURIComponent(s)+'\')"'):'disabled')+'>'+(done?'✓':'')+'</button></td>';
     });
     if(isAdmin) html+='<td><button class="del-btn" onclick="deleteItem(\''+it.id+'\')">삭제</button></td>';
@@ -998,12 +1004,9 @@ function renderItemGrid(){
   wrap.innerHTML=html;
 }
 async function recalcProgress(){
-  // 상단 KPI(전체 공정율)는 항상 "오늘" 기준 누적 완료율 — 품목현황 탭에서 과거 날짜를 보고 있어도 변하지 않음
-  await ensureItemChecksLoaded();
-  const cum=getCumulativeItemChecks(getToday());
   let total=0, done=0;
   itemsCache.forEach(function(it){
-    stageList.forEach(function(s){ total++; if(cum[it.id] && cum[it.id][s]) done++; });
+    stageList.forEach(function(s){ total++; if(it.stages && it.stages[s]) done++; });
   });
   const pct = total? (done/total*100) : 0;
   try{
@@ -1199,8 +1202,30 @@ const SCHED_TAG = {
 // 메인 PJT(FAB)와 동일한 카테고리 선택지 (구 태그 inspect/leave 등은 과거 데이터 표시 호환용으로 SCHED_TAG에만 유지)
 const SCHED_CATS=[['edu','교육'],['meeting','회의'],['in','반입'],['fcu','설치'],['off','휴무'],['safety','안전'],['quality','품질'],['admin','기타']];
 const SCHED_LABELS={edu:'교육',meeting:'회의',in:'반입',fcu:'설치',off:'휴무',safety:'안전',quality:'품질',admin:'기타'};
+// 한국 공휴일(hr/edoc의 KR_HOLIDAYS와 동일 소스 — 갱신 시 3곳 동시 반영 필요)
+const HOLIDAYS={
+  '2024-01-01':'신정','2024-02-09':'설날 연휴','2024-02-10':'설날','2024-02-11':'설날 연휴','2024-02-12':'대체공휴일',
+  '2024-03-01':'삼일절','2024-04-10':'국회의원선거','2024-05-05':'어린이날','2024-05-06':'대체공휴일','2024-05-15':'부처님오신날',
+  '2024-06-06':'현충일','2024-08-15':'광복절','2024-09-16':'추석 연휴','2024-09-17':'추석','2024-09-18':'추석 연휴',
+  '2024-10-03':'개천절','2024-10-09':'한글날','2024-12-25':'크리스마스',
+  '2025-01-01':'신정','2025-01-28':'설날 연휴','2025-01-29':'설날','2025-01-30':'설날 연휴',
+  '2025-03-01':'삼일절','2025-05-05':'어린이날','2025-05-06':'대체공휴일','2025-06-06':'현충일',
+  '2025-08-15':'광복절','2025-10-03':'개천절','2025-10-05':'추석 연휴','2025-10-06':'추석','2025-10-07':'추석 연휴','2025-10-09':'한글날',
+  '2025-12-25':'크리스마스',
+  '2026-01-01':'신정','2026-02-16':'설날 연휴','2026-02-17':'설날','2026-02-18':'설날 연휴',
+  '2026-03-01':'삼일절','2026-03-02':'대체공휴일','2026-05-05':'어린이날','2026-05-25':'대체공휴일',
+  '2026-06-03':'지방선거일','2026-06-06':'현충일','2026-07-17':'제헌절','2026-08-17':'대체공휴일(광복절)','2026-09-24':'추석 연휴','2026-09-25':'추석','2026-09-28':'대체공휴일',
+  '2026-10-05':'대체공휴일(개천절)','2026-10-09':'한글날','2026-12-25':'크리스마스',
+  '2027-01-01':'신정','2027-02-08':'설날 연휴','2027-02-09':'설날','2027-02-10':'설날 연휴','2027-03-01':'삼일절',
+  '2027-05-05':'어린이날','2027-05-13':'부처님오신날','2027-06-06':'현충일','2027-08-16':'대체공휴일(광복절)',
+  '2027-09-14':'추석 연휴','2027-09-15':'추석','2027-09-16':'추석 연휴','2027-10-04':'대체공휴일(개천절)','2027-10-09':'한글날','2027-12-25':'크리스마스',
+};
+
 let calY, calM, calSel=null, calCache={};
 let schedCurCat='admin', schedEditing=null, schedDetailItem=null;
+let schedViewMode='daily'; // 'daily' | 'weekly' | 'monthly'
+let schedDayOffset=0, schedWeekOffset=0; // 오늘 기준 이동 오프셋
+let allSchedLoaded=false;
 const calPad=n=>String(n).padStart(2,'0');
 const calKey=(y,m,d)=>y+'-'+calPad(m+1)+'-'+calPad(d);
 function rangeText(s){
@@ -1214,29 +1239,148 @@ function rangeText(s){
 
 function initCal(){
   const now=new Date(); calY=now.getFullYear(); calM=now.getMonth();
-  loadSchedMonth();
+  loadAllSched();
 }
 window.calShift=function(dir){
   calM+=dir;
   if(calM>11){calM=0;calY++;}
   if(calM<0){calM=11;calY--;}
-  loadSchedMonth();
+  renderSchedCal(); // 전체기간을 이미 캐시하고 있으므로 재조회 없이 다시 그리기만 하면 됨
+  if(calSel) selectSchedDay(calSel);
 };
-async function loadSchedMonth(){
-  const start=calKey(calY,calM,1);
-  const end=calKey(calY,calM,new Date(calY,calM+1,0).getDate());
+// 일정 전체를 한 번만 로드해서 날짜별로 캐시(calCache)해 둔다.
+// Daily/Weekly/Monthly 뷰가 모두 이 캐시 하나를 공유하므로, 뷰 전환 시 추가 조회가 필요 없다.
+async function loadAllSched(){
   calCache={};
   try{
     const snap=await getDocs(query(collection(db,'pjt_registry',pjtId,'schedules'), orderBy('sdate','asc')));
     snap.forEach(function(d){
       const s=d.data(); const dk=s.sdate;
-      if(!dk || dk<start || dk>end) return;
+      if(!dk) return;
       (calCache[dk]=calCache[dk]||[]).push(Object.assign({id:d.id}, s));
     });
   }catch(e){}
-  renderSchedCal();
+  allSchedLoaded=true;
+  renderSchedView();
   if(calSel) selectSchedDay(calSel);
 }
+// 하위 호환용 별칭(기존 코드에서 loadSchedMonth 이름으로 호출하던 곳들이 그대로 동작하도록)
+function loadSchedMonth(){ return loadAllSched(); }
+// ── 일정관리: Daily/Weekly/Monthly 뷰 전환 ──
+window.setSchedView=function(mode){
+  schedViewMode=mode;
+  var PANE={daily:'sched-daily-pane', weekly:'sched-weekly-pane', monthly:'sched-monthly-pane'};
+  Object.keys(PANE).forEach(function(k){
+    var el=document.getElementById(PANE[k]);
+    if(el) el.style.display=(k===mode)?'':'none';
+  });
+  document.querySelectorAll('.svt-btn').forEach(function(b){
+    b.classList.toggle('active', b.getAttribute('data-view')===mode);
+  });
+  renderSchedView();
+};
+function renderSchedView(){
+  if(!allSchedLoaded) return; // 데이터 로드 완료 후 loadAllSched()에서 다시 호출해줌
+  if(schedViewMode==='daily') renderSchedDaily();
+  else if(schedViewMode==='weekly') renderSchedWeekly();
+  else renderSchedCal();
+}
+
+// ── Daily ──
+function schedGetDay(){ var d=new Date(); d.setDate(d.getDate()+schedDayOffset); return d; }
+window.schedDailyKey=function(){ var d=schedGetDay(); return calKey(d.getFullYear(),d.getMonth(),d.getDate()); };
+window.schedDayShift=function(dir){ schedDayOffset+=dir; renderSchedDaily(); };
+window.schedDayGoToday=function(){ schedDayOffset=0; renderSchedDaily(); };
+function renderSchedDaily(){
+  var d=schedGetDay(); var dk=calKey(d.getFullYear(),d.getMonth(),d.getDate());
+  var now=new Date(); var todayKey=calKey(now.getFullYear(),now.getMonth(),now.getDate());
+  var dowKo=['일','월','화','수','목','금','토'];
+  var holidayName=HOLIDAYS[dk];
+  var titleEl=document.getElementById('sched-daily-title');
+  if(titleEl){
+    titleEl.textContent=(d.getMonth()+1)+'월 '+d.getDate()+'일 ('+dowKo[d.getDay()]+')'+(dk===todayKey?' · 오늘':'')+(holidayName?' · '+holidayName:'');
+  }
+  var addBtn=document.getElementById('sched-daily-addbtn');
+  if(addBtn) addBtn.style.display=isAdmin?'':'none';
+  var items=(calCache[dk]||[]).slice().sort(function(a,b){ return (a.stime||'').localeCompare(b.stime||''); });
+  var html='';
+  if(items.length){
+    items.forEach(function(s){
+      var tg=SCHED_TAG[s.tag||'admin']||SCHED_TAG.admin;
+      html+='<div class="cal-sched-row" style="cursor:pointer" onclick="openSchedDetail(\''+s.id+'\')">'
+        +'<span class="tag" style="background:'+tg.c+'22;color:'+tg.c+'">'+tg.l+'</span>'
+        +'<div style="flex:1;min-width:0"><div class="sched-title">'+(s.stime?escapeHtml(s.stime)+' ':'')+escapeHtml(s.text||'(내용 없음)')+'</div>'
+        +(s.place?('<div class="sched-memo">📍 '+escapeHtml(s.place)+'</div>'):'')+'</div>'
+        +'</div>';
+    });
+  } else {
+    html='<div class="empty">이 날 등록된 일정이 없습니다.</div>';
+  }
+  var listEl=document.getElementById('sched-daily-list');
+  if(listEl) listEl.innerHTML=html;
+}
+
+// ── Weekly ──
+function schedGetWeekStart(){
+  var now=new Date(); now.setDate(now.getDate()+schedWeekOffset*7);
+  var d=new Date(now); d.setDate(d.getDate()-d.getDay()); // 이번 주 일요일
+  return d;
+}
+window.schedWeekShift=function(dir){ schedWeekOffset+=dir; renderSchedWeekly(); };
+window.schedWeekGoToday=function(){ schedWeekOffset=0; renderSchedWeekly(); };
+function renderSchedWeekly(){
+  var wStart=schedGetWeekStart();
+  var now=new Date(); var todayKey=calKey(now.getFullYear(),now.getMonth(),now.getDate());
+  var dowKo=['일','월','화','수','목','금','토'];
+  var wEnd=new Date(wStart); wEnd.setDate(wStart.getDate()+6);
+  var titleEl=document.getElementById('sched-week-title');
+  if(titleEl){
+    titleEl.textContent=(wStart.getMonth()+1)+'/'+wStart.getDate()+' ~ '+(wEnd.getMonth()+1)+'/'+wEnd.getDate()+(schedWeekOffset===0?' · 이번 주':'');
+  }
+  var grid=document.getElementById('sched-week-grid');
+  if(!grid) return;
+  var html='';
+  for(var i=0;i<7;i++){
+    var d=new Date(wStart); d.setDate(wStart.getDate()+i);
+    var dk=calKey(d.getFullYear(),d.getMonth(),d.getDate());
+    var dow=d.getDay();
+    var holidayName=HOLIDAYS[dk];
+    var isToday=dk===todayKey;
+    var isSat=dow===6, isSun=dow===0;
+    var items=(calCache[dk]||[]).slice().sort(function(a,b){ return (a.stime||'').localeCompare(b.stime||''); });
+    var numColor=(isSun||holidayName)?'#DC2626':(isSat?'#1D5BA6':'');
+    html+='<div class="wk-day-col'+(isToday?' wk-today':'')+((isSat||isSun)?' wk-sat':'')+'">';
+    html+='<div class="wk-day-head">';
+    html+='<div class="wk-day-num"'+(numColor?' style="color:'+numColor+'"':'')+'>'+d.getDate()+'</div>';
+    html+='<div class="wk-day-dow">'+dowKo[dow]+'요일</div>';
+    if(holidayName) html+='<div class="wk-holi">'+holidayName+'</div>';
+    html+='</div>';
+    if(!items.length){ html+='<div class="wk-empty">—</div>'; }
+    else{
+      items.forEach(function(s){
+        var tg=SCHED_TAG[s.tag||'admin']||SCHED_TAG.admin;
+        html+='<div class="wk-item" style="border-left:3px solid '+tg.c+'" onclick="openSchedDetail(\''+s.id+'\')">'
+          +(s.stime?'<b>'+escapeHtml(s.stime)+'</b> ':'')+escapeHtml(s.text||'')+'</div>';
+      });
+    }
+    html+='</div>';
+  }
+  grid.innerHTML=html;
+}
+window.saveSchedWeekPng=async function(){
+  var el=document.getElementById('sched-week-capture');
+  if(!el) return;
+  if(typeof html2canvas==='undefined'){ toast('이미지 저장 모듈을 불러오는 중이에요. 잠시 후 다시 눌러주세요.'); return; }
+  try{
+    var canvas=await html2canvas(el,{scale:2,backgroundColor:'#ffffff',useCORS:true});
+    var a=document.createElement('a');
+    var wStart=schedGetWeekStart();
+    a.href=canvas.toDataURL('image/png');
+    a.download='주간일정_'+calKey(wStart.getFullYear(),wStart.getMonth(),wStart.getDate())+'.png';
+    a.click();
+  }catch(e){ console.error(e); alert('저장 중 오류가 났어요: '+e.message); }
+};
+
 function renderSchedCal(){
   const grid=document.getElementById('cal-grid');
   const label=document.getElementById('cal-month-label');
@@ -1252,11 +1396,15 @@ function renderSchedCal(){
     const dk=calKey(calY,calM,d);
     const items=calCache[dk]||[];
     const tags=[...new Set(items.map(it=>it.tag||'admin'))].slice(0,6);
+    const dow=new Date(calY,calM,d).getDay();
+    const holidayName=HOLIDAYS[dk];
     const cell=document.createElement('div');
     cell.className='cal-day'+(dk===todayKey?' today':'')+(dk===calSel?' sel':'');
     cell.onclick=function(){ selectSchedDay(dk); };
     const dots=tags.map(function(t){ return '<span class="ddot" style="background:'+(SCHED_TAG[t]||SCHED_TAG.admin).c+'"></span>'; }).join('');
-    cell.innerHTML='<div class="dnum">'+d+'</div><div class="ddots">'+dots+'</div>';
+    const numColor=(dow===0||holidayName)?'#DC2626':(dow===6?'#1D5BA6':'');
+    const holidayLbl=holidayName?'<div style="font-size:8px;color:#DC2626;line-height:1.1;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+holidayName+'</div>':'';
+    cell.innerHTML='<div class="dnum"'+(numColor?' style="color:'+numColor+'"':'')+'>'+d+'</div>'+holidayLbl+'<div class="ddots">'+dots+'</div>';
     grid.appendChild(cell);
   }
 }
@@ -1688,9 +1836,13 @@ window.openReportDetail=async function(dateKey){
     renderDRView(drCurrentDoc);
   }catch(e){ body.innerHTML='<div class="empty">불러오기 실패</div>'; }
 };
-window.closeReportDetail=function(){
+window.closeReportDetail=function(backToList){
   document.getElementById('dr-detail-modal').classList.remove('on');
   document.getElementById('dr-print-area').innerHTML='';
+  if (backToList !== false) {
+    document.getElementById('dr-list-modal').classList.add('on');
+    loadReportListModal();
+  }
 };
 window.editReportDetail=function(){
   if(!drCurrentDoc){ toast('불러온 데이터가 없습니다'); return; }
