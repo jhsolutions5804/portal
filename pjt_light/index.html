@@ -1306,7 +1306,7 @@ function renderSchedDaily(){
     titleEl.textContent=(d.getMonth()+1)+'월 '+d.getDate()+'일 ('+dowKo[d.getDay()]+')'+(dk===todayKey?' · 오늘':'')+(holidayName?' · '+holidayName:'');
   }
   var addBtn=document.getElementById('sched-daily-addbtn');
-  if(addBtn) addBtn.style.display=isAdmin?'':'none';
+  if(addBtn) addBtn.style.display=''; // 일정 등록은 전 직원 가능 (FAB와 동일 정책)
   var items=(calCache[dk]||[]).slice().sort(function(a,b){ return (a.stime||'').localeCompare(b.stime||''); });
   var html='';
   if(items.length){
@@ -1425,9 +1425,7 @@ window.selectSchedDay=function(dk){
   title.textContent='📅 '+parseInt(p[1])+'월 '+parseInt(p[2])+'일 ('+dow+')';
   const items=(calCache[dk]||[]).slice().sort(function(a,b){ return (a.stime||'').localeCompare(b.stime||''); });
   let html='';
-  if(isAdmin){
-    html+='<button class="add-btn" style="margin-bottom:14px" onclick="openSchedForm(\''+dk+'\')">+ 이 날 일정 등록</button>';
-  }
+  html+='<button class="add-btn" style="margin-bottom:14px" onclick="openSchedForm(\''+dk+'\')">+ 이 날 일정 등록</button>';
   if(items.length){
     items.forEach(function(s){
       const tg=SCHED_TAG[s.tag||'admin']||SCHED_TAG.admin;
