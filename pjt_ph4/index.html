@@ -2589,7 +2589,7 @@ window.goAttendToday=function(){attendDayOffset=0;renderAttend();};
 
 // 전체 공수 일괄 조정 — 전원 공수를 입력값으로 설정 (0이면 초기화). 개별 입력과 동일한 검증(0~3, 소수1자리)
 window.setAllManday=function(dateKey,value){
-  const _ws=(typeof getWorkers==='function')?getWorkers():WORKERS;
+  const _ws=getActiveWorkersForDate(dateKey);
   if(!_ws.length) return;
   let v=parseFloat(value);
   if(isNaN(v)||v<0) v=0;
@@ -2624,7 +2624,7 @@ window.toggleWorker=function(workerId,dateKey){
 
 // 전체 출역 체크 / 전체 해제 (현재 전원 체크면 해제, 아니면 전체 체크)
 window.toggleAllWorkers=function(dateKey){
-  const _ws=(typeof getWorkers==='function')?getWorkers():WORKERS;
+  const _ws=getActiveWorkersForDate(dateKey);
   if(!_ws.length) return;
   const checks=window._fbGetWorkerChecks?window._fbGetWorkerChecks(dateKey):[];
   const allChecked=_ws.every(w=>checks.includes(w.id));
@@ -2793,6 +2793,19 @@ async function loadMasterResignedMap(){
     snap.forEach(function(d){ map[d.id]=d.data(); });
     _masterResignedMap=map;
   }catch(e){ console.warn('마스터 재직상태 로드 실패', e); }
+}
+
+// 특정 날짜(dateKey) 기준, 그 시점에 재직 중이었던 인원만 반환.
+// 퇴사일(resignedDate)이 dateKey보다 이전이거나 같으면 제외 — 개별 체크뿐 아니라
+// "전체 출역 체크"/"전체 공수 일괄 적용" 같은 일괄 처리 함수도 반드시 이 함수를 거쳐야 함.
+// (getWorkers()를 직접 쓰면 퇴사자까지 포함되는 버그가 재발하니 주의)
+function getActiveWorkersForDate(dateKey){
+  const all=(typeof getWorkers==='function')?getWorkers():WORKERS;
+  return all.filter(function(w){
+    const info=_masterResignedMap[w.id];
+    if(info && info.resigned && info.resignedDate && info.resignedDate<=dateKey) return false;
+    return true;
+  });
 }
 
 async function loadMasterOptions(){
@@ -3038,11 +3051,7 @@ function renderAttend(){
     // WORKERS 모듈변수는 갱신 타이밍이 어긋날 수 있어 항상 최신값을 직접 조회.
     // 퇴사일(resignedDate)이 조회 날짜(dateKey) 이전이거나 같은 인원은 출역 대상에서 제외.
     // (퇴사일 이전 과거 날짜를 볼 때는 그 시점엔 재직 중이었으므로 계속 표시됨 — 과거 기록 보존)
-    const _ws=getWorkers().filter(function(w){
-      const info=_masterResignedMap[w.id];
-      if(info && info.resigned && info.resignedDate && info.resignedDate<=dateKey) return false;
-      return true;
-    });
+    const _ws=getActiveWorkersForDate(dateKey);
     const checks=window._fbGetWorkerChecks?window._fbGetWorkerChecks(dateKey):[];
     document.getElementById('att-worker-count').textContent=
       `출역 ${checks.length}명 / 전체 ${_ws.length}명`;
