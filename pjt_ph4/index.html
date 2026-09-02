@@ -1678,6 +1678,12 @@ window._fbDeleteReportDoc = async function(dateKey){
 </script>
 
 <script>
+// module 스크립트(defer 취급)는 이 classic 스크립트보다 나중에 실행되므로,
+// window._accessGatePromise가 아직 없을 수 있다 — 준비될 때까지 대기 후 호출.
+function _waitAccessGate(cb){
+  if(window._accessGatePromise){ window._accessGatePromise.then(cb); }
+  else { setTimeout(function(){ _waitAccessGate(cb); }, 30); }
+}
 // ===== 공정 데이터 =====
 const CHECK_COLS=['반입','입고검사','내진스토퍼','시공검측'];
 const INSTALL_COLS=['내진스토퍼'];
@@ -3657,9 +3663,9 @@ waitForFirebaseAndInit();
       }
     }).catch(function(){});
   }
-  window._accessGatePromise.then(function(ok){ if(ok) applyOnLoad(); });
+  _waitAccessGate(function(ok){ if(ok) applyOnLoad(); });
 })();
-window._accessGatePromise.then(function(ok){ if(ok) renderProgress(); }); // 공정 탭은 탭 클릭 시 initProgress()로 갱신
+_waitAccessGate(function(ok){ if(ok) renderProgress(); }); // 공정 탭은 탭 클릭 시 initProgress()로 갱신
 
 // 리포트 입력창 Enter 키
 document.getElementById('report-input').addEventListener('keydown',e=>{
