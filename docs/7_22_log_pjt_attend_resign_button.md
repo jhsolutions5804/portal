@@ -33,3 +33,39 @@
 - 백업: `backup/v5.3.14/{pjt,pjt_ph4}/index.html`
 - 문서: `docs/4_1_pjt_fab_attend_progress.md` 갱신
 - 프로덕션 직접 배포
+
+---
+
+## 2026-09-03 핫픽스 — 전체 출역/일괄 공수 적용의 퇴사자 필터 누락
+
+### 증상
+- 김짜장님이 8/15 퇴사처리한 4명(김혁·미첼·민지환·정대웅)의 개인별 공수표에 퇴사일 이후(8/21, 24~27) 공수가 계속 남아있는 것을 발견해 보고
+- "퇴사처리 버튼을 8/15에 눌렀는데 어떻게 그 이후에 공수가 찍히냐" — 소급 처리 가설이 아니라 실제 버그였음
+
+### 원인
+- 퇴사자 제외 로직(`resignedDate<=dateKey` → 제외)은 **개별 체크/입력 화면(`renderWorkerList`의 `_ws`)에만** 적용되어 있었음
+- **"✓ 전체 출역 체크"(`toggleAllWorkers`) / "일괄 적용"(`setAllManday`) 두 함수는 필터를 거치지 않고 `getWorkers()`(마스터 전체 명단)를 직접 호출** — 화면엔 퇴사자가 안 보이지만, 일괄 버튼을 누르면 뒤에서 퇴사자까지 포함해서 저장됨
+- FAB에서 8/23(v-bf927cc0) 근태 배지/KPI 카운트 버그를 고치면서도 이 일괄처리 경로는 놓쳤던 것으로 보임
+
+### 수정
+- 공통 헬퍼 `getActiveWorkersForDate(dateKey)` 신설 (퇴사자 제외 로직을 한 곳에 집중)
+- `renderWorkerList` / `setAllManday` / `toggleAllWorkers` 3곳 모두 이 헬퍼로 통일 — 개별/일괄 어느 경로든 동일하게 필터링되도록 구조 정리
+- **FAB(`pjt/index.html`), SUP(`pjt_ph4/index.html`) 동일 적용**
+- 확인 결과 경량PJT(`pjt_light`)는 일괄 버튼 자체가 없어 해당 버그 없음. 모바일(`m/pjt.html`)은 애초에 `master_workers`/`resignedDate` 체계를 안 씀 (별도 확인 필요 — 대기열에 추후 등록 검토)
+
+### 소급 데이터 정리
+- 코드 수정은 향후 재발만 막을 뿐, 이미 저장된 오염 데이터는 그대로 남음
+- Firestore 직접 쓰기 네트워크 경로가 없어 브라우저 콘솔 스크립트(`cleanup_script.js`, dry-run → `applyCleanup()` 2단계 확인 방식)를 제작해 김짜장님께 전달 — 4명의 퇴사일 다음날부터 오늘까지 `worker_manday`를 순회해 본인 몫만 `deleteField()`로 제거
+- 최초 실행 시 포털 홈(최상위 프레임)에서 콘솔을 열어 `window._fbDb`가 없다는 오류 발생 — 포털이 각 모듈을 iframe으로 로드하는 구조라 발생한 문제로, `pjt/index.html`을 직접 열거나 콘솔 프레임을 iframe으로 전환하도록 안내
+
+### 검증
+- `node --check`로 두 파일 모듈 스크립트 문법 검증 통과
+- div 태그 열림/닫힘 개수 일치 확인
+- `getActiveWorkersForDate`/`setAllManday`/`toggleAllWorkers` 중복 정의 없음, 구버전 `getWorkers().filter(...)` 잔존 없음 확인
+
+### 배포
+- 김짜장님 지시로 테스트 단계 생략, 프로덕션 직접 배포
+- `pjt/index.html`: ver 4.10.7 → 4.10.8 (build 20260903)
+- `pjt_ph4/index.html`: 버전 코멘트 관례 없음 (미갱신)
+- 백업: `backup/v6.0.1/{pjt,pjt_ph4}/index.html`
+- 문서: `docs/4_1_pjt_fab_attend_progress.md`, `docs/4_2_pjt_sup.md` 갱신
