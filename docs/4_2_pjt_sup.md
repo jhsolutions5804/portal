@@ -2,7 +2,7 @@
 
 > 앱: `portal/pjt_ph4/index.html` · 워커 컬렉션: `pjt_workers_ph4`
 > Firestore(차이): `ph4_schedules`(일정), `ph4_reports`(업무지시), `pjt_workers_ph4` · localStorage 키 `ph4ls_`
-> 최초 작성: 2026-07-01 · 최종 개정: 2026-08-22 (공사일보 ph4.html Firebase Auth 초기화 누락 수정, v2.4.1) · 작성: 춘식이(Claude)
+> 최초 작성: 2026-07-01 · 최종 개정: 2026-09-03 (퇴사자 일괄처리 필터 통일 핫픽스) · 작성: 춘식이(Claude)
 
 ---
 
@@ -10,6 +10,13 @@
 
 - FAB(`4_1_pjt_fab.md`)와 동일한 구조·동일한 패치 적용 — 로그인+`portal_users`(`status==='approved' && (admin || perms.pjt)`) 검증 게이트, `waitForFirebaseAndInit()` 폴링 조건에 `window._accessGranted` 추가, 공수/공정 preload·`subscribeUserSchedules()`·`subscribeEdocLeave()`·`applyOnLoad()`·`renderProgress()` 모두 검증 통과 후에만 실행
 - 상세 원리는 `4_1_pjt_fab.md` 참고
+
+
+## 2026-09-03 핫픽스 — 퇴사자 일괄처리 필터 통일 (FAB와 동일 적용)
+
+"전체 출역 체크"/"전체 공수 일괄 적용"이 `getWorkers()`(마스터 전체 명단)를 직접 호출해서, 퇴사처리된 인원까지 대상에 포함되던 버그를 수정. `renderWorkerList`/`setAllManday`/`toggleAllWorkers` 모두 신설된 공통 헬퍼 `getActiveWorkersForDate(dateKey)`로 통일.
+
+> 상세 원인·수정 내용은 4.1(FAB) 문서의 "퇴사자 제외 필터 통일" 항목 참조.
 
 
 ## 개요
