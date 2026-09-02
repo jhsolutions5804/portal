@@ -1585,18 +1585,20 @@ function psCalcAll() {
   const [psYear, psMonthNum] = (ps.month || '').split('-').map(Number);
   const monthlyThreshold = (psYear && psMonthNum) ? monthlyStandardHours(psYear, psMonthNum) : 209;
   const diffHours    = actualHours - monthlyThreshold;
+  const isComprehensive = ps.annualData?.wageType === 'comprehensive';
   let basicAuto = sal0.basic, otHours = 0, otPayAuto = 0, shortHours = 0, shortDeduct = 0;
   if (hourly > 0 && ps.annualData) {
     if (diffHours >= 0) {
       otHours   = diffHours;
-      otPayAuto = Math.round(hourly * otHours * 1.5);
+      otPayAuto = isComprehensive ? Number(ps.annualData.fixedOT||0) : Math.round(hourly * otHours * 1.5);
     } else {
       shortHours   = -diffHours;
       shortDeduct  = Math.round(hourly * shortHours);
       basicAuto    = Math.max(0, sal0.basic - shortDeduct);
+      otPayAuto    = isComprehensive ? Number(ps.annualData.fixedOT||0) : 0;
     }
   }
-  const nightPayAuto = hourly > 0 ? Math.round(hourly * nightHours * 0.5) : 0;
+  const nightPayAuto = isComprehensive ? Number(ps.annualData.fixedNight||0) : (hourly > 0 ? Math.round(hourly * nightHours * 0.5) : 0);
 
   // 주휴수당: 근로기준법 55조 — 그 주 소정근로일 개근 + 주15시간 이상 요건 판정 기반 계산.
   // 출퇴근기록이 그 달에 전혀 없으면(미사용) 기존 고정계산(h×8×4.345)으로 폴백.
@@ -1617,6 +1619,7 @@ function psCalcAll() {
   const _pHoliday    = ps._holidayPay !== undefined ? Number(ps._holidayPay) : holidayResult.holidayPay;
   const sal = { ...sal0, basic:_pBasic, fixedOt:_pFixedOt, fixedNight:_pFixedNight, weekly:_pWeekly, holidayPay:_pHoliday,
                 total: _pBasic + _pFixedOt + _pFixedNight + _pWeekly + _pHoliday,
+                isComprehensive,
                 // 급여명세서 화면에 실근무 정보를 함께 보여주기 위한 참고값
                 attHours, leaveHours, nightHours, actualHours, standardHours: monthlyThreshold,
                 otHours, shortHours, shortDeduct, holidayHours: holidayResult.holidayHours,
@@ -1879,34 +1882,13 @@ window.renderPayslipPCRight = () => {
             ${inp('ps-techAllowance', ps.techAllowance)}
           </div>
           <div>
-            <div style="color:#5C6F8A;margin-bottom:3px;">여비교통비 <span style="font-size:9px;color:#9AAABF;">(비과세, 지급계 미포함)</span></div>
-            <select onchange="psTravelTypeChange(this.value)" style="width:100%;padding:5px 8px;border:1px solid #DDE3EE;border-radius:7px;font-size:11.5px;font-family:inherit;background:#fff;margin-bottom:5px;">
-              <option value="">유형 선택 (직접입력하려면 비워두세요)</option>
-              <option value="personal_near" ${ps._travelType==='personal_near'?'selected':''}>🚗 개인차량 · 40km 이내 (1만원/일)</option>
-              <option value="personal_far" ${ps._travelType==='personal_far'?'selected':''}>🚗 개인차량 · 40km 초과 (2만원/일)</option>
-              <option value="company_car" ${ps._travelType==='company_car'?'selected':''}>🚙 회사차량 (거리무관 1만원/일)</option>
-              <option value="longtrip" ${ps._travelType==='longtrip'?'selected':''}>🚄 지방장기출장 · 왕복KTX 실비</option>
-            </select>
-            ${(ps._travelType && ps._travelType!=='longtrip') ? `
-            <div style="display:flex;align-items:center;gap:6px;margin-bottom:5px;">
-              <span style="font-size:11px;color:#5C6F8A;white-space:nowrap;">적용 일수</span>
-              <input type="number" min="0" value="${ps.travelDays||1}" onchange="psTravelDaysChange(this.value)"
-                style="width:60px;padding:4px 6px;border:1px solid #DDE3EE;border-radius:6px;font-size:12px;text-align:center;box-sizing:border-box;">
-              <span style="font-size:10px;color:#9AAABF;">일 × ${won2(PS_TRAVEL_PER_DAY[ps._travelType]||0)}원 = 자동계산</span>
-            </div>` : ''}
-            ${ps._travelType==='longtrip' ? `
-            <div style="display:flex;align-items:center;gap:6px;margin-bottom:3px;">
-              <span style="font-size:11px;color:#5C6F8A;white-space:nowrap;">왕복 횟수</span>
-              <input type="number" min="0" value="${ps.travelTripCount||1}" onchange="psTravelTripCountChange(this.value)"
-                style="width:50px;padding:4px 6px;border:1px solid #DDE3EE;border-radius:6px;font-size:12px;text-align:center;box-sizing:border-box;">
-              <span style="font-size:11px;color:#5C6F8A;">회 × 1회당</span>
-              <input type="number" min="0" value="${ps.travelPerTrip||0}" onchange="psTravelPerTripChange(this.value)"
-                style="width:70px;padding:4px 6px;border:1px solid #DDE3EE;border-radius:6px;font-size:12px;text-align:right;box-sizing:border-box;">
-              <span style="font-size:10px;color:#9AAABF;">원</span>
+            <div style="color:#5C6F8A;margin-bottom:3px;">여비교통비 <span style="font-size:9px;color:#9AAABF;">(비과세, 지급계 미포함, 여러 유형 동시 등록 가능)</span></div>
+            <div id="ps-travel-list">${psRenderTravelItems()}</div>
+            <button onclick="psTravelAddItem()" style="width:100%;padding:6px;background:#F0F4F9;border:none;border-radius:7px;color:#5C6F8A;font-size:11px;font-weight:600;cursor:pointer;margin-bottom:5px;">+ 이동유형 추가</button>
+            <div style="display:flex;justify-content:space-between;padding:4px 2px;font-size:11.5px;">
+              <span style="color:#5C6F8A;">여비교통비 합계</span>
+              <span style="font-weight:700;color:#1D5BA6;">${won2(ps.travelAllowance||0)}원</span>
             </div>
-            ${(Number(ps.travelTripCount)||0) > PS_LONGTRIP_WEEKLY_MAX ? `<div style="font-size:10px;color:#DC2626;margin-bottom:4px;">⚠️ 계약서상 왕복 교통비는 주 1회 한도(월 최대 ${PS_LONGTRIP_WEEKLY_MAX}회 기준) — 초과분은 정책 예외 사유를 확인하세요</div>` : `<div style="font-size:10px;color:#9AAABF;margin-bottom:4px;">주 1회 한도(월 최대 ${PS_LONGTRIP_WEEKLY_MAX}회) 기준</div>`}
-            ` : ''}
-            ${inp('ps-travelAllowance', ps.travelAllowance)}
           </div>
           <div style="display:flex;justify-content:space-between;padding:7px 0;border-top:2px solid #DDE3EE;margin-top:4px;">
             <span style="font-weight:700;color:#1A2540;">지급계</span>
@@ -2206,35 +2188,13 @@ function renderPayslipWriteForm(el, workers, months, calcPayDate) {
         <div style="font-size:10px;color:#9AAABF;margin-top:4px;">🎓 보유 자격증 ${(ps.workerData?.certifications||[]).filter(c=>c&&c.trim()).length}개 × ${won2(_techAllowanceConfig.perCert)}원 (상한 없음) — 명부에서 자격증 목록 관리</div>
       `)}
       ${field2('여비교통비', `
-        <select onchange="psTravelTypeChange(this.value)" style="width:100%;padding:9px 10px;border:1px solid #DDE4EF;border-radius:8px;font-size:13px;font-family:inherit;background:#fff;margin-bottom:6px;">
-          <option value="">유형 선택 (직접입력하려면 비워두세요)</option>
-          <option value="personal_near" ${ps._travelType==='personal_near'?'selected':''}>🚗 개인차량 · 사무실 40km 이내 (1만원/일)</option>
-          <option value="personal_far" ${ps._travelType==='personal_far'?'selected':''}>🚗 개인차량 · 사무실 40km 초과 (2만원/일)</option>
-          <option value="company_car" ${ps._travelType==='company_car'?'selected':''}>🚙 회사차량 이동 (거리무관, 1만원/일)</option>
-          <option value="longtrip" ${ps._travelType==='longtrip'?'selected':''}>🚄 지방 장기출장(숙박) · 왕복 KTX 교통비로 대체</option>
-        </select>
-        ${(ps._travelType && ps._travelType!=='longtrip') ? `
-        <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
-          <span style="font-size:12px;color:#5C6F8A;white-space:nowrap;">적용 일수</span>
-          <input type="number" min="0" value="${ps.travelDays||1}" onchange="psTravelDaysChange(this.value)"
-            style="width:70px;padding:6px 8px;border:1px solid #DDE4EF;border-radius:7px;font-size:13px;text-align:center;box-sizing:border-box;">
-          <span style="font-size:11px;color:#9AAABF;">일 × ${won2(PS_TRAVEL_PER_DAY[ps._travelType]||0)}원</span>
-        </div>` : ''}
-        ${ps._travelType==='longtrip' ? `
-        <div style="font-size:10px;color:#9AAABF;margin-bottom:6px;">숙소 지급 시 일비(1만원) 대신 왕복 KTX 교통비 실비로 지급합니다. 계약서상 <b>주 1회 한도</b>입니다.</div>
-        <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
-          <span style="font-size:12px;color:#5C6F8A;white-space:nowrap;">왕복 횟수</span>
-          <input type="number" min="0" value="${ps.travelTripCount||1}" onchange="psTravelTripCountChange(this.value)"
-            style="width:60px;padding:6px 8px;border:1px solid #DDE4EF;border-radius:7px;font-size:13px;text-align:center;box-sizing:border-box;">
-          <span style="font-size:12px;color:#5C6F8A;">회 × 1회당</span>
-          <input type="number" min="0" value="${ps.travelPerTrip||0}" onchange="psTravelPerTripChange(this.value)"
-            style="width:85px;padding:6px 8px;border:1px solid #DDE4EF;border-radius:7px;font-size:13px;text-align:right;box-sizing:border-box;">
-          <span style="font-size:11px;color:#9AAABF;">원</span>
+        <div style="font-size:10px;color:#9AAABF;margin-bottom:6px;">비과세 · 지급계 미포함 · 여러 유형 동시 등록 가능</div>
+        <div id="ps-travel-list-mobile">${psRenderTravelItems(true)}</div>
+        <button onclick="psTravelAddItem()" style="width:100%;padding:8px;background:#F0F4F9;border:none;border-radius:8px;color:#5C6F8A;font-size:12px;font-weight:600;cursor:pointer;margin:4px 0 8px;">+ 이동유형 추가</button>
+        <div style="display:flex;justify-content:space-between;padding:6px 2px;font-size:13px;">
+          <span style="color:#5C6F8A;">여비교통비 합계</span>
+          <span style="font-weight:700;color:#1D5BA6;">${won2(ps.travelAllowance||0)}원</span>
         </div>
-        ${(Number(ps.travelTripCount)||0) > PS_LONGTRIP_WEEKLY_MAX ? `<div style="font-size:10px;color:#DC2626;margin-bottom:4px;">⚠️ 주 1회 한도(월 최대 ${PS_LONGTRIP_WEEKLY_MAX}회 기준) 초과 — 정책 예외 사유를 확인하세요</div>` : `<div style="font-size:10px;color:#9AAABF;margin-bottom:4px;">주 1회 한도(월 최대 ${PS_LONGTRIP_WEEKLY_MAX}회) 기준</div>`}
-        ` : ''}
-        <input type="text" inputmode="numeric" value="${ps.travelAllowance?Number(ps.travelAllowance).toLocaleString('ko-KR'):''}" placeholder="0"
-          oninput="fmtMoney(this)" onchange="ps.travelAllowance=numClean(this.value);window.psRefresh();" ${inp2Style}>
         <div style="font-size:10px;color:#9AAABF;margin-top:4px;">🚗 실비변상적 성격의 현장수당(비과세) — 지급계엔 안 잡히고 실지급액에만 별도로 더해집니다</div>
       `)}
       <div style="display:flex;justify-content:space-between;padding:10px 12px;background:#E8F0FB;border-radius:8px;font-size:14px;font-weight:700;margin-top:4px;">
@@ -2393,7 +2353,11 @@ window.psPreview = () => {
             ${payRow('특별성과급', c.specialBonus?psWonR(c.specialBonus):'—', '')}
             ${payRow('특근수당', c.extraPay?psWonR(c.extraPay):'—', '')}
             ${payRow('기술수당', c.techAllowance?psWonR(c.techAllowance):'—', c.techAllowance?'국가기술자격증 보유':'해당없음')}
-            ${payRow('여비교통비', c.travelAllowance?psWonR(c.travelAllowance):'—', c.travelAllowance?(ps._travelType==='longtrip'?`${ps.travelTripCount||1}회 × ${psWonR(ps.travelPerTrip||0)}(왕복KTX, 주1회한도) · 비과세, 지급계 미포함`:ps._travelType?`${ps.travelDays||1}일 × ${psWonR(PS_TRAVEL_PER_DAY[ps._travelType]||0)} · 비과세, 지급계 미포함`:'비과세 · 지급계 미포함, 실지급액에 별도가산'):'해당없음')}
+            ${payRow('여비교통비', c.travelAllowance?psWonR(c.travelAllowance):'—', c.travelAllowance?((ps.travelItems||[]).map(it=>{
+              if(it.type==='longtrip') return `${it.tripCount||1}회×${psWonR(it.perTrip||0)}(왕복KTX)`;
+              if(it.type) return `${it.days||1}일×${psWonR(PS_TRAVEL_PER_DAY[it.type]||0)}(${PS_TRAVEL_TYPE_LABEL[it.type].replace(/[^가-힣]/g,'').slice(0,4)})`;
+              return null;
+            }).filter(Boolean).join(' + ') || '비과세, 지급계 미포함')+' · 비과세, 지급계 미포함':'해당없음')}
             <tr style="background:#E8F0FB;">
               <td style="padding:9px 10px;border:1px solid #DDE4EF;font-weight:800;color:#1D5BA6;white-space:nowrap;">지급계</td>
               <td style="padding:9px 10px;border:1px solid #DDE4EF;text-align:right;font-weight:800;color:#1D5BA6;white-space:nowrap;">${psWonR(c.totalPay)}</td>
@@ -2457,45 +2421,89 @@ window.psPreview = () => {
   win.document.close();
 };
 
-// 여비교통비 유형 선택 → 일수 × 일당단가로 자동 금액 계산 (근로기준법상 실비변상적 금품 — 회사 내규 기준)
+// 여비교통비: 여러 이동유형을 동시에 등록해 각각 계산 후 합산 (근로기준법상 실비변상적 금품 — 회사 내규 기준)
 // 개인차량 40km 이내=1만원/일 · 40km 초과=2만원/일 · 회사차량=거리무관 1만원/일 고정 · 지방장기출장(숙박)=왕복KTX 실비×왕복횟수(주1회 한도)
 const PS_TRAVEL_PER_DAY = { personal_near: 10000, personal_far: 20000, company_car: 10000 };
 const PS_LONGTRIP_WEEKLY_MAX = 5; // 계약서상 "주 1회" 한도의 월 환산 참고치(달에 따라 4~5주라 5로 여유있게 표시, 실제 강제차단은 안 하고 경고만)
+const PS_TRAVEL_TYPE_LABEL = {
+  personal_near: '🚗 개인차량 · 40km 이내 (1만원/일)',
+  personal_far: '🚗 개인차량 · 40km 초과 (2만원/일)',
+  company_car: '🚙 회사차량 (거리무관 1만원/일)',
+  longtrip: '🚄 지방장기출장 · 왕복KTX 실비',
+};
 function psTravelRefreshPanel(){
   if (document.getElementById('ps-pc-right')) renderPayslipPCRight();
   else if (window.psRefresh) window.psRefresh();
 }
-window.psTravelTypeChange = function(type) {
-  ps._travelType = type;
-  if (type === 'longtrip') {
-    const count = Number(ps.travelTripCount) || 1;
-    const perTrip = Number(ps.travelPerTrip) || 0;
-    ps.travelTripCount = count;
-    ps.travelAllowance = count * perTrip;
-  } else if (PS_TRAVEL_PER_DAY[type] !== undefined) {
-    const days = Number(ps.travelDays) || 1;
-    ps.travelDays = days;
-    ps.travelAllowance = PS_TRAVEL_PER_DAY[type] * days;
+// 항목 하나의 금액 계산
+function psTravelItemAmount(item){
+  if (!item) return 0;
+  if (item.type === 'longtrip') return (Number(item.tripCount)||0) * (Number(item.perTrip)||0);
+  const perDay = PS_TRAVEL_PER_DAY[item.type];
+  if (perDay !== undefined) return perDay * (Number(item.days)||0);
+  return Number(item.amount)||0; // 유형 미지정(직접입력)
+}
+// 전체 항목 합계를 ps.travelAllowance에 반영
+function psTravelRecalcTotal(){
+  ps.travelItems = ps.travelItems || [];
+  ps.travelAllowance = ps.travelItems.reduce((sum,it)=>sum+psTravelItemAmount(it), 0);
+}
+function psRenderTravelItems(mobile){
+  ps.travelItems = ps.travelItems || [];
+  if (!ps.travelItems.length) {
+    return `<div style="font-size:${mobile?'12px':'11px'};color:#9AAABF;padding:6px 2px;">등록된 이동유형이 없습니다. 아래 버튼으로 추가하세요.</div>`;
   }
+  return ps.travelItems.map((item,i)=>{
+    const amount = psTravelItemAmount(item);
+    const fs = mobile ? {sel:'13px',lbl:'12px',inp:'13px',small:'11px'} : {sel:'11.5px',lbl:'11px',inp:'12px',small:'10px'};
+    const rowPad = mobile ? '10px' : '7px';
+    let detail = '';
+    if (item.type === 'longtrip') {
+      detail = `<div style="display:flex;align-items:center;gap:6px;margin-top:5px;">
+        <span style="font-size:${fs.lbl};color:#5C6F8A;">왕복 횟수</span>
+        <input type="number" min="0" value="${item.tripCount||1}" onchange="psTravelItemSet(${i},'tripCount',this.value)" style="width:50px;padding:4px 6px;border:1px solid #DDE3EE;border-radius:6px;font-size:${fs.inp};text-align:center;box-sizing:border-box;">
+        <span style="font-size:${fs.lbl};color:#5C6F8A;">회 × 1회당</span>
+        <input type="number" min="0" value="${item.perTrip||0}" onchange="psTravelItemSet(${i},'perTrip',this.value)" style="width:70px;padding:4px 6px;border:1px solid #DDE3EE;border-radius:6px;font-size:${fs.inp};text-align:right;box-sizing:border-box;">
+        <span style="font-size:${fs.small};color:#9AAABF;">원</span>
+      </div>
+      ${(Number(item.tripCount)||0) > PS_LONGTRIP_WEEKLY_MAX ? `<div style="font-size:${fs.small};color:#DC2626;margin-top:3px;">⚠️ 주 1회 한도(월 최대 ${PS_LONGTRIP_WEEKLY_MAX}회) 초과 — 정책 예외 사유 확인</div>` : `<div style="font-size:${fs.small};color:#9AAABF;margin-top:3px;">주 1회 한도(월 최대 ${PS_LONGTRIP_WEEKLY_MAX}회) 기준</div>`}`;
+    } else if (item.type) {
+      detail = `<div style="display:flex;align-items:center;gap:6px;margin-top:5px;">
+        <span style="font-size:${fs.lbl};color:#5C6F8A;">적용 일수</span>
+        <input type="number" min="0" value="${item.days||1}" onchange="psTravelItemSet(${i},'days',this.value)" style="width:55px;padding:4px 6px;border:1px solid #DDE3EE;border-radius:6px;font-size:${fs.inp};text-align:center;box-sizing:border-box;">
+        <span style="font-size:${fs.small};color:#9AAABF;">일 × ${won2(PS_TRAVEL_PER_DAY[item.type]||0)}원</span>
+      </div>`;
+    }
+    return `<div style="border:1px solid #E4EAF2;border-radius:8px;padding:${rowPad};margin-bottom:6px;background:#FAFCFE;">
+      <div style="display:flex;align-items:center;gap:6px;">
+        <select onchange="psTravelItemSet(${i},'type',this.value)" style="flex:1;padding:5px 6px;border:1px solid #DDE3EE;border-radius:6px;font-size:${fs.sel};font-family:inherit;background:#fff;">
+          <option value="" ${!item.type?'selected':''}>유형 미지정(직접입력)</option>
+          ${Object.entries(PS_TRAVEL_TYPE_LABEL).map(([k,l])=>`<option value="${k}" ${item.type===k?'selected':''}>${l}</option>`).join('')}
+        </select>
+        <button onclick="psTravelDelItem(${i})" style="background:#FEE2E2;border:none;border-radius:6px;color:#DC2626;padding:5px 9px;font-size:${fs.small};cursor:pointer;flex-shrink:0;">삭제</button>
+      </div>
+      ${detail}
+      ${!item.type ? `<div style="margin-top:5px;"><input type="number" min="0" value="${item.amount||0}" onchange="psTravelItemSet(${i},'amount',this.value)" style="width:100%;padding:5px 6px;border:1px solid #DDE3EE;border-radius:6px;font-size:${fs.inp};text-align:right;box-sizing:border-box;" placeholder="직접 금액 입력"></div>` : ''}
+      <div style="text-align:right;font-size:${fs.small};color:#1D5BA6;font-weight:700;margin-top:4px;">${won2(amount)}원</div>
+    </div>`;
+  }).join('');
+}
+window.psTravelAddItem = function(){
+  ps.travelItems = ps.travelItems || [];
+  ps.travelItems.push({ type:'', days:1, tripCount:1, perTrip:0, amount:0 });
+  psTravelRecalcTotal();
   psTravelRefreshPanel();
 };
-window.psTravelDaysChange = function(value) {
-  const days = Math.max(0, Number(value) || 0);
-  ps.travelDays = days;
-  const perDay = PS_TRAVEL_PER_DAY[ps._travelType];
-  if (perDay !== undefined) ps.travelAllowance = perDay * days; // longtrip(실비)은 일수와 무관하므로 재계산 안 함
+window.psTravelDelItem = function(i){
+  ps.travelItems.splice(i,1);
+  psTravelRecalcTotal();
   psTravelRefreshPanel();
 };
-window.psTravelTripCountChange = function(value) {
-  const count = Math.max(0, Number(value) || 0);
-  ps.travelTripCount = count;
-  ps.travelAllowance = count * (Number(ps.travelPerTrip) || 0);
-  psTravelRefreshPanel();
-};
-window.psTravelPerTripChange = function(value) {
-  const perTrip = Math.max(0, Number(value) || 0);
-  ps.travelPerTrip = perTrip;
-  ps.travelAllowance = (Number(ps.travelTripCount) || 0) * perTrip;
+window.psTravelItemSet = function(i, field, value){
+  const item = ps.travelItems[i]; if (!item) return;
+  if (field === 'type') item.type = value;
+  else item[field] = Math.max(0, Number(value)||0);
+  psTravelRecalcTotal();
   psTravelRefreshPanel();
 };
 
@@ -2513,7 +2521,7 @@ window.psSave = async () => {
       rank: ps.workerData?.rank||'', empNo: ps.workerData?.empNo||'',
       hourly: ps.annualData?.hourly||0, empType: ps.workerData?.empType||'field',
       ...c.sal,
-      bonus: c.bonus, specialBonus: c.specialBonus, extraPay: c.extraPay, techAllowance: c.techAllowance, travelAllowance: c.travelAllowance, travelType: ps._travelType||``, travelDays: ps.travelDays||1, travelTripCount: ps.travelTripCount||1, travelPerTrip: ps.travelPerTrip||0,
+      bonus: c.bonus, specialBonus: c.specialBonus, extraPay: c.extraPay, techAllowance: c.techAllowance, travelAllowance: c.travelAllowance, travelItems: ps.travelItems||[],
       grossPay: c.totalPay,
       pension: c.pension, health: c.health, ltcare: c.ltcare, employ: c.employ,
       dormitory: c.dormitory, incomeTax: c.incomeTax, localTax: c.localTax,
@@ -2607,7 +2615,7 @@ window.psViewDetail = (d, wid) => {
   // 저장된 데이터로 미리보기
   const savedC = {
     sal: { basic:d.basic||0, fixedOt:d.fixedOt||0, fixedNight:d.fixedNight||0, weekly:d.weekly||0, holidayPay:d.holidayPay||0 },
-    bonus:d.bonus||0, specialBonus:d.specialBonus||0, extraPay:d.extraPay||0, techAllowance:d.techAllowance||0, travelAllowance:d.travelAllowance||0, _travelType:d.travelType||``, travelDays:d.travelDays||1, travelTripCount:d.travelTripCount||1, travelPerTrip:d.travelPerTrip||0,
+    bonus:d.bonus||0, specialBonus:d.specialBonus||0, extraPay:d.extraPay||0, techAllowance:d.techAllowance||0, travelAllowance:d.travelAllowance||0, travelItems: (d.travelItems&&d.travelItems.length) ? d.travelItems : (d.travelType ? [d.travelType==='longtrip' ? {type:'longtrip',tripCount:d.travelTripCount||1,perTrip:d.travelPerTrip||0} : {type:d.travelType,days:d.travelDays||1}] : []),
     totalPay:d.grossPay||0, pension:d.pension||0, health:d.health||0,
     ltcare:d.ltcare||0, employ:d.employ||0, dormitory:d.dormitory||0,
     incomeTax:d.incomeTax||0, localTax:d.localTax||0,
@@ -2649,7 +2657,7 @@ window.psSave = async () => {
       rank: ps.workerData?.rank||'', empNo: ps.workerData?.empNo||'',
       hourly: ps.annualData?.hourly||0, empType: ps.workerData?.empType||'field',
       ...c.sal,
-      bonus: c.bonus, specialBonus: c.specialBonus, extraPay: c.extraPay, techAllowance: c.techAllowance, travelAllowance: c.travelAllowance, travelType: ps._travelType||``, travelDays: ps.travelDays||1, travelTripCount: ps.travelTripCount||1, travelPerTrip: ps.travelPerTrip||0,
+      bonus: c.bonus, specialBonus: c.specialBonus, extraPay: c.extraPay, techAllowance: c.techAllowance, travelAllowance: c.travelAllowance, travelItems: ps.travelItems||[],
       grossPay: c.totalPay,
       pension: c.pension, health: c.health, ltcare: c.ltcare, employ: c.employ,
       dormitory: c.dormitory, incomeTax: c.incomeTax, localTax: c.localTax,
@@ -2706,7 +2714,7 @@ window.psViewDetail = (d, wid) => {
   // 저장된 데이터로 미리보기
   const savedC = {
     sal: { basic:d.basic||0, fixedOt:d.fixedOt||0, fixedNight:d.fixedNight||0, weekly:d.weekly||0, holidayPay:d.holidayPay||0 },
-    bonus:d.bonus||0, specialBonus:d.specialBonus||0, extraPay:d.extraPay||0, techAllowance:d.techAllowance||0, travelAllowance:d.travelAllowance||0, _travelType:d.travelType||``, travelDays:d.travelDays||1, travelTripCount:d.travelTripCount||1, travelPerTrip:d.travelPerTrip||0,
+    bonus:d.bonus||0, specialBonus:d.specialBonus||0, extraPay:d.extraPay||0, techAllowance:d.techAllowance||0, travelAllowance:d.travelAllowance||0, travelItems: (d.travelItems&&d.travelItems.length) ? d.travelItems : (d.travelType ? [d.travelType==='longtrip' ? {type:'longtrip',tripCount:d.travelTripCount||1,perTrip:d.travelPerTrip||0} : {type:d.travelType,days:d.travelDays||1}] : []),
     totalPay:d.grossPay||0, pension:d.pension||0, health:d.health||0,
     ltcare:d.ltcare||0, employ:d.employ||0, dormitory:d.dormitory||0,
     incomeTax:d.incomeTax||0, localTax:d.localTax||0,
@@ -4221,7 +4229,7 @@ window.laborPreviewSaved2 = (d) => {
 // 📋 연봉계약서 (재구성)
 // ════════════════════════════════
 let annualView2='main';
-let annualForm2={workerId:'',name:'',jumin:'',address:'',dept:'',rank:'',empType:'field',startDate:'2026-06-02',endDate:'2027-05-31',contractDate:'',hourly:'',salary:'',signData:null};
+let annualForm2={workerId:'',name:'',jumin:'',address:'',dept:'',rank:'',empType:'field',startDate:'2026-06-02',endDate:'2027-05-31',contractDate:'',hourly:'',salary:'',wageType:'noncomprehensive',fixedOT:'',fixedNight:'',signData:null};
 let annualSignCanvas2=null, annualSignDrawing2=false;
 
 window.renderAnnualMain = async () => {
@@ -4392,6 +4400,25 @@ function renderAnnualForm(el, workers) {
       <div id="annual-sal-preview2">${salPreview}</div>
       ${annualForm2.salary?'<div style="font-size:12px;color:#1D5BA6;margin-top:6px;font-weight:700;">→ 계약연봉: ₩'+Number(annualForm2.salary).toLocaleString()+'원</div>':''}
     `)}
+    ${card2('⚖️ 임금 지급 방식', `
+      <div style="display:flex;gap:8px;margin-bottom:${annualForm2.wageType==='comprehensive'?'12px':'0'};">
+        <label style="flex:1;display:flex;align-items:center;gap:6px;padding:10px 12px;border:1.5px solid ${annualForm2.wageType!=='comprehensive'?C2.blue:'#DDE4EF'};border-radius:9px;background:${annualForm2.wageType!=='comprehensive'?'#E8F0FB':'#fff'};cursor:pointer;font-size:12.5px;font-weight:600;color:${annualForm2.wageType!=='comprehensive'?C2.blue:'#5C6F8A'};">
+          <input type="radio" name="wageType2" ${annualForm2.wageType!=='comprehensive'?'checked':''} onchange="annualForm2.wageType='noncomprehensive';window.annualRefreshForm2&&window.annualRefreshForm2();"> 비포괄 (실근무 기준 매월 자동계산)
+        </label>
+        <label style="flex:1;display:flex;align-items:center;gap:6px;padding:10px 12px;border:1.5px solid ${annualForm2.wageType==='comprehensive'?C2.blue:'#DDE4EF'};border-radius:9px;background:${annualForm2.wageType==='comprehensive'?'#E8F0FB':'#fff'};cursor:pointer;font-size:12.5px;font-weight:600;color:${annualForm2.wageType==='comprehensive'?C2.blue:'#5C6F8A'};">
+          <input type="radio" name="wageType2" ${annualForm2.wageType==='comprehensive'?'checked':''} onchange="annualForm2.wageType='comprehensive';window.annualRefreshForm2&&window.annualRefreshForm2();"> 포괄 (고정액 매월 동일지급)
+        </label>
+      </div>
+      ${annualForm2.wageType==='comprehensive'?`
+        <div style="font-size:10.5px;color:#9AAABF;margin-bottom:10px;">실제 근무시간과 무관하게 아래 고정액이 매달 그대로 지급됩니다. 다음 연봉계약 갱신 전까지 변경되지 않습니다.</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+          ${field2('고정 연장수당 (월, 원)',`<input type="text" inputmode="numeric" value="${annualForm2.fixedOT?Number(annualForm2.fixedOT).toLocaleString('ko-KR'):''}" placeholder="0"
+              oninput="fmtMoney(this);annualForm2.fixedOT=numClean(this.value);" style="width:100%;border:1px solid #DDE4EF;border-radius:8px;padding:9px 8px;font-size:12px;box-sizing:border-box;">`)}
+          ${field2('고정 야간수당 (월, 원)',`<input type="text" inputmode="numeric" value="${annualForm2.fixedNight?Number(annualForm2.fixedNight).toLocaleString('ko-KR'):''}" placeholder="0"
+              oninput="fmtMoney(this);annualForm2.fixedNight=numClean(this.value);" style="width:100%;border:1px solid #DDE4EF;border-radius:8px;padding:9px 8px;font-size:12px;box-sizing:border-box;">`)}
+        </div>
+      `:''}
+    `)}
     ${card2('✍️ 서명', `
       <div style="text-align:center;">
         ${annualForm2.signData
@@ -4433,6 +4460,9 @@ window.annualWorkerSelect2 = async (wid) => {
   annualForm2.empType  = w.empType || 'field';
   annualForm2.hourly   = '';
   annualForm2.salary   = '';
+  annualForm2.wageType = 'noncomprehensive';
+  annualForm2.fixedOT  = '';
+  annualForm2.fixedNight = '';
 
   // 근로계약서에서 최신 시급 자동 불러오기
   if (window._db) {
@@ -4536,10 +4566,13 @@ window.annualPreview2=()=>{
       <table style="width:100%;border-collapse:collapse;margin-bottom:6px;">
         <thead><tr style="background:#E8F0FB;"><th style="border:1px solid #333;padding:6px 8px;text-align:left;font-size:10pt;">항목</th><th style="border:1px solid #333;padding:6px 8px;text-align:right;font-size:10pt;">금액</th><th style="border:1px solid #333;padding:6px 8px;text-align:left;font-size:10pt;">산출근거</th></tr></thead>
         <tbody>${tr('기본근로수당',w(sal.basic),'시급×8×5×4.345')}${tr('주휴수당',w(sal.weekly),'시급×8×4.345')
+        }${f.wageType==='comprehensive'?tr('고정연장수당',w(f.fixedOT),'포괄임금제 — 실근무와 무관하게 매월 고정 지급')+tr('고정야간수당',w(f.fixedNight),'포괄임금제 — 실근무와 무관하게 매월 고정 지급'):''
         }${tr('상여금','','회사 내규에 따름')}${tr('특별성과급','','회사 내규에 따름')}${tr('특근수당','','주말, 공휴일 출근 시 지급')}
-        <tr style="background:#E8F0FB;"><td style="border:1px solid #333;padding:6px 8px;font-weight:700;font-size:10pt;">합계</td><td style="border:1px solid #333;padding:6px 8px;text-align:right;font-weight:700;font-size:10pt;">${w(sal.total)}</td><td style="border:1px solid #333;padding:6px 8px;"></td></tr></tbody>
+        <tr style="background:#E8F0FB;"><td style="border:1px solid #333;padding:6px 8px;font-weight:700;font-size:10pt;">합계</td><td style="border:1px solid #333;padding:6px 8px;text-align:right;font-weight:700;font-size:10pt;">${w(f.wageType==='comprehensive'?(Number(sal.total||0)+Number(f.fixedOT||0)+Number(f.fixedNight||0)):sal.total)}</td><td style="border:1px solid #333;padding:6px 8px;"></td></tr></tbody>
       </table>
-      <p style="font-size:9pt;color:#555;margin-bottom:4px;">※ 본 계약은 포괄임금제를 적용하지 않습니다. 기본근로수당은 월 209시간을 기준으로 산정하되, 연장근로수당(해당 월 소정근로시간 초과분에 대해 통상시급의 1.5배)과 야간근로수당(22:00~06:00 근로시간에 대해 통상시급의 0.5배 가산)은 매월 실제 근무기록을 기준으로 산정하여 별도 지급합니다.</p>
+      ${f.wageType==='comprehensive'
+        ? `<p style="font-size:9pt;color:#555;margin-bottom:4px;">※ 본 계약은 포괄임금제를 적용합니다. 근로자 본인의 선택에 따라 연장근로수당·야간근로수당을 위 표의 고정액으로 매월 실제 근무시간과 무관하게 지급하며, 다음 연봉계약 갱신 전까지 동일하게 적용합니다.</p>`
+        : `<p style="font-size:9pt;color:#555;margin-bottom:4px;">※ 본 계약은 포괄임금제를 적용하지 않습니다. 기본근로수당은 월 209시간을 기준으로 산정하되, 연장근로수당(해당 월 소정근로시간 초과분에 대해 통상시급의 1.5배)과 야간근로수당(22:00~06:00 근로시간에 대해 통상시급의 0.5배 가산)은 매월 실제 근무기록을 기준으로 산정하여 별도 지급합니다.</p>`}
       <p style="font-size:9pt;color:#555;margin-bottom:10px;">※ 위 임금구성은 소정근로시간(주52시간)을 기준으로 작성됨</p>
       <p style="font-weight:700;margin:14px 0 5px;">제2조의2 (여비교통비 및 기술수당)</p>
       <p style="margin-bottom:4px;">① 회사는 근로자가 업무상 이동에 소요한 비용을 실비변상적 성격의 여비교통비로 별도 지급한다. 이는 근로기준법 시행령상 임금(통상임금·평균임금)에 산입되지 않는 실비변상적 금품으로, 4대보험 산정 기준에서 제외한다.</p>
@@ -5934,19 +5967,95 @@ window.showLeaveDetail = async function(wid, wname, hireDate) {
 
     const STATUS_LBL = {posted:'게시',approved:'승인'};
     const listEl = document.getElementById('leave-detail-list');
+    window._leaveDetailLeaves = leaves; // 수정 모달에서 참조
+    window._leaveDetailWname = wname;
+    window._leaveDetailWid = wid;
+    window._leaveDetailHireDate = hireDate;
     if(listEl) listEl.innerHTML = leaves.length ? leaves.map(lv=>`
-      <div style="display:flex;align-items:center;gap:12px;padding:12px 22px;border-bottom:1px solid #EEF2F7;">
+      <div onclick="editLeaveEntry('${lv.id}')" style="display:flex;align-items:center;gap:12px;padding:12px 22px;border-bottom:1px solid #EEF2F7;cursor:pointer;" onmouseover="this.style.background='#F7F9FC'" onmouseout="this.style.background='transparent'">
         <span style="flex-shrink:0;font-size:11px;font-weight:600;padding:3px 9px;border-radius:7px;background:#E1F5EE;color:#085041;">${STATUS_LBL[lv.status]||lv.status}</span>
         <div style="flex:1;min-width:0;">
           <div style="font-size:13px;font-weight:600;color:#1A2540;">${lv.title||lv.leaveType||'-'}</div>
           <div style="font-size:11px;color:#5C6F8A;margin-top:2px;">${lv.startDate||lv.sdate||''} ~ ${lv.endDate||lv.edate||''}</div>
         </div>
         <span style="flex-shrink:0;font-size:14px;font-weight:700;color:#1D5BA6;">${lv.days||lv.leaveDays||0}일</span>
+        <span style="flex-shrink:0;font-size:13px;color:#9AAABF;">✏️</span>
       </div>`).join('')
     : '<div style="padding:40px;text-align:center;color:#9AAABF;">사용한 연차가 없습니다.</div>';
   } catch(e) { console.warn('연차 상세 로드 오류:', e); }
 };
 window.showLeaveDetail = window.showLeaveDetail;
+
+// 연차 상세 목록에서 항목 클릭 → 사유·기간만 조회/수정 (결재라인·게시상태는 변경하지 않음)
+window.editLeaveEntry = function(leaveId){
+  const lv = (window._leaveDetailLeaves||[]).find(l=>l.id===leaveId);
+  if(!lv) return;
+  const old = document.getElementById('leave-edit-modal');
+  if(old) old.remove();
+  const modal = document.createElement('div');
+  modal.id = 'leave-edit-modal';
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(19,51,92,0.55);z-index:10000;display:flex;align-items:center;justify-content:center;padding:20px;';
+  modal.onclick = function(e){ if(e.target===modal) modal.remove(); };
+  const TYPES = ['연차(유급)','반차(유급)','경조사(유급)','병가(무급)','기타(무급)'];
+  const box = document.createElement('div');
+  box.style.cssText = 'background:#fff;border-radius:16px;max-width:420px;width:100%;padding:22px;box-shadow:0 20px 60px rgba(0,0,0,0.3);';
+  box.innerHTML = `<div style="font-size:16px;font-weight:800;color:#13335C;margin-bottom:4px;">✏️ 연차신청서 내용 수정</div>
+    <div style="font-size:11px;color:#9AAABF;margin-bottom:16px;">결재라인·게시상태는 변경되지 않고, 사유와 기간만 수정됩니다.</div>
+    <label style="font-size:12px;font-weight:600;color:#5C6F8A;">휴가 종류</label>
+    <select id="led-type" style="width:100%;padding:9px 10px;border:1.5px solid #DDE4EF;border-radius:9px;font-size:13px;margin:5px 0 12px;font-family:inherit;">
+      ${TYPES.map(t=>`<option ${(lv.leaveType||'')===t?'selected':''}>${t}</option>`).join('')}
+    </select>
+    <div style="display:flex;gap:8px;">
+      <div style="flex:1;"><label style="font-size:12px;font-weight:600;color:#5C6F8A;">시작일</label>
+      <input type="date" id="led-start" value="${lv.startDate||lv.sdate||''}" style="width:100%;padding:9px 10px;border:1.5px solid #DDE4EF;border-radius:9px;font-size:13px;margin:5px 0 12px;box-sizing:border-box;"></div>
+      <div style="flex:1;"><label style="font-size:12px;font-weight:600;color:#5C6F8A;">종료일</label>
+      <input type="date" id="led-end" value="${lv.endDate||lv.edate||''}" style="width:100%;padding:9px 10px;border:1.5px solid #DDE4EF;border-radius:9px;font-size:13px;margin:5px 0 12px;box-sizing:border-box;"></div>
+    </div>
+    <label style="font-size:12px;font-weight:600;color:#5C6F8A;">사유</label>
+    <textarea id="led-reason" rows="3" style="width:100%;padding:9px 10px;border:1.5px solid #DDE4EF;border-radius:9px;font-size:13px;margin:5px 0 16px;font-family:inherit;box-sizing:border-box;resize:vertical;">${lv.reason||''}</textarea>
+    <div id="led-msg" style="font-size:12px;color:#DC2626;min-height:16px;margin-bottom:6px;"></div>
+    <div style="display:flex;gap:10px;">
+      <button onclick="document.getElementById('leave-edit-modal').remove()" style="flex:1;padding:11px;background:#F4F7FB;border:none;border-radius:10px;color:#5C6F8A;font-size:14px;cursor:pointer;">취소</button>
+      <button id="led-save-btn" onclick="saveLeaveEntryEdit('${leaveId}')" style="flex:2;padding:11px;background:#1D5BA6;color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;">저장</button>
+    </div>`;
+  modal.appendChild(box);
+  document.body.appendChild(modal);
+};
+
+function _hrCalcLeaveDays(startDate, endDate, leaveType){
+  if (leaveType && leaveType.includes('반차')) return 0.5;
+  if (!startDate || !endDate) return 0;
+  const s = new Date(startDate), e = new Date(endDate);
+  if (isNaN(s)||isNaN(e)) return 0;
+  let days = 0; const cur = new Date(s);
+  while (cur <= e) { const dow = cur.getDay(); if (dow!==0 && dow!==6) days++; cur.setDate(cur.getDate()+1); }
+  return days;
+}
+
+window.saveLeaveEntryEdit = async function(leaveId){
+  const type = document.getElementById('led-type').value;
+  const start = document.getElementById('led-start').value;
+  const end = document.getElementById('led-end').value;
+  const reason = document.getElementById('led-reason').value.trim();
+  const msgEl = document.getElementById('led-msg');
+  if(!start || !end){ if(msgEl) msgEl.textContent='시작일/종료일을 입력해주세요.'; return; }
+  if(end < start){ if(msgEl) msgEl.textContent='종료일이 시작일보다 빠를 수 없습니다.'; return; }
+  const days = _hrCalcLeaveDays(start, end, type);
+  const btn = document.getElementById('led-save-btn');
+  if(btn){ btn.disabled=true; btn.textContent='저장 중...'; }
+  try{
+    const { doc, updateDoc } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+    await updateDoc(doc(window._db,'edoc_leave',leaveId), { leaveType:type, startDate:start, endDate:end, days });
+    document.getElementById('leave-edit-modal').remove();
+    // 상세 모달 새로고침
+    if(window._leaveDetailWid!=null){
+      showLeaveDetail(window._leaveDetailWid, window._leaveDetailWname, window._leaveDetailHireDate);
+    }
+  }catch(e){
+    if(msgEl) msgEl.textContent = '저장 실패: '+(e.message||e);
+    if(btn){ btn.disabled=false; btn.textContent='저장'; }
+  }
+};
 
 window.renderLeaveStatusMain = async () => {
   const el = document.getElementById('tab-leave'); if(!el) return;
