@@ -1199,7 +1199,10 @@ function subscribeUserSchedules(){
     if(typeof renderToday === 'function') renderToday();
     if(typeof renderTwoWeek === 'function' && document.getElementById('tab-twoweek').style.display !== 'none') renderTwoWeek();
     if(typeof renderCal === 'function' && document.getElementById('tab-calendar').style.display !== 'none') renderCal();
-  }, err => console.warn('user_schedules 구독 오류:', err));
+  }, err => {
+    console.error('user_schedules 구독 오류:', err);
+    if(!window._usErrShown){ window._usErrShown=true; alert('⚠️ 일정 목록을 불러오지 못했습니다. 권한 문제일 수 있으니 관리자에게 문의해주세요.'); }
+  });
 }
 window._accessGatePromise.then(function(ok){ if(ok) subscribeUserSchedules(); });
 
