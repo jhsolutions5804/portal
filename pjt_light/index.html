@@ -22,13 +22,13 @@ body{font-family:-apple-system,'Apple SD Gothic Neo','Pretendard',sans-serif;bac
 .svt-btn{flex:1;padding:8px 4px;border:1px solid #d1d1d6;border-radius:8px;background:#fff;color:#5C6F8A;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit}
 .svt-btn.active{background:#1D5BA6;border-color:#1D5BA6;color:#fff}
 .wk-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
-.wk-day-col{border:1px solid #eee;border-radius:8px;padding:5px;min-height:90px;background:#fafbfc}
-.wk-day-col.wk-today{border-color:#1D5BA6;background:#eaf2fc}
-.wk-day-col.wk-sat{background:#f6f8fb}
+.wk-day-col{border:1px solid #e5e5e5;border-radius:10px;padding:8px 6px;min-height:90px;background:#fff}
+.wk-day-col.wk-today{border-color:#1D5BA6;border-width:2px}
+.wk-day-col.wk-sat{background:#fafafa}
 .wk-day-head{text-align:center;margin-bottom:4px}
 .wk-day-num{font-size:12px;font-weight:700;color:#1d1d1f}
 .wk-day-dow{font-size:8.5px;color:#86868b}
-.wk-holi{font-size:7.5px;color:#DC2626;line-height:1.1}
+.wk-holi{font-size:7.5px;color:#c0392b;line-height:1.1}
 .wk-item{font-size:8.5px;padding:2px 3px;border-radius:4px;margin-bottom:2px;background:#fff;border:1px solid #eee;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .wk-empty{font-size:9px;color:#c7c7cc;text-align:center;padding:6px 0}
 .card{background:#fff;border:1px solid #e5e5e5;border-radius:12px;padding:14px 16px;margin-bottom:12px}
@@ -70,7 +70,8 @@ textarea.f-input{resize:vertical;min-height:70px}
 .sheet-body{padding:6px 18px 24px}
 .day-nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;gap:8px}
 .day-title{font-size:15px;font-weight:700;flex:1;text-align:center}
-.nav-arrow{background:none;border:1px solid #d1d1d6;border-radius:8px;width:30px;height:30px;cursor:pointer;color:#86868b;font-size:16px}
+.today-nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;gap:8px}
+.nav-arrow{background:none;border:1px solid #d1d1d6;border-radius:8px;width:30px;height:30px;cursor:pointer;color:#86868b;font-size:16px;flex-shrink:0}
 .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1A2540;color:#fff;padding:10px 20px;border-radius:20px;font-size:13px;opacity:0;pointer-events:none;transition:.2s;z-index:999}
 .toast.on{opacity:1}
 .loading{text-align:center;padding:60px 0;color:#9AAABF;font-size:13px}
@@ -224,8 +225,8 @@ textarea.f-input{resize:vertical;min-height:70px}
   /* 공사일보 탭: 좌(작성폼)+우(최근 일보) 2단 분할 */
   .report-pc-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:start}
 
-  /* 일정관리 캘린더: 좌(달력)+우(상세) 2단 분할 */
-  .cal-wrap{display:grid;grid-template-columns:420px 1fr;gap:16px;align-items:start}
+  /* 일정관리 캘린더: 좌(달력)+우(상세) 2단 분할 — 메인PJT(FAB)와 동일 비율/크기로 통일 */
+  .cal-wrap{display:grid;grid-template-columns:minmax(560px,1.3fr) 1fr;gap:16px;align-items:start}
   .sched-view-toggle{gap:8px}
   .svt-btn{flex:none;padding:9px 22px;font-size:13.5px}
   .wk-day-col{min-height:130px;padding:8px}
@@ -233,7 +234,7 @@ textarea.f-input{resize:vertical;min-height:70px}
   .wk-day-dow{font-size:10px}
   .wk-holi{font-size:9px}
   .wk-item{font-size:10.5px;padding:3px 5px;white-space:normal}
-  .cal-day{min-height:74px}
+  .cal-day{min-height:92px}
   .cal-right{min-height:400px}
 
   /* 품목현황 탭: 상단 요약 스트립 */
@@ -253,10 +254,10 @@ textarea.f-input{resize:vertical;min-height:70px}
   </div>
   <div class="pc-topnav-tabs">
     <button class="pc-tnav-btn active" data-tab="home" onclick="switchTab('home')">🏠 홈</button>
-    <button class="pc-tnav-btn" data-tab="items" onclick="switchTab('items')">📦 품목현황</button>
-    <button class="pc-tnav-btn" data-tab="att" onclick="switchTab('att')">👷 근태·공수</button>
     <button class="pc-tnav-btn" data-tab="sched" onclick="switchTab('sched')">📅 일정관리</button>
-    <button class="pc-tnav-btn" data-tab="report" onclick="switchTab('report')">📝 공사일보</button>
+    <button class="pc-tnav-btn" data-tab="items" onclick="switchTab('items')">📦 공정관리</button>
+    <button class="pc-tnav-btn" data-tab="att" onclick="switchTab('att')">👷 근태관리</button>
+    <button class="pc-tnav-btn" data-tab="settings" onclick="switchTab('settings')">⚙️ 설정</button>
   </div>
   <div class="pc-topnav-right">
     <span class="pc-status-badge" id="pc-status">진행중</span>
@@ -284,10 +285,10 @@ textarea.f-input{resize:vertical;min-height:70px}
     </div>
     <div class="tab-bar">
       <button class="tab active" data-tab="home" onclick="switchTab('home')">🏠 홈</button>
-      <button class="tab" data-tab="items" onclick="switchTab('items')">📦 품목</button>
-      <button class="tab" data-tab="att" onclick="switchTab('att')">👷 근태</button>
       <button class="tab" data-tab="sched" onclick="switchTab('sched')">📅 일정</button>
-      <button class="tab" data-tab="report" onclick="switchTab('report')">📝 일보</button>
+      <button class="tab" data-tab="items" onclick="switchTab('items')">📦 공정</button>
+      <button class="tab" data-tab="att" onclick="switchTab('att')">👷 근태</button>
+      <button class="tab" data-tab="settings" onclick="switchTab('settings')">⚙️ 설정</button>
     </div>
   </div>
 
@@ -316,7 +317,10 @@ textarea.f-input{resize:vertical;min-height:70px}
           <div class="info-row"><span class="k">공사 시작일</span><span class="v" id="i-start">—</span></div>
         </div>
       </div>
+    </div>
 
+    <!-- 설정 -->
+    <div id="pane-settings" style="display:none">
       <div class="home-row2" id="admin-row" style="display:none">
         <div class="home-card">
           <div class="home-section-hd">⚙️ 기본정보 수정 <span style="font-weight:400;color:#9AAABF;font-size:11px">(관리자)</span></div>
@@ -333,6 +337,14 @@ textarea.f-input{resize:vertical;min-height:70px}
           </div>
         </div>
       </div>
+      <div class="home-row2" id="admin-row2" style="display:none">
+        <div class="home-card">
+          <div class="home-section-hd">🚩 프로젝트 상태</div>
+          <div style="font-size:12px;color:#9AAABF;margin-bottom:10px">현재 상태: <b id="lp-status-lbl">진행중</b></div>
+          <button id="lp-end-btn" onclick="toggleEndLightPjt()" style="width:100%;padding:11px;background:#fff;color:#c0392b;border:1.5px solid #c0392b;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit">🔴 프로젝트 종료</button>
+        </div>
+      </div>
+      <div id="settings-noaccess" style="display:none;text-align:center;padding:40px;color:#9AAABF;font-size:13px;">관리자만 설정을 변경할 수 있습니다.</div>
     </div>
 
     <!-- 품목현황 -->
@@ -382,25 +394,8 @@ textarea.f-input{resize:vertical;min-height:70px}
     <!-- 일정관리 -->
     <div id="pane-sched" style="display:none">
       <div class="sched-view-toggle">
-        <button class="svt-btn active" data-view="daily" onclick="setSchedView('daily')">Daily</button>
         <button class="svt-btn" data-view="weekly" onclick="setSchedView('weekly')">Weekly</button>
-        <button class="svt-btn" data-view="monthly" onclick="setSchedView('monthly')">Monthly</button>
-      </div>
-
-      <!-- Daily -->
-      <div id="sched-daily-pane">
-        <div class="today-nav">
-          <button class="nav-arrow" onclick="schedDayShift(-1)">‹</button>
-          <div style="flex:1;text-align:center">
-            <div class="today-title" id="sched-daily-title">—</div>
-          </div>
-          <button class="nav-arrow" onclick="schedDayShift(1)">›</button>
-        </div>
-        <div style="display:flex;justify-content:flex-end;margin:8px 0 12px">
-          <button onclick="schedDayGoToday()" style="font-size:11px;font-weight:600;color:#1D5BA6;background:#e8f0fb;border:none;border-radius:8px;padding:5px 10px;cursor:pointer;">오늘</button>
-        </div>
-        <button class="add-btn" id="sched-daily-addbtn" style="margin-bottom:14px;display:none" onclick="openSchedForm(schedDailyKey())">+ 이 날 일정 등록</button>
-        <div id="sched-daily-list"></div>
+        <button class="svt-btn active" data-view="monthly" onclick="setSchedView('monthly')">Monthly</button>
       </div>
 
       <!-- Weekly -->
@@ -414,13 +409,13 @@ textarea.f-input{resize:vertical;min-height:70px}
           <button onclick="schedWeekGoToday()" style="font-size:11px;font-weight:600;color:#1D5BA6;background:#e8f0fb;border:none;border-radius:8px;padding:5px 10px;cursor:pointer;">오늘</button>
           <button onclick="saveSchedWeekPng()" style="font-size:11px;font-weight:600;color:#1D5BA6;background:#e8f0fb;border:none;border-radius:8px;padding:5px 10px;cursor:pointer;">🖼️ 이미지 저장</button>
         </div>
-        <div id="sched-week-capture" style="background:#fff;">
-          <div class="wk-grid" id="sched-week-grid"></div>
+        <div id="sched-week-capture" style="background:transparent;">
+          <div id="sched-week-grid"></div>
         </div>
       </div>
 
       <!-- Monthly (캘린더, 기존 그대로) -->
-      <div id="sched-monthly-pane" style="display:none">
+      <div id="sched-monthly-pane">
       <div class="cal-wrap">
         <div class="cal-left">
           <div class="cal-nav">
@@ -795,9 +790,16 @@ window.switchTab=function(tab){
   document.querySelectorAll('.tab, .pc-tnav-btn').forEach(function(b){
     b.classList.toggle('active', b.dataset.tab===tab);
   });
-  ['home','items','att','sched','report'].forEach(function(t){
-    document.getElementById('pane-'+t).style.display=(t===tab)?'':'none';
+  ['home','items','att','sched','report','settings'].forEach(function(t){
+    var el=document.getElementById('pane-'+t);
+    if(el) el.style.display=(t===tab)?'':'none';
   });
+  if(tab==='settings'){
+    document.getElementById('admin-row').style.display=isAdmin?'grid':'none';
+    var ar2=document.getElementById('admin-row2'); if(ar2) ar2.style.display=isAdmin?'grid':'none';
+    document.getElementById('settings-noaccess').style.display=isAdmin?'none':'block';
+    if(isAdmin && typeof loadLightPjtStatus==='function') loadLightPjtStatus();
+  }
 };
 
 window.saveBasic=async function(){
@@ -810,6 +812,35 @@ window.saveBasic=async function(){
     toast('저장되었습니다');
   }catch(e){ toast('저장 실패: '+e.message); }
   finally{ btn.disabled=false; btn.textContent='저장'; }
+};
+
+// ── 프로젝트 종료/재개 (메인PJT 설정탭과 동일 정책, pjt_registry의 status 필드 사용) ──
+window.loadLightPjtStatus=async function(){
+  try{
+    const snap=await getDoc(doc(db,'pjt_registry',pjtId));
+    const d=snap.exists()?snap.data():{};
+    window._lpEnded = (d.status==='ended');
+    const lbl=document.getElementById('lp-status-lbl'), btn=document.getElementById('lp-end-btn');
+    if(lbl) lbl.textContent = window._lpEnded ? '종료' : '진행중';
+    if(btn){
+      btn.textContent = window._lpEnded ? '🟢 프로젝트 재개' : '🔴 프로젝트 종료';
+      btn.style.color = window._lpEnded ? '#16A34A' : '#c0392b';
+      btn.style.borderColor = window._lpEnded ? '#16A34A' : '#c0392b';
+    }
+  }catch(e){ console.warn('상태 로드 실패', e); }
+};
+window.toggleEndLightPjt=async function(){
+  const toEnded=!window._lpEnded;
+  const msg=toEnded?'이 프로젝트를 종료 처리하시겠습니까?\n종료된 PJT는 포털 홈 사이드바에서 "종료 PJT" 그룹으로 이동합니다.':'이 프로젝트를 다시 진행중 상태로 되돌리시겠습니까?';
+  if(!confirm(msg)) return;
+  const btn=document.getElementById('lp-end-btn');
+  if(btn) btn.disabled=true;
+  try{
+    await updateDoc(doc(db,'pjt_registry',pjtId), { status: toEnded?'ended':'active' });
+    await loadLightPjtStatus();
+    toast(toEnded?'✓ 종료 처리했습니다.':'✓ 재개 처리했습니다.');
+  }catch(e){ alert('처리 실패: '+(e.message||e)); }
+  finally{ if(btn) btn.disabled=false; }
 };
 
 // ── 공정 단계 설정 ──
@@ -1223,7 +1254,7 @@ const HOLIDAYS={
 
 let calY, calM, calSel=null, calCache={};
 let schedCurCat='admin', schedEditing=null, schedDetailItem=null;
-let schedViewMode='daily'; // 'daily' | 'weekly' | 'monthly'
+let schedViewMode='monthly'; // 'weekly' | 'monthly' (Daily 제거됨)
 let schedDayOffset=0, schedWeekOffset=0; // 오늘 기준 이동 오프셋
 let allSchedLoaded=false;
 const calPad=n=>String(n).padStart(2,'0');
@@ -1271,10 +1302,10 @@ async function loadAllSched(){
 }
 // 하위 호환용 별칭(기존 코드에서 loadSchedMonth 이름으로 호출하던 곳들이 그대로 동작하도록)
 function loadSchedMonth(){ return loadAllSched(); }
-// ── 일정관리: Daily/Weekly/Monthly 뷰 전환 ──
+// ── 일정관리: Weekly/Monthly 뷰 전환 (Daily 제거됨) ──
 window.setSchedView=function(mode){
   schedViewMode=mode;
-  var PANE={daily:'sched-daily-pane', weekly:'sched-weekly-pane', monthly:'sched-monthly-pane'};
+  var PANE={weekly:'sched-weekly-pane', monthly:'sched-monthly-pane'};
   Object.keys(PANE).forEach(function(k){
     var el=document.getElementById(PANE[k]);
     if(el) el.style.display=(k===mode)?'':'none';
@@ -1286,16 +1317,10 @@ window.setSchedView=function(mode){
 };
 function renderSchedView(){
   if(!allSchedLoaded) return; // 데이터 로드 완료 후 loadAllSched()에서 다시 호출해줌
-  if(schedViewMode==='daily') renderSchedDaily();
-  else if(schedViewMode==='weekly') renderSchedWeekly();
+  if(schedViewMode==='weekly') renderSchedWeekly();
   else renderSchedCal();
 }
 
-// ── Daily ──
-function schedGetDay(){ var d=new Date(); d.setDate(d.getDate()+schedDayOffset); return d; }
-window.schedDailyKey=function(){ var d=schedGetDay(); return calKey(d.getFullYear(),d.getMonth(),d.getDate()); };
-window.schedDayShift=function(dir){ schedDayOffset+=dir; renderSchedDaily(); };
-window.schedDayGoToday=function(){ schedDayOffset=0; renderSchedDaily(); };
 function renderSchedDaily(){
   var d=schedGetDay(); var dk=calKey(d.getFullYear(),d.getMonth(),d.getDate());
   var now=new Date(); var todayKey=calKey(now.getFullYear(),now.getMonth(),now.getDate());
@@ -1306,7 +1331,7 @@ function renderSchedDaily(){
     titleEl.textContent=(d.getMonth()+1)+'월 '+d.getDate()+'일 ('+dowKo[d.getDay()]+')'+(dk===todayKey?' · 오늘':'')+(holidayName?' · '+holidayName:'');
   }
   var addBtn=document.getElementById('sched-daily-addbtn');
-  if(addBtn) addBtn.style.display=''; // 일정 등록은 전 직원 가능 (FAB와 동일 정책)
+  if(addBtn) addBtn.style.display=isAdmin?'':'none';
   var items=(calCache[dk]||[]).slice().sort(function(a,b){ return (a.stime||'').localeCompare(b.stime||''); });
   var html='';
   if(items.length){
@@ -1319,7 +1344,7 @@ function renderSchedDaily(){
         +'</div>';
     });
   } else {
-    html=window._schedLoadFailed?'<div class="empty" style="color:#c0392b">⚠️ 일정을 불러오지 못했습니다. 권한 문제일 수 있으니 관리자에게 문의해주세요.</div>':'<div class="empty">이 날 등록된 일정이 없습니다.</div>';
+    html='<div class="empty">이 날 등록된 일정이 없습니다.</div>';
   }
   var listEl=document.getElementById('sched-daily-list');
   if(listEl) listEl.innerHTML=html;
@@ -1331,20 +1356,18 @@ function schedGetWeekStart(){
   var d=new Date(now); d.setDate(d.getDate()-d.getDay()); // 이번 주 일요일
   return d;
 }
-window.schedWeekShift=function(dir){ schedWeekOffset+=dir; renderSchedWeekly(); };
+window.schedWeekShift=function(dir){ schedWeekOffset+=dir*2; renderSchedWeekly(); };
 window.schedWeekGoToday=function(){ schedWeekOffset=0; renderSchedWeekly(); };
-function renderSchedWeekly(){
-  var wStart=schedGetWeekStart();
+function getWeekNum(d){const j=new Date(d.getFullYear(),0,1);return Math.ceil(((d-j)/86400000+j.getDay()+1)/7);}
+function _schedWeekBlockHtml(wStart,label){
   var now=new Date(); var todayKey=calKey(now.getFullYear(),now.getMonth(),now.getDate());
   var dowKo=['일','월','화','수','목','금','토'];
   var wEnd=new Date(wStart); wEnd.setDate(wStart.getDate()+6);
-  var titleEl=document.getElementById('sched-week-title');
-  if(titleEl){
-    titleEl.textContent=(wStart.getMonth()+1)+'/'+wStart.getDate()+' ~ '+(wEnd.getMonth()+1)+'/'+wEnd.getDate()+(schedWeekOffset===0?' · 이번 주':'');
-  }
-  var grid=document.getElementById('sched-week-grid');
-  if(!grid) return;
-  var html='';
+  var wS=(wStart.getMonth()+1)+'/'+wStart.getDate(), wE=(wEnd.getMonth()+1)+'/'+wEnd.getDate();
+  var html='<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;background:transparent">'
+    +'<span style="font-size:13px;font-weight:700;color:#1D5BA6;background:transparent">'+label+'</span>'
+    +'<span style="font-size:11px;color:#86868b;background:transparent">'+wS+' ~ '+wE+'</span></div>';
+  html+='<div class="wk-grid">';
   for(var i=0;i<7;i++){
     var d=new Date(wStart); d.setDate(wStart.getDate()+i);
     var dk=calKey(d.getFullYear(),d.getMonth(),d.getDate());
@@ -1364,12 +1387,31 @@ function renderSchedWeekly(){
     else{
       items.forEach(function(s){
         var tg=SCHED_TAG[s.tag||'admin']||SCHED_TAG.admin;
-        html+='<div class="wk-item" style="border-left:3px solid '+tg.c+'" onclick="openSchedDetail(\''+s.id+'\')">'
-          +(s.stime?'<b>'+escapeHtml(s.stime)+'</b> ':'')+escapeHtml(s.text||'')+'</div>';
+        html+='<div class="wk-item" style="border:none;background:'+tg.c+'14;padding:3px 5px" onclick="openSchedDetail(\''+s.id+'\')">'
+          +'<span class="tag" style="background:'+tg.c+'22;color:'+tg.c+';font-weight:700">'+tg.l+'</span> '
+          +(s.stime?'<b style="color:'+tg.c+'">'+escapeHtml(s.stime)+'</b> ':'')+escapeHtml(s.text||'')+'</div>';
       });
     }
     html+='</div>';
   }
+  html+='</div>';
+  return html;
+}
+function renderSchedWeekly(){
+  var w0Start=schedGetWeekStart();
+  var w1Start=new Date(w0Start); w1Start.setDate(w0Start.getDate()+7);
+  var w1End=new Date(w1Start); w1End.setDate(w1Start.getDate()+6);
+  var titleEl=document.getElementById('sched-week-title');
+  if(titleEl){
+    titleEl.textContent=(w0Start.getMonth()+1)+'/'+w0Start.getDate()+' ~ '+(w1End.getMonth()+1)+'/'+w1End.getDate()+(schedWeekOffset===0?' · 이번 2주':'');
+  }
+  var grid=document.getElementById('sched-week-grid');
+  if(!grid) return;
+  var w0Label='W'+getWeekNum(w0Start)+(schedWeekOffset===0?' · 이번 주':'');
+  var w1Label='W'+getWeekNum(w1Start)+(schedWeekOffset===0?' · 다음 주':'');
+  var html=_schedWeekBlockHtml(w0Start,w0Label)
+    +'<div style="height:1px;background:#e5e5e5;margin:16px 0"></div>'
+    +_schedWeekBlockHtml(w1Start,w1Label);
   grid.innerHTML=html;
 }
 window.saveSchedWeekPng=async function(){
