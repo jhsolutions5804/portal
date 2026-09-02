@@ -1,6 +1,6 @@
 # JH Solutions 포털 — 문서 인덱스
 
-> 최초 작성: 2026-06-26 · 최종 수정: 2026-08-29 · 견적/정산 UX 개선 + 뒤로가기 버그 수정 (gihoek v5.5.0) · 작성: 춘식이(Claude)
+> 최초 작성: 2026-06-26 · 최종 수정: 2026-09-03 · PJT 퇴사자 일괄처리 필터 통일 핫픽스 · 작성: 춘식이(Claude)
 
 ---
 
@@ -1005,3 +1005,21 @@
 **배포**: `backup/v5.5.0/gihoek/index.html` 백업 후 프로덕션 배포, 빌드·Contents API 반영 확인 완료.
 
 **상세**: `1_1_gihoek_project.md`, `8_24_log_2026-08-29_session.md`
+
+---
+
+## 2026-09-03 세션 — PJT 퇴사자 일괄처리 필터 통일 핫픽스
+
+**계기**: 김짜장님이 민지환님 개인 공수표에서 퇴사일(8/15) 이후 공수가 남아있는 것을 발견해 원인 문의.
+
+**진단**: 개별 체크/입력은 퇴사자 제외 필터(`resignedDate<=dateKey`)가 정상 적용되지만, **"전체 출역 체크"/"전체 공수 일괄 적용" 두 함수는 필터 없는 `getWorkers()`(마스터 전체 명단)를 직접 호출**해 퇴사자까지 대상에 포함시키던 구조적 버그였음. 김혁·미첼·민지환·정대웅 4명 모두 동일 영향 확인.
+
+**수정**: 공통 헬퍼 `getActiveWorkersForDate(dateKey)` 신설, FAB/SUP 양쪽의 개별·일괄 처리 로직(`renderWorkerList`/`setAllManday`/`toggleAllWorkers`) 모두 통일. 경량PJT는 일괄 버튼이 없어 해당 없음, 모바일은 애초 다른 데이터 구조라 별도 확인 필요(대기열 미등록).
+
+**데이터 정리**: Firestore 직접 접근 불가로, 브라우저 콘솔에서 dry-run 조회 후 `applyCleanup()`으로 실행하는 2단계 스크립트를 제작해 전달. 최초 실행 시 포털 홈(iframe 구조) vs 모듈 프레임 컨텍스트 문제로 오류 발생 → 안내 후 재시도 대기 중.
+
+**배포**: 김짜장님 지시로 테스트 단계 생략, 프로덕션 직접 배포. `pjt/index.html` v4.10.8. 백업 `backup/v6.0.1/{pjt,pjt_ph4}/index.html`.
+
+**미완료**: 데이터 정리 스크립트 실행 결과 확인 대기.
+
+**상세**: `4_1_pjt_fab_attend_progress.md`, `4_2_pjt_sup.md`, `7_22_log_pjt_attend_resign_button.md`, `8_20260903_session.md`
