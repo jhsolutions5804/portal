@@ -2,7 +2,7 @@
 
 > 앱: `portal/pjt/index.html`
 > Firestore: `worker_attendance`, `worker_manday`, `progress_checks_{날짜}`, `pjt_workers_fab`
-> 최초 작성: 2026-07-01 · 최종 개정: 2026-08-18 (4.10.7) · 작성: 춘식이(Claude)
+> 최초 작성: 2026-07-01 · 최종 개정: 2026-09-03 (4.10.8) · 작성: 춘식이(Claude)
 
 ---
 
@@ -18,6 +18,18 @@
   - 생년월일 입력은 네이티브 `<input type="date">` 대신 텍스트 입력 + 자동 하이픈 마스킹(`_maskBirthInput`) 방식으로 전환. 기존 방식은 한 자리 숫자 입력 후 짧게 멈추면 브라우저가 자동으로 값을 확정하고 다음 칸(월)으로 넘어가버려, "10"을 입력하려 해도 "01"만 저장되는 문제가 있었음
   - 형식 검증: `YYYY-MM-DD` (미입력은 허용)
 - **삭제**: `_fbDeleteWorker` (기존 공수·출역 데이터는 유지)
+
+### 퇴사자 제외 필터 통일 — `getActiveWorkersForDate(dateKey)` (4.10.8, 2026-09-03 핫픽스)
+
+**증상**: 퇴사처리(`resigned:true`, `resignedDate`)된 인원이 퇴사일 이후 날짜에도 출역·공수가 계속 찍히는 사례 발생(예: 8/15 퇴사자인데 8/21·24~27일 공수 존재).
+
+**원인**: 개별 체크/입력(`renderWorkerList`의 `_ws`)은 `resignedDate<=dateKey` 필터를 거쳐 정상적으로 퇴사자를 제외했지만, **"✓ 전체 출역 체크"(`toggleAllWorkers`) / "일괄 적용"(`setAllManday`) 두 일괄 처리 함수는 이 필터를 타지 않고 `getWorkers()`(마스터 전체 명단)를 직접 호출**하고 있었음. 화면상 퇴사자는 명단에 안 보이지만, 일괄 버튼을 누르면 뒤에서 퇴사자까지 포함해 저장되는 구조적 버그.
+
+**수정**: `renderWorkerList` / `setAllManday` / `toggleAllWorkers` 세 곳 모두 신설된 공통 헬퍼 `getActiveWorkersForDate(dateKey)`를 거치도록 통일. 앞으로 개별이든 일괄이든 퇴사일 이후 조회 시 해당 인원은 무조건 대상에서 제외됨.
+
+**동일 구조인 SUP(`pjt_ph4/index.html`)도 동일하게 수정.** 경량PJT(`pjt_light`)는 일괄 버튼 자체가 없어 해당 없음. 모바일(`m/pjt.html`)은애초에 `master_workers`/`resignedDate`를 쓰지 않는 별도 데이터 구조(추후 별도 확인 필요).
+
+**소급 오염 데이터**: 이 버그로 이미 저장된 퇴사자의 퇴사일 이후 공수 데이터는 코드 수정으로 자동 정리되지 않음 — 브라우저 콘솔 스크립트로 개별 확인 후 수동 삭제 처리.
 - **퇴사처리/재직전환** (4.10.6 신규): 각 인원 옆 퇴사처리 버튼 → 근로자 마스터 명부(`master_workers`)에 `resigned`/`resignedDate` 직접 반영(이 PJT의 `pjt_workers_fab` 문서는 건드리지 않음). 퇴사자는 회색 취소선 + "퇴사 · 날짜" 배지로 표시, "재직 전환" 버튼으로 되돌리기 가능
   - 팀장으로 지정된 인원은 퇴사처리 불가 (마스터 명부 화면과 동일 규칙)
   - 상세 관리(팀 소속 변경, 팀 단가 등)는 `PJT 관리 → 월간 공수 → 근로자 마스터 관리`에서
