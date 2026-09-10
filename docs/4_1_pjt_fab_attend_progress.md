@@ -2,7 +2,7 @@
 
 > 앱: `portal/pjt/index.html`
 > Firestore: `worker_attendance`, `worker_manday`, `progress_checks_{날짜}`, `pjt_workers_fab`
-> 최초 작성: 2026-07-01 · 최종 개정: 2026-09-03 (4.10.8) · 작성: 춘식이(Claude)
+> 최초 작성: 2026-07-01 · 최종 개정: 2026-09-10 (4.10.9) · 작성: 춘식이(Claude)
 
 ---
 
@@ -36,6 +36,7 @@
 - **퇴사자 출역 체크리스트 자동 제외** (4.10.7 신규): `renderAttend()`가 매번 `master_workers`의 재직상태를 조회(`loadMasterResignedMap`)하여, 조회 중인 날짜(`dateKey`)가 퇴사일(`resignedDate`) 이상이면 그 인원을 출역 체크리스트·인원수(`전체 N명`)에서 제외
   - **퇴사일 이전 과거 날짜**를 볼 때는 그 시점엔 재직 중이었으므로 계속 표시·체크 가능 (과거 근태 기록 보존 목적)
   - 명단 관리 패널에서 퇴사처리/재직전환을 누르면 출역 체크리스트도 즉시 갱신됨
+- **공수 집계표 모달 누락분 수정** (4.10.9, 2026-09-10): 4.10.8 통일 작업에서 `openKongsuModal`/`renderKongsuTabs`/`renderKongsuSheet` 세 곳이 빠져 있어, "📋 이달 공수 집계표 보기" 탭 목록에는 퇴사자가 계속 노출되던 문제 발견·수정. 세 함수 모두 조회 중인 달의 말일 기준(`_ksDateKey()`)으로 `getActiveWorkersForDate`를 거치도록 변경. **portal-test는 이 공통 헬퍼 자체가 아직 이식되지 않은 상태라, 기존 `_masterResignedMap` 인라인 필터 방식(`_ksActiveWorkers`)으로 동일 로직만 별도 이식** — 두 저장소 코드가 완전히 동일하지 않으니 향후 작업 시 주의
 
 
 기술인(현장 작업자)의 출역·공수를 관리한다.
