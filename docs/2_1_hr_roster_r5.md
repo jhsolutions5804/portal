@@ -1,7 +1,7 @@
 # 2.1. 인사 — 근로자 명부
 
 > Firestore 컬렉션: `workers`
-> 최초 작성: 2026-06-26 · 최종 수정: 2026-06-29(r5) · 작성: 춘식이(Claude)
+> 최초 작성: 2026-06-26 · 최종 수정: 2026-09-16(r6 · 퇴직 처리/재직 복구 기능 추가) · 2026-06-29(r5) · 작성: 춘식이(Claude)
 
 ---
 
@@ -152,3 +152,22 @@ empNo = 입사연도 2자리 + 해당 연도 순번 3자리
 | `rosterOpenSignPad(id)` | 서명 패드 오픈 |
 | `rosterSignSave()` | 서명 저장 |
 | `window.getWorkerData(workerId)` | 계약서·전자결재 연동용 전역 함수 |
+| `rosterResign(id, name)` | 퇴직 처리 — 퇴직일 입력 후 `status:'resigned'`, `resignDate` 저장 (삭제 아님, 명부에 남고 배지로 표시) |
+| `rosterUnresign(id, name)` | 재직으로 복구 — `status:'active'`, `resignDate` 필드 삭제 |
+
+---
+
+## 퇴직 처리 기능 (r6, 2026-09-16)
+
+**배경**: 기존에는 근로자를 명부에서 없애려면 `rosterDelete`(영구 삭제)뿐이었음. 계약서/급여명세서 등 연결 데이터는 유지한 채 "퇴직" 상태만 표시하는 소프트한 방법이 없었음.
+
+**추가 필드**: `workers/{id}`에 `status`('active' 기본값 없음 = active 취급 / 'resigned'), `resignDate`(YYYY-MM-DD) 추가.
+
+**동작**:
+- 상세 모달(`rosterDetail`)에 재직중(🟢)/퇴직(🔴, 퇴직일 표시) 배지 및 `🚪 퇴직 처리` / `↩️ 재직으로 복구` 버튼 추가.
+- 퇴직 처리 시 `prompt()`로 퇴직일 입력받아 즉시 저장(별도로 "수정 저장" 누를 필요 없음, `rosterDelete`와 동일한 즉시반영 패턴).
+- 퇴직 처리된 근로자는 **재직 기간·실 근무일수·퇴직금(예상) 계산의 종료일을 "오늘"이 아닌 "퇴직일"로 고정** — `calcWorkDays(hireDate, resignDate)`.
+- 목록(`renderRosterList`)에서 퇴직자는 이름 옆 `퇴직` 배지 + 행 배경 흐리게 처리, 정렬 시 최하단으로 이동(삭제되어 사라지지 않고 계속 조회 가능).
+
+**영향 범위 밖**: `퇴직금 정산`(`renderRetireCalcMobile` 등, 2_6_hr_retire_r2.md)은 기존과 동일하게 퇴직일을 매번 수동 입력하는 별도 플로우로, 이번 `resignDate`와 자동 연동되지 않음(필요 시 추후 연동 검토).
+
