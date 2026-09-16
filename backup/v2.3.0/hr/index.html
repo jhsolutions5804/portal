@@ -1,4 +1,4 @@
-<!DOCTYPE html><!-- HR module build: 20260830b · ver 2.2.0 · 2026년 공휴일 데이터 정정(제헌절/개천절대체/지방선거일 추가, 설날 날짜오류 수정) -->
+<!DOCTYPE html><!-- HR module build: 20260916a · ver 2.3.0 · 근로자 명부에 퇴직 처리/재직 복구 기능 추가 -->
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
@@ -720,6 +720,7 @@ body { font-family:-apple-system,'Apple SD Gothic Neo','Pretendard',sans-serif; 
     <button class="tab-btn" data-navkey="payslip" onclick="goTab('payslip')">💰 급여명세서</button>
     <button class="tab-btn" data-navkey="retire" onclick="goTab('retire')">🧾 퇴직금</button>
     <button class="tab-btn" data-navkey="leave" onclick="goTab('leave')">🌴 연차</button>
+    <button class="tab-btn" data-navkey="salarytable" onclick="goTab('salarytable')">📊 급여테이블</button>
   </div>
 
   <!-- 인사 홈 -->
@@ -737,6 +738,7 @@ body { font-family:-apple-system,'Apple SD Gothic Neo','Pretendard',sans-serif; 
   <!-- 퇴직금 정산 -->
   <div class="tab-content" id="tab-retire"></div>
   <div class="tab-content" id="tab-leave"></div>
+  <div class="tab-content" id="tab-salarytable"></div>
   </div>
 </div>
 
@@ -769,6 +771,7 @@ const HR_TABS = {
   payslip:  { id:'tab-payslip',  title:'급여명세서',  fn:()=>renderPayslipMain2() },
   retire:   { id:'tab-retire',   title:'퇴직금 정산', fn:()=>renderRetireMain() },
   leave:    { id:'tab-leave',    title:'연차 현황',   fn:()=>renderLeaveStatusMain() },
+  salarytable: { id:'tab-salarytable', title:'급여테이블', fn:()=>renderSalaryTableMain() },
 };
 
 function goTab(key) {
@@ -1582,18 +1585,20 @@ function psCalcAll() {
   const [psYear, psMonthNum] = (ps.month || '').split('-').map(Number);
   const monthlyThreshold = (psYear && psMonthNum) ? monthlyStandardHours(psYear, psMonthNum) : 209;
   const diffHours    = actualHours - monthlyThreshold;
+  const isComprehensive = ps.annualData?.wageType === 'comprehensive';
   let basicAuto = sal0.basic, otHours = 0, otPayAuto = 0, shortHours = 0, shortDeduct = 0;
   if (hourly > 0 && ps.annualData) {
     if (diffHours >= 0) {
       otHours   = diffHours;
-      otPayAuto = Math.round(hourly * otHours * 1.5);
+      otPayAuto = isComprehensive ? Number(ps.annualData.fixedOT||0) : Math.round(hourly * otHours * 1.5);
     } else {
       shortHours   = -diffHours;
       shortDeduct  = Math.round(hourly * shortHours);
       basicAuto    = Math.max(0, sal0.basic - shortDeduct);
+      otPayAuto    = isComprehensive ? Number(ps.annualData.fixedOT||0) : 0;
     }
   }
-  const nightPayAuto = hourly > 0 ? Math.round(hourly * nightHours * 0.5) : 0;
+  const nightPayAuto = isComprehensive ? Number(ps.annualData.fixedNight||0) : (hourly > 0 ? Math.round(hourly * nightHours * 0.5) : 0);
 
   // 주휴수당: 근로기준법 55조 — 그 주 소정근로일 개근 + 주15시간 이상 요건 판정 기반 계산.
   // 출퇴근기록이 그 달에 전혀 없으면(미사용) 기존 고정계산(h×8×4.345)으로 폴백.
@@ -1614,6 +1619,7 @@ function psCalcAll() {
   const _pHoliday    = ps._holidayPay !== undefined ? Number(ps._holidayPay) : holidayResult.holidayPay;
   const sal = { ...sal0, basic:_pBasic, fixedOt:_pFixedOt, fixedNight:_pFixedNight, weekly:_pWeekly, holidayPay:_pHoliday,
                 total: _pBasic + _pFixedOt + _pFixedNight + _pWeekly + _pHoliday,
+                isComprehensive,
                 // 급여명세서 화면에 실근무 정보를 함께 보여주기 위한 참고값
                 attHours, leaveHours, nightHours, actualHours, standardHours: monthlyThreshold,
                 otHours, shortHours, shortDeduct, holidayHours: holidayResult.holidayHours,
@@ -1624,7 +1630,9 @@ function psCalcAll() {
   const bonus       = Number(ps.bonus||0);
   const specialBonus= Number(ps.specialBonus||0);
   const extraPay    = Number(ps.extraPay||0);
-  const totalPay    = sal.total + bonus + specialBonus + extraPay;
+  const techAllowance = Number(ps.techAllowance||0); // 기술수당(자격수당) — 일반 임금항목이라 지급계·4대보험 산정에 포함
+  const travelAllowance = Number(ps.travelAllowance||0); // 실비변상적 금품(비과세) — 4대보험 산정 기준(totalPay)에서 제외
+  const totalPay    = sal.total + bonus + specialBonus + extraPay + techAllowance;
 
   // 공제 (자동계산 후 직접 수정값 있으면 오버라이드)
   const _pension   = Math.round(totalPay * 0.045);
@@ -1641,9 +1649,9 @@ function psCalcAll() {
   const localTax   = ps._localTax  !== undefined ? Number(ps._localTax)  : _localTax;
   const dormitory  = Number(ps.dormitory||0);
   const totalDeduct = pension + health + ltcare + employ + dormitory + incomeTax + localTax;
-  const netPay      = totalPay - totalDeduct;
+  const netPay      = totalPay - totalDeduct + travelAllowance;
 
-  return { sal, bonus, specialBonus, extraPay, totalPay,
+  return { sal, bonus, specialBonus, extraPay, techAllowance, travelAllowance, totalPay,
             pension, health, ltcare, employ, dormitory, incomeTax, localTax,
             totalDeduct, netPay };
 }
@@ -1653,7 +1661,33 @@ const psWonR = v => '₩'+Math.round(v||0).toLocaleString();
 
 const PS_PC_BP = 900;
 
+// 기술수당 정책(단가·자격증개수 상한) — 급여테이블 화면의 "기준 설정"에서 관리, 여기서는 캐시해서 동기적으로 사용
+let _techAllowanceConfig = { perCert: 50000 }; // 로드 전 기본값(회사 기본 정책) — 상한 없이 자격증 개수만큼 지급
+let _techAllowanceConfigLoaded = false;
+async function loadTechAllowanceConfig(){
+  if (_techAllowanceConfigLoaded || !window._db) return;
+  _techAllowanceConfigLoaded = true;
+  try {
+    const { doc, getDoc } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+    const snap = await getDoc(doc(window._db, 'company_settings', 'salaryTable'));
+    if (snap.exists()) {
+      const data = snap.data();
+      if (data.techAllowancePerCert != null) _techAllowanceConfig.perCert = Number(data.techAllowancePerCert)||50000;
+    }
+  } catch(e) { /* 로드 실패해도 기본값으로 계속 동작 */ }
+}
+// 근로자의 보유 자격증 개수 × 단가로 기술수당 계산(상한 없음). 자격증 목록이 없으면 구버전 hasCertification(boolean)으로 폴백(1개 취급).
+// 최종 지급액은 급여명세서 작성 시 직접 수정(삭감 등)도 가능.
+function calcTechAllowance(workerData){
+  if (!workerData) return 0;
+  const certs = (workerData.certifications && workerData.certifications.length)
+    ? workerData.certifications.filter(c=>c && String(c).trim())
+    : (workerData.hasCertification ? ['(구버전 등록분)'] : []);
+  return certs.length * _techAllowanceConfig.perCert;
+}
+
 window.renderPayslipMain2 = () => {
+  loadTechAllowanceConfig(); // 백그라운드 로드(완료 전엔 기본값 50000/2로 동작, 완료 후 재선택 시 정확한 값)
   const el = document.getElementById('tab-payslip');
   if (!el) return;
   ps.view = 'main';
@@ -1758,6 +1792,7 @@ window.psPcWorkerSelect = async (wid) => {
   ps.workerData = workers.find(w=>w.id===wid) || null;
   ps.workerId = wid;
   ps.bankAccount = ps.workerData?.bankAccount || '';
+  ps.techAllowance = calcTechAllowance(ps.workerData);
 
   // 근로자 정보 표시
   const info = document.getElementById('ps-pc-workerinfo');
@@ -1841,6 +1876,19 @@ window.renderPayslipPCRight = () => {
           <div>
             <div style="color:#5C6F8A;margin-bottom:3px;">기타수당</div>
             ${inp('ps-extraPay', ps.extraPay)}
+          </div>
+          <div>
+            <div style="color:#5C6F8A;margin-bottom:3px;">기술수당 <span style="font-size:9px;color:#9AAABF;">(자격증${(ps.workerData?.certifications||[]).filter(c=>c&&c.trim()).length}개×${won2(_techAllowanceConfig.perCert)}원)</span></div>
+            ${inp('ps-techAllowance', ps.techAllowance)}
+          </div>
+          <div>
+            <div style="color:#5C6F8A;margin-bottom:3px;">여비교통비 <span style="font-size:9px;color:#9AAABF;">(비과세, 지급계 미포함, 여러 유형 동시 등록 가능)</span></div>
+            <div id="ps-travel-list">${psRenderTravelItems()}</div>
+            <button onclick="psTravelAddItem()" style="width:100%;padding:6px;background:#F0F4F9;border:none;border-radius:7px;color:#5C6F8A;font-size:11px;font-weight:600;cursor:pointer;margin-bottom:5px;">+ 이동유형 추가</button>
+            <div style="display:flex;justify-content:space-between;padding:4px 2px;font-size:11.5px;">
+              <span style="color:#5C6F8A;">여비교통비 합계</span>
+              <span style="font-weight:700;color:#1D5BA6;">${won2(ps.travelAllowance||0)}원</span>
+            </div>
           </div>
           <div style="display:flex;justify-content:space-between;padding:7px 0;border-top:2px solid #DDE3EE;margin-top:4px;">
             <span style="font-weight:700;color:#1A2540;">지급계</span>
@@ -2004,6 +2052,7 @@ window.renderPayslipWrite = async () => {
     ps.workerData = workers.find(w=>w.id===wid) || null;
     // 명부에서 계좌번호 불러오기
     if (ps.workerData?.bankAccount) ps.bankAccount = ps.workerData.bankAccount;
+    ps.techAllowance = calcTechAllowance(ps.workerData);
 
     // 연봉계약서에서 해당 월 기준 최신 계약 불러오기
     if (window._db && wid) {
@@ -2132,6 +2181,21 @@ function renderPayslipWriteForm(el, workers, months, calcPayDate) {
         <input type="text" inputmode="numeric" value="${ps.extraPay?Number(ps.extraPay).toLocaleString('ko-KR'):''}" placeholder="0"
           oninput="fmtMoney(this)" onchange="ps.extraPay=numClean(this.value);window.psRefresh();" ${inp2Style}>
 
+      `)}
+      ${field2('기술수당', `
+        <input type="text" inputmode="numeric" value="${ps.techAllowance?Number(ps.techAllowance).toLocaleString('ko-KR'):''}" placeholder="0"
+          oninput="fmtMoney(this)" onchange="ps.techAllowance=numClean(this.value);window.psRefresh();" ${inp2Style}>
+        <div style="font-size:10px;color:#9AAABF;margin-top:4px;">🎓 보유 자격증 ${(ps.workerData?.certifications||[]).filter(c=>c&&c.trim()).length}개 × ${won2(_techAllowanceConfig.perCert)}원 (상한 없음) — 명부에서 자격증 목록 관리</div>
+      `)}
+      ${field2('여비교통비', `
+        <div style="font-size:10px;color:#9AAABF;margin-bottom:6px;">비과세 · 지급계 미포함 · 여러 유형 동시 등록 가능</div>
+        <div id="ps-travel-list-mobile">${psRenderTravelItems(true)}</div>
+        <button onclick="psTravelAddItem()" style="width:100%;padding:8px;background:#F0F4F9;border:none;border-radius:8px;color:#5C6F8A;font-size:12px;font-weight:600;cursor:pointer;margin:4px 0 8px;">+ 이동유형 추가</button>
+        <div style="display:flex;justify-content:space-between;padding:6px 2px;font-size:13px;">
+          <span style="color:#5C6F8A;">여비교통비 합계</span>
+          <span style="font-weight:700;color:#1D5BA6;">${won2(ps.travelAllowance||0)}원</span>
+        </div>
+        <div style="font-size:10px;color:#9AAABF;margin-top:4px;">🚗 실비변상적 성격의 현장수당(비과세) — 지급계엔 안 잡히고 실지급액에만 별도로 더해집니다</div>
       `)}
       <div style="display:flex;justify-content:space-between;padding:10px 12px;background:#E8F0FB;border-radius:8px;font-size:14px;font-weight:700;margin-top:4px;">
         <span style="color:${C2.blue};">지급계</span>
@@ -2288,6 +2352,12 @@ window.psPreview = () => {
             ${payRow('상여금', c.bonus?psWonR(c.bonus):'—', '')}
             ${payRow('특별성과급', c.specialBonus?psWonR(c.specialBonus):'—', '')}
             ${payRow('특근수당', c.extraPay?psWonR(c.extraPay):'—', '')}
+            ${payRow('기술수당', c.techAllowance?psWonR(c.techAllowance):'—', c.techAllowance?'국가기술자격증 보유':'해당없음')}
+            ${payRow('여비교통비', c.travelAllowance?psWonR(c.travelAllowance):'—', c.travelAllowance?((ps.travelItems||[]).map(it=>{
+              if(it.type==='longtrip') return `${it.tripCount||1}회×${psWonR(it.perTrip||0)}(왕복KTX)`;
+              if(it.type) return `${it.days||1}일×${psWonR(PS_TRAVEL_PER_DAY[it.type]||0)}(${PS_TRAVEL_TYPE_LABEL[it.type].replace(/[^가-힣]/g,'').slice(0,4)})`;
+              return null;
+            }).filter(Boolean).join(' + ') || '비과세, 지급계 미포함')+' · 비과세, 지급계 미포함':'해당없음')}
             <tr style="background:#E8F0FB;">
               <td style="padding:9px 10px;border:1px solid #DDE4EF;font-weight:800;color:#1D5BA6;white-space:nowrap;">지급계</td>
               <td style="padding:9px 10px;border:1px solid #DDE4EF;text-align:right;font-weight:800;color:#1D5BA6;white-space:nowrap;">${psWonR(c.totalPay)}</td>
@@ -2351,6 +2421,92 @@ window.psPreview = () => {
   win.document.close();
 };
 
+// 여비교통비: 여러 이동유형을 동시에 등록해 각각 계산 후 합산 (근로기준법상 실비변상적 금품 — 회사 내규 기준)
+// 개인차량 40km 이내=1만원/일 · 40km 초과=2만원/일 · 회사차량=거리무관 1만원/일 고정 · 지방장기출장(숙박)=왕복KTX 실비×왕복횟수(주1회 한도)
+const PS_TRAVEL_PER_DAY = { personal_near: 10000, personal_far: 20000, company_car: 10000 };
+const PS_LONGTRIP_WEEKLY_MAX = 5; // 계약서상 "주 1회" 한도의 월 환산 참고치(달에 따라 4~5주라 5로 여유있게 표시, 실제 강제차단은 안 하고 경고만)
+const PS_TRAVEL_TYPE_LABEL = {
+  personal_near: '🚗 개인차량 · 40km 이내 (1만원/일)',
+  personal_far: '🚗 개인차량 · 40km 초과 (2만원/일)',
+  company_car: '🚙 회사차량 (거리무관 1만원/일)',
+  longtrip: '🚄 지방장기출장 · 왕복KTX 실비',
+};
+function psTravelRefreshPanel(){
+  if (document.getElementById('ps-pc-right')) renderPayslipPCRight();
+  else if (window.psRefresh) window.psRefresh();
+}
+// 항목 하나의 금액 계산
+function psTravelItemAmount(item){
+  if (!item) return 0;
+  if (item.type === 'longtrip') return (Number(item.tripCount)||0) * (Number(item.perTrip)||0);
+  const perDay = PS_TRAVEL_PER_DAY[item.type];
+  if (perDay !== undefined) return perDay * (Number(item.days)||0);
+  return Number(item.amount)||0; // 유형 미지정(직접입력)
+}
+// 전체 항목 합계를 ps.travelAllowance에 반영
+function psTravelRecalcTotal(){
+  ps.travelItems = ps.travelItems || [];
+  ps.travelAllowance = ps.travelItems.reduce((sum,it)=>sum+psTravelItemAmount(it), 0);
+}
+function psRenderTravelItems(mobile){
+  ps.travelItems = ps.travelItems || [];
+  if (!ps.travelItems.length) {
+    return `<div style="font-size:${mobile?'12px':'11px'};color:#9AAABF;padding:6px 2px;">등록된 이동유형이 없습니다. 아래 버튼으로 추가하세요.</div>`;
+  }
+  return ps.travelItems.map((item,i)=>{
+    const amount = psTravelItemAmount(item);
+    const fs = mobile ? {sel:'13px',lbl:'12px',inp:'13px',small:'11px'} : {sel:'11.5px',lbl:'11px',inp:'12px',small:'10px'};
+    const rowPad = mobile ? '10px' : '7px';
+    let detail = '';
+    if (item.type === 'longtrip') {
+      detail = `<div style="display:flex;align-items:center;gap:6px;margin-top:5px;">
+        <span style="font-size:${fs.lbl};color:#5C6F8A;">왕복 횟수</span>
+        <input type="number" min="0" value="${item.tripCount||1}" onchange="psTravelItemSet(${i},'tripCount',this.value)" style="width:50px;padding:4px 6px;border:1px solid #DDE3EE;border-radius:6px;font-size:${fs.inp};text-align:center;box-sizing:border-box;">
+        <span style="font-size:${fs.lbl};color:#5C6F8A;">회 × 1회당</span>
+        <input type="number" min="0" value="${item.perTrip||0}" onchange="psTravelItemSet(${i},'perTrip',this.value)" style="width:70px;padding:4px 6px;border:1px solid #DDE3EE;border-radius:6px;font-size:${fs.inp};text-align:right;box-sizing:border-box;">
+        <span style="font-size:${fs.small};color:#9AAABF;">원</span>
+      </div>
+      ${(Number(item.tripCount)||0) > PS_LONGTRIP_WEEKLY_MAX ? `<div style="font-size:${fs.small};color:#DC2626;margin-top:3px;">⚠️ 주 1회 한도(월 최대 ${PS_LONGTRIP_WEEKLY_MAX}회) 초과 — 정책 예외 사유 확인</div>` : `<div style="font-size:${fs.small};color:#9AAABF;margin-top:3px;">주 1회 한도(월 최대 ${PS_LONGTRIP_WEEKLY_MAX}회) 기준</div>`}`;
+    } else if (item.type) {
+      detail = `<div style="display:flex;align-items:center;gap:6px;margin-top:5px;">
+        <span style="font-size:${fs.lbl};color:#5C6F8A;">적용 일수</span>
+        <input type="number" min="0" value="${item.days||1}" onchange="psTravelItemSet(${i},'days',this.value)" style="width:55px;padding:4px 6px;border:1px solid #DDE3EE;border-radius:6px;font-size:${fs.inp};text-align:center;box-sizing:border-box;">
+        <span style="font-size:${fs.small};color:#9AAABF;">일 × ${won2(PS_TRAVEL_PER_DAY[item.type]||0)}원</span>
+      </div>`;
+    }
+    return `<div style="border:1px solid #E4EAF2;border-radius:8px;padding:${rowPad};margin-bottom:6px;background:#FAFCFE;">
+      <div style="display:flex;align-items:center;gap:6px;">
+        <select onchange="psTravelItemSet(${i},'type',this.value)" style="flex:1;padding:5px 6px;border:1px solid #DDE3EE;border-radius:6px;font-size:${fs.sel};font-family:inherit;background:#fff;">
+          <option value="" ${!item.type?'selected':''}>유형 미지정(직접입력)</option>
+          ${Object.entries(PS_TRAVEL_TYPE_LABEL).map(([k,l])=>`<option value="${k}" ${item.type===k?'selected':''}>${l}</option>`).join('')}
+        </select>
+        <button onclick="psTravelDelItem(${i})" style="background:#FEE2E2;border:none;border-radius:6px;color:#DC2626;padding:5px 9px;font-size:${fs.small};cursor:pointer;flex-shrink:0;">삭제</button>
+      </div>
+      ${detail}
+      ${!item.type ? `<div style="margin-top:5px;"><input type="number" min="0" value="${item.amount||0}" onchange="psTravelItemSet(${i},'amount',this.value)" style="width:100%;padding:5px 6px;border:1px solid #DDE3EE;border-radius:6px;font-size:${fs.inp};text-align:right;box-sizing:border-box;" placeholder="직접 금액 입력"></div>` : ''}
+      <div style="text-align:right;font-size:${fs.small};color:#1D5BA6;font-weight:700;margin-top:4px;">${won2(amount)}원</div>
+    </div>`;
+  }).join('');
+}
+window.psTravelAddItem = function(){
+  ps.travelItems = ps.travelItems || [];
+  ps.travelItems.push({ type:'', days:1, tripCount:1, perTrip:0, amount:0 });
+  psTravelRecalcTotal();
+  psTravelRefreshPanel();
+};
+window.psTravelDelItem = function(i){
+  ps.travelItems.splice(i,1);
+  psTravelRecalcTotal();
+  psTravelRefreshPanel();
+};
+window.psTravelItemSet = function(i, field, value){
+  const item = ps.travelItems[i]; if (!item) return;
+  if (field === 'type') item.type = value;
+  else item[field] = Math.max(0, Number(value)||0);
+  psTravelRecalcTotal();
+  psTravelRefreshPanel();
+};
+
 // 급여명세서 저장
 window.psSave = async () => {
   if (!ps.workerId||!ps.month) { alert('기준월과 근로자를 선택해 주세요.'); return; }
@@ -2365,7 +2521,7 @@ window.psSave = async () => {
       rank: ps.workerData?.rank||'', empNo: ps.workerData?.empNo||'',
       hourly: ps.annualData?.hourly||0, empType: ps.workerData?.empType||'field',
       ...c.sal,
-      bonus: c.bonus, specialBonus: c.specialBonus, extraPay: c.extraPay,
+      bonus: c.bonus, specialBonus: c.specialBonus, extraPay: c.extraPay, techAllowance: c.techAllowance, travelAllowance: c.travelAllowance, travelItems: ps.travelItems||[],
       grossPay: c.totalPay,
       pension: c.pension, health: c.health, ltcare: c.ltcare, employ: c.employ,
       dormitory: c.dormitory, incomeTax: c.incomeTax, localTax: c.localTax,
@@ -2459,7 +2615,7 @@ window.psViewDetail = (d, wid) => {
   // 저장된 데이터로 미리보기
   const savedC = {
     sal: { basic:d.basic||0, fixedOt:d.fixedOt||0, fixedNight:d.fixedNight||0, weekly:d.weekly||0, holidayPay:d.holidayPay||0 },
-    bonus:d.bonus||0, specialBonus:d.specialBonus||0, extraPay:d.extraPay||0,
+    bonus:d.bonus||0, specialBonus:d.specialBonus||0, extraPay:d.extraPay||0, techAllowance:d.techAllowance||0, travelAllowance:d.travelAllowance||0, travelItems: (d.travelItems&&d.travelItems.length) ? d.travelItems : (d.travelType ? [d.travelType==='longtrip' ? {type:'longtrip',tripCount:d.travelTripCount||1,perTrip:d.travelPerTrip||0} : {type:d.travelType,days:d.travelDays||1}] : []),
     totalPay:d.grossPay||0, pension:d.pension||0, health:d.health||0,
     ltcare:d.ltcare||0, employ:d.employ||0, dormitory:d.dormitory||0,
     incomeTax:d.incomeTax||0, localTax:d.localTax||0,
@@ -2501,7 +2657,7 @@ window.psSave = async () => {
       rank: ps.workerData?.rank||'', empNo: ps.workerData?.empNo||'',
       hourly: ps.annualData?.hourly||0, empType: ps.workerData?.empType||'field',
       ...c.sal,
-      bonus: c.bonus, specialBonus: c.specialBonus, extraPay: c.extraPay,
+      bonus: c.bonus, specialBonus: c.specialBonus, extraPay: c.extraPay, techAllowance: c.techAllowance, travelAllowance: c.travelAllowance, travelItems: ps.travelItems||[],
       grossPay: c.totalPay,
       pension: c.pension, health: c.health, ltcare: c.ltcare, employ: c.employ,
       dormitory: c.dormitory, incomeTax: c.incomeTax, localTax: c.localTax,
@@ -2558,7 +2714,7 @@ window.psViewDetail = (d, wid) => {
   // 저장된 데이터로 미리보기
   const savedC = {
     sal: { basic:d.basic||0, fixedOt:d.fixedOt||0, fixedNight:d.fixedNight||0, weekly:d.weekly||0, holidayPay:d.holidayPay||0 },
-    bonus:d.bonus||0, specialBonus:d.specialBonus||0, extraPay:d.extraPay||0,
+    bonus:d.bonus||0, specialBonus:d.specialBonus||0, extraPay:d.extraPay||0, techAllowance:d.techAllowance||0, travelAllowance:d.travelAllowance||0, travelItems: (d.travelItems&&d.travelItems.length) ? d.travelItems : (d.travelType ? [d.travelType==='longtrip' ? {type:'longtrip',tripCount:d.travelTripCount||1,perTrip:d.travelPerTrip||0} : {type:d.travelType,days:d.travelDays||1}] : []),
     totalPay:d.grossPay||0, pension:d.pension||0, health:d.health||0,
     ltcare:d.ltcare||0, employ:d.employ||0, dormitory:d.dormitory||0,
     incomeTax:d.incomeTax||0, localTax:d.localTax||0,
@@ -2994,6 +3150,8 @@ window.renderRosterList = async () => {
     const docs = []; snap.forEach(d=>docs.push({id:d.id,...d.data()}));
     docs.sort((a,b)=>(a.empNo||'').localeCompare(b.empNo||''));
     docs.sort((a,b)=>{
+      const ar=a.status==='resigned', br=b.status==='resigned';
+      if(ar!==br) return ar?1:-1;
       if(a.dept!==b.dept)return(a.dept||'').localeCompare(b.dept||'','ko');
       if(a.empNo!==b.empNo)return(a.empNo||'').localeCompare(b.empNo||'');
       return(a.rank||'').localeCompare(b.rank||'','ko');
@@ -3027,8 +3185,9 @@ window.renderRosterList = async () => {
       const aExp=ci.annual?ci.annual:null;
       const lColor=lExp?(lExp<now?C2.red:C2.green):C2.mute;
       const aColor=aExp?(aExp<now?C2.red:C2.green):C2.mute;
+      const rowResigned = d.status==='resigned';
       return `
-        <div style="background:${i%2===0?'#fff':'#F8FAFD'};border-bottom:1px solid #F0F4FA;padding:10px 12px;">
+        <div style="background:${rowResigned?'#FEF2F2':(i%2===0?'#fff':'#F8FAFD')};border-bottom:1px solid #F0F4FA;padding:10px 12px;${rowResigned?'opacity:0.75;':''}">
           <div style="display:grid;grid-template-columns:0.5fr 1fr 0.8fr 0.5fr 0.7fr 0.9fr;gap:6px;align-items:center;margin-bottom:6px;">
             <div>
               <span id="eno-d-${d.id}" style="font-size:12px;font-weight:700;color:${C2.blue};cursor:pointer;text-decoration:underline;" onclick="rosterEmpNoEdit('${d.id}','${d.empNo||''}')">
@@ -3040,7 +3199,7 @@ window.renderRosterList = async () => {
               </div>
             </div>
             <div style="font-size:11px;color:${C2.text};">${d.dept||'-'}</div>
-            <div style="font-size:12px;font-weight:600;color:${C2.blue};cursor:pointer;text-decoration:underline;" onclick="rosterDetail('${d.id}')">${d.name||'-'}</div>
+            <div style="font-size:12px;font-weight:600;color:${C2.blue};cursor:pointer;text-decoration:underline;" onclick="rosterDetail('${d.id}')">${d.name||'-'}${rowResigned?' <span style="font-size:9px;background:#FEE2E2;color:#DC2626;padding:1px 5px;border-radius:6px;font-weight:700;">퇴직</span>':''}</div>
             <div style="font-size:11px;color:${C2.sub};">${d.rank||'-'}</div>
             <div style="font-size:10px;color:${C2.sub};">${bf}</div>
             <div style="font-size:10px;color:${C2.sub};">${d.phone||'-'}</div>
@@ -3084,7 +3243,7 @@ const KR_HOLIDAYS = new Set([
   '2025-12-25',
   '2026-01-01','2026-02-16','2026-02-17','2026-02-18',
   '2026-03-01','2026-03-02','2026-05-05','2026-05-25',
-  '2026-06-03','2026-06-06','2026-07-17','2026-08-17','2026-09-24','2026-09-25','2026-09-28',
+  '2026-06-03','2026-06-06','2026-07-17','2026-08-17','2026-09-24','2026-09-25','2026-09-26',
   '2026-10-05','2026-10-09','2026-12-25',
   '2027-01-01','2027-02-08','2027-02-09','2027-02-10','2027-03-01',
   '2027-05-05','2027-05-13','2027-06-06','2027-08-16',
@@ -3362,7 +3521,8 @@ function calcWorkDays(startStr, endStr) {
 window.rosterDetail = (id) => {
   const d = (window._rosterDocs2||[]).find(x=>x.id===id);
   if (!d) return;
-  const w = calcWorkDays(d.hireDate);
+  const isResigned = d.status === 'resigned';
+  const w = calcWorkDays(d.hireDate, isResigned ? d.resignDate : null);
   const empTypeBadge = d.empType==='field'
     ? `<span style="font-size:11px;background:#FEF3C7;color:#92400E;padding:2px 8px;border-radius:8px;font-weight:700;">🔧 현장직</span>`
     : d.empType==='office'
@@ -3387,6 +3547,9 @@ window.rosterDetail = (id) => {
         <div>
           <div style="font-size:16px;font-weight:800;color:#1A2540;">${d.name}</div>
           <div style="font-size:12px;color:#5C6F8A;margin-top:2px;">${d.dept||''} · ${d.rank||''} &nbsp; ${empTypeBadge}</div>
+          <div style="margin-top:6px;">${isResigned
+            ? `<span style="font-size:11px;background:#FEE2E2;color:#DC2626;padding:2px 8px;border-radius:8px;font-weight:700;">🔴 퇴직 (${d.resignDate||'-'})</span>`
+            : `<span style="font-size:11px;background:#E8F7EE;color:#15803D;padding:2px 8px;border-radius:8px;font-weight:700;">🟢 재직중</span>`}</div>
         </div>
         <button onclick="document.getElementById('roster-detail-modal').remove()"
           style="background:#F4F7FB;border:none;border-radius:8px;padding:6px 10px;cursor:pointer;font-size:16px;color:#5C6F8A;">✕</button>
@@ -3408,6 +3571,12 @@ window.rosterDetail = (id) => {
           <span style="color:#5C6F8A;font-weight:600;">실 근무일수</span>
           <span style="color:#1D5BA6;font-weight:700;">${d.hireDate ? w.days.toLocaleString()+'일' : '-'}</span>
         </div>
+        ${isResigned ? `
+        <div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid #DDE4EF;font-size:12px;">
+          <span style="color:#5C6F8A;font-weight:600;min-width:80px;">퇴직일</span>
+          <input type="date" value="${d.resignDate||''}" onchange="window._editRosterTarget.resignDate=this.value;"
+            style="border:1px solid #DDE4EF;border-radius:6px;padding:3px 6px;font-size:12px;color:#1A2540;"/>
+        </div>` : ''}
         <div style="padding:8px 0 2px;">
           <div style="font-size:10px;font-weight:700;color:#1D5BA6;margin-bottom:6px;letter-spacing:1px;">💰 퇴직금 (예상)</div>
           <div style="background:#fff;border-radius:8px;padding:10px 12px;border:1px solid #DDE4EF;">
@@ -3461,6 +3630,17 @@ window.rosterDetail = (id) => {
             </button>
           </div>
         </div>
+        <div style="padding:8px 0 0;border-top:1px solid #DDE4EF;margin-top:8px;">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+            <span style="color:#5C6F8A;font-weight:600;font-size:12px;">보유 자격증 <span style="font-weight:400;color:#9AAABF;">(1개당 기술수당, 개수만큼 상한없이 누적)</span></span>
+            <button onclick="rosterAddCert()" style="background:#EAF2FC;border:none;border-radius:6px;color:#1D5BA6;padding:3px 9px;font-size:11px;font-weight:700;cursor:pointer;">+ 추가</button>
+          </div>
+          <div id="roster-cert-list">${(d.certifications&&d.certifications.length ? d.certifications : (d.hasCertification?['(마이그레이션 필요) 기존 자격증']:[])).map((c,i)=>`
+            <div style="display:flex;gap:6px;margin-bottom:5px;">
+              <input value="${(c||'').replace(/"/g,'&quot;')}" onchange="rosterEditCert(${i},this.value)" placeholder="예: 에너지관리기사" style="flex:1;padding:6px 9px;border:1px solid #E4EAF2;border-radius:7px;font-size:12px;">
+              <button onclick="rosterDelCert(${i})" style="background:#FEE2E2;border:none;border-radius:6px;color:#DC2626;padding:0 10px;font-size:11px;cursor:pointer;">삭제</button>
+            </div>`).join('') || '<div style="font-size:11px;color:#9AAABF;padding:4px 0;">등록된 자격증이 없습니다.</div>'}</div>
+        </div>
       </div>
 
       ${!d.portalUid ? `
@@ -3471,6 +3651,15 @@ window.rosterDetail = (id) => {
       <div style="width:100%;padding:8px 12px;background:#E8F7EE;border-radius:10px;font-size:12px;color:#15803D;font-weight:600;text-align:center;margin-bottom:8px;">
         ✅ 포털 계정 연동됨
       </div>`}
+      ${isResigned ? `
+      <button onclick="rosterUnresign('${d.id}','${d.name}')"
+        style="width:100%;padding:11px;background:#fff;border:1px solid #16A34A;border-radius:10px;color:#16A34A;font-size:13px;font-weight:700;cursor:pointer;margin-bottom:8px;">
+        ↩️ 재직으로 복구
+      </button>` : `
+      <button onclick="rosterResign('${d.id}','${d.name}')"
+        style="width:100%;padding:11px;background:#fff;border:1px solid #DC2626;border-radius:10px;color:#DC2626;font-size:13px;font-weight:700;cursor:pointer;margin-bottom:8px;">
+        🚪 퇴직 처리
+      </button>`}
       <button onclick="rosterDetailSave('${d.id}')"
         style="width:100%;padding:12px;background:#1D5BA6;border:none;border-radius:10px;color:#fff;font-size:14px;font-weight:700;cursor:pointer;box-shadow:0 4px 12px rgba(29,91,166,0.25);">
         💾 수정 저장
@@ -3478,6 +3667,30 @@ window.rosterDetail = (id) => {
     </div>`;
   document.body.appendChild(modal);
   modal.addEventListener('click', e => { if(e.target===modal) modal.remove(); });
+};
+
+function rosterRenderCertList(){
+  const el = document.getElementById('roster-cert-list'); if (!el) return;
+  const certs = window._editRosterTarget.certifications || [];
+  el.innerHTML = certs.length ? certs.map((c,i)=>`
+    <div style="display:flex;gap:6px;margin-bottom:5px;">
+      <input value="${(c||'').replace(/"/g,'&quot;')}" onchange="rosterEditCert(${i},this.value)" placeholder="예: 에너지관리기사" style="flex:1;padding:6px 9px;border:1px solid #E4EAF2;border-radius:7px;font-size:12px;">
+      <button onclick="rosterDelCert(${i})" style="background:#FEE2E2;border:none;border-radius:6px;color:#DC2626;padding:0 10px;font-size:11px;cursor:pointer;">삭제</button>
+    </div>`).join('') : '<div style="font-size:11px;color:#9AAABF;padding:4px 0;">등록된 자격증이 없습니다.</div>';
+}
+window.rosterAddCert = function(){
+  if (!window._editRosterTarget.certifications) window._editRosterTarget.certifications = [];
+  window._editRosterTarget.certifications.push('');
+  rosterRenderCertList();
+};
+window.rosterEditCert = function(i, value){
+  if (!window._editRosterTarget.certifications) return;
+  window._editRosterTarget.certifications[i] = value;
+};
+window.rosterDelCert = function(i){
+  if (!window._editRosterTarget.certifications) return;
+  window._editRosterTarget.certifications.splice(i,1);
+  rosterRenderCertList();
 };
 
 window.rosterDetailSave = async (id) => {
@@ -3501,6 +3714,31 @@ window.rosterDetailSave = async (id) => {
     alert('✅ 수정 완료!');
     renderRosterList();
   } catch(e) { alert('저장 오류: '+e.message); }
+};
+window.rosterResign = async (id, name) => {
+  if (!window._db) { alert('Firebase 연결 필요'); return; }
+  const dateInput = prompt(`${name}님의 퇴직일을 입력해 주세요 (YYYY-MM-DD)`, new Date().toISOString().slice(0,10));
+  if (!dateInput) return;
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(dateInput)) { alert('날짜 형식이 올바르지 않습니다. 예: 2026-09-16'); return; }
+  if (!confirm(`${name}님을 [${dateInput}] 자로 퇴직 처리하시겠습니까?\n(명부에서 삭제되지 않고 '퇴직' 상태로 표시됩니다.)`)) return;
+  try {
+    const { doc, setDoc } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+    await setDoc(doc(window._db,'workers',id), { status:'resigned', resignDate:dateInput }, { merge:true });
+    document.getElementById('roster-detail-modal')?.remove();
+    alert('✅ 퇴직 처리 완료');
+    renderRosterList();
+  } catch(e) { alert('오류: '+e.message); }
+};
+window.rosterUnresign = async (id, name) => {
+  if (!window._db) { alert('Firebase 연결 필요'); return; }
+  if (!confirm(`${name}님을 재직 상태로 복구하시겠습니까?`)) return;
+  try {
+    const { doc, setDoc, deleteField } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+    await setDoc(doc(window._db,'workers',id), { status:'active', resignDate: deleteField() }, { merge:true });
+    document.getElementById('roster-detail-modal')?.remove();
+    alert('✅ 재직 상태로 복구되었습니다.');
+    renderRosterList();
+  } catch(e) { alert('오류: '+e.message); }
 };
 window.rosterLinkPortal = async (workerId, workerName) => {
   if (!window._db) { alert('Firebase 연결 필요'); return; }
@@ -3894,7 +4132,7 @@ window.laborPreview2 = () => {
       <p style="font-weight:700;margin:14px 0 5px;">제1조 【의 무】</p><p style="margin-bottom:8px;">"을"은 "갑"의 정규직원으로서 "갑"의 사규에 따른 제규정 및 취업규칙에 정해진 근로조건을 승인하고 근로를 성실히 이행할 의무를 진다.</p>
       <p style="font-weight:700;margin:14px 0 5px;">제2조 【근로기간】</p><p style="margin-bottom:4px;">1. 근로계약기간 : ${fmtDp(f.startDate)} ~ ${fmtDp(f.endDate)}</p><p style="margin-bottom:8px;">2. PJT계약근로기간이 만료되고 계속 근무의 필요가 있을 때에는 당사자간의 합의 하에 재계약 할 수 있다.</p>
       <p style="font-weight:700;margin:14px 0 5px;">제3조 【근무장소 및 대상업무】</p><p style="margin-bottom:4px;">1. "을"은 "갑"이 제공하는 근무장소에서 근무하며, "을"은 이에 따른다.</p><p style="margin-bottom:4px;">&nbsp;&nbsp;1) 소속 : ${ul(f.dept,180)} &nbsp; 직급 : ${ul(f.rank,60)}</p><p style="margin-bottom:8px;">&nbsp;&nbsp;2) 담당 업무 : ${ul(f.job,160)}</p>
-      <p style="font-weight:700;margin:14px 0 5px;">제4조 【임 금】</p><p style="margin-bottom:4px;">- 계약연봉 : ${f.salary?`일금 ${Number(f.salary).toLocaleString()}원`:ul('',180)}</p><p style="margin-bottom:4px;">- 세부 지급 사항은 연봉계약서를 기준으로 한다. 임금 지급일 : 익월 말일</p>
+      <p style="font-weight:700;margin:14px 0 5px;">제4조 【임 금】</p><p style="margin-bottom:4px;">- 계약연봉 : ${f.salary?`일금 ${Number(f.salary).toLocaleString()}원`:ul('',180)}</p><p style="margin-bottom:4px;">- 세부 지급 사항은 연봉계약서를 기준으로 한다. 임금 지급일 : 익월 말일</p><p style="margin-bottom:8px;">- 여비교통비(실비변상)와 국가기술자격증 보유에 따른 기술수당(월 5만원)은 임금과 별도로 지급하며, 세부 지급 기준은 연봉계약서 제2조의2에 따른다.</p>
       <p style="font-weight:700;margin:14px 0 5px;">제5조 【사회보험】</p><p style="margin-bottom:8px;">☑ 고용보험 &nbsp; ☑ 산재보험 &nbsp; ☑ 국민연금 &nbsp; ☑ 건강보험</p>
       <p style="font-weight:700;margin:12px 0 4px;">제6조 【근로시간】</p>
       <p style="margin-bottom:6px;">근로기준법 제50조에 따라 주 40시간 근로를 원칙으로 한다. 다만 현장 여건에 따라 근로기준법 제53조에 의거하여 최대 12시간까지 연장하여 근로할 수 있다. (식사 및 휴게시간은 근로시간에서 제외)</p>
@@ -4038,7 +4276,7 @@ window.laborPreviewSaved2 = (d) => {
 // 📋 연봉계약서 (재구성)
 // ════════════════════════════════
 let annualView2='main';
-let annualForm2={workerId:'',name:'',jumin:'',address:'',dept:'',rank:'',empType:'field',startDate:'2026-06-02',endDate:'2027-05-31',contractDate:'',hourly:'',salary:'',signData:null};
+let annualForm2={workerId:'',name:'',jumin:'',address:'',dept:'',rank:'',empType:'field',startDate:'2026-06-02',endDate:'2027-05-31',contractDate:'',hourly:'',salary:'',wageType:'noncomprehensive',fixedOT:'',fixedNight:'',signData:null};
 let annualSignCanvas2=null, annualSignDrawing2=false;
 
 window.renderAnnualMain = async () => {
@@ -4209,6 +4447,25 @@ function renderAnnualForm(el, workers) {
       <div id="annual-sal-preview2">${salPreview}</div>
       ${annualForm2.salary?'<div style="font-size:12px;color:#1D5BA6;margin-top:6px;font-weight:700;">→ 계약연봉: ₩'+Number(annualForm2.salary).toLocaleString()+'원</div>':''}
     `)}
+    ${card2('⚖️ 임금 지급 방식', `
+      <div style="display:flex;gap:8px;margin-bottom:${annualForm2.wageType==='comprehensive'?'12px':'0'};">
+        <label style="flex:1;display:flex;align-items:center;gap:6px;padding:10px 12px;border:1.5px solid ${annualForm2.wageType!=='comprehensive'?C2.blue:'#DDE4EF'};border-radius:9px;background:${annualForm2.wageType!=='comprehensive'?'#E8F0FB':'#fff'};cursor:pointer;font-size:12.5px;font-weight:600;color:${annualForm2.wageType!=='comprehensive'?C2.blue:'#5C6F8A'};">
+          <input type="radio" name="wageType2" ${annualForm2.wageType!=='comprehensive'?'checked':''} onchange="annualForm2.wageType='noncomprehensive';window.annualRefreshForm2&&window.annualRefreshForm2();"> 비포괄 (실근무 기준 매월 자동계산)
+        </label>
+        <label style="flex:1;display:flex;align-items:center;gap:6px;padding:10px 12px;border:1.5px solid ${annualForm2.wageType==='comprehensive'?C2.blue:'#DDE4EF'};border-radius:9px;background:${annualForm2.wageType==='comprehensive'?'#E8F0FB':'#fff'};cursor:pointer;font-size:12.5px;font-weight:600;color:${annualForm2.wageType==='comprehensive'?C2.blue:'#5C6F8A'};">
+          <input type="radio" name="wageType2" ${annualForm2.wageType==='comprehensive'?'checked':''} onchange="annualForm2.wageType='comprehensive';window.annualRefreshForm2&&window.annualRefreshForm2();"> 포괄 (고정액 매월 동일지급)
+        </label>
+      </div>
+      ${annualForm2.wageType==='comprehensive'?`
+        <div style="font-size:10.5px;color:#9AAABF;margin-bottom:10px;">실제 근무시간과 무관하게 아래 고정액이 매달 그대로 지급됩니다. 다음 연봉계약 갱신 전까지 변경되지 않습니다.</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+          ${field2('고정 연장수당 (월, 원)',`<input type="text" inputmode="numeric" value="${annualForm2.fixedOT?Number(annualForm2.fixedOT).toLocaleString('ko-KR'):''}" placeholder="0"
+              oninput="fmtMoney(this);annualForm2.fixedOT=numClean(this.value);" style="width:100%;border:1px solid #DDE4EF;border-radius:8px;padding:9px 8px;font-size:12px;box-sizing:border-box;">`)}
+          ${field2('고정 야간수당 (월, 원)',`<input type="text" inputmode="numeric" value="${annualForm2.fixedNight?Number(annualForm2.fixedNight).toLocaleString('ko-KR'):''}" placeholder="0"
+              oninput="fmtMoney(this);annualForm2.fixedNight=numClean(this.value);" style="width:100%;border:1px solid #DDE4EF;border-radius:8px;padding:9px 8px;font-size:12px;box-sizing:border-box;">`)}
+        </div>
+      `:''}
+    `)}
     ${card2('✍️ 서명', `
       <div style="text-align:center;">
         ${annualForm2.signData
@@ -4250,6 +4507,9 @@ window.annualWorkerSelect2 = async (wid) => {
   annualForm2.empType  = w.empType || 'field';
   annualForm2.hourly   = '';
   annualForm2.salary   = '';
+  annualForm2.wageType = 'noncomprehensive';
+  annualForm2.fixedOT  = '';
+  annualForm2.fixedNight = '';
 
   // 근로계약서에서 최신 시급 자동 불러오기
   if (window._db) {
@@ -4353,19 +4613,33 @@ window.annualPreview2=()=>{
       <table style="width:100%;border-collapse:collapse;margin-bottom:6px;">
         <thead><tr style="background:#E8F0FB;"><th style="border:1px solid #333;padding:6px 8px;text-align:left;font-size:10pt;">항목</th><th style="border:1px solid #333;padding:6px 8px;text-align:right;font-size:10pt;">금액</th><th style="border:1px solid #333;padding:6px 8px;text-align:left;font-size:10pt;">산출근거</th></tr></thead>
         <tbody>${tr('기본근로수당',w(sal.basic),'시급×8×5×4.345')}${tr('주휴수당',w(sal.weekly),'시급×8×4.345')
+        }${f.wageType==='comprehensive'?tr('고정연장수당',w(f.fixedOT),'포괄임금제 — 실근무와 무관하게 매월 고정 지급')+tr('고정야간수당',w(f.fixedNight),'포괄임금제 — 실근무와 무관하게 매월 고정 지급'):''
         }${tr('상여금','','회사 내규에 따름')}${tr('특별성과급','','회사 내규에 따름')}${tr('특근수당','','주말, 공휴일 출근 시 지급')}
-        <tr style="background:#E8F0FB;"><td style="border:1px solid #333;padding:6px 8px;font-weight:700;font-size:10pt;">합계</td><td style="border:1px solid #333;padding:6px 8px;text-align:right;font-weight:700;font-size:10pt;">${w(sal.total)}</td><td style="border:1px solid #333;padding:6px 8px;"></td></tr></tbody>
+        <tr style="background:#E8F0FB;"><td style="border:1px solid #333;padding:6px 8px;font-weight:700;font-size:10pt;">합계</td><td style="border:1px solid #333;padding:6px 8px;text-align:right;font-weight:700;font-size:10pt;">${w(f.wageType==='comprehensive'?(Number(sal.total||0)+Number(f.fixedOT||0)+Number(f.fixedNight||0)):sal.total)}</td><td style="border:1px solid #333;padding:6px 8px;"></td></tr></tbody>
       </table>
-      <p style="font-size:9pt;color:#555;margin-bottom:4px;">※ 본 계약은 포괄임금제를 적용하지 않습니다. 기본근로수당은 월 209시간을 기준으로 산정하되, 연장근로수당(해당 월 소정근로시간 초과분에 대해 통상시급의 1.5배)과 야간근로수당(22:00~06:00 근로시간에 대해 통상시급의 0.5배 가산)은 매월 실제 근무기록을 기준으로 산정하여 별도 지급합니다.</p>
+      ${f.wageType==='comprehensive'
+        ? `<p style="font-size:9pt;color:#555;margin-bottom:4px;">※ 본 계약은 포괄임금제를 적용합니다. 근로자 본인의 선택에 따라 연장근로수당·야간근로수당을 위 표의 고정액으로 매월 실제 근무시간과 무관하게 지급하며, 다음 연봉계약 갱신 전까지 동일하게 적용합니다.</p>`
+        : `<p style="font-size:9pt;color:#555;margin-bottom:4px;">※ 본 계약은 포괄임금제를 적용하지 않습니다. 기본근로수당은 월 209시간을 기준으로 산정하되, 연장근로수당(해당 월 소정근로시간 초과분에 대해 통상시급의 1.5배)과 야간근로수당(22:00~06:00 근로시간에 대해 통상시급의 0.5배 가산)은 매월 실제 근무기록을 기준으로 산정하여 별도 지급합니다.</p>`}
       <p style="font-size:9pt;color:#555;margin-bottom:10px;">※ 위 임금구성은 소정근로시간(주52시간)을 기준으로 작성됨</p>
+      <p style="font-weight:700;margin:14px 0 5px;">제2조의2 (여비교통비 및 기술수당)</p>
+      <p style="margin-bottom:4px;">① 회사는 근로자가 업무상 이동에 소요한 비용을 실비변상적 성격의 여비교통비로 별도 지급한다. 이는 근로기준법 시행령상 임금(통상임금·평균임금)에 산입되지 않는 실비변상적 금품으로, 4대보험 산정 기준에서 제외한다.</p>
+      <p style="margin-bottom:4px;">② 여비교통비 지급 기준(개인차량 이용 시 사무실 기준 편도거리)은 다음과 같다: 40km 이내 1만원, 40km 초과 2만원. 회사차량 이용 시에는 이동거리와 무관하게 1만원을 고정 지급한다.</p>
+      <p style="margin-bottom:4px;">③ 지방 장기출장으로 회사가 숙소를 별도 지급하는 경우, 일비(1만원)를 지급하지 않는 대신 왕복 교통비(KTX 기준 실비)를 지급하며, 이는 <b>주 1회를 한도</b>로 한다.</p>
+      <p style="margin-bottom:4px;">④ 근로자가 관련 국가기술자격증을 보유하고 그 업무에 종사하는 경우, 회사는 월 5만원의 기술수당을 별도 지급한다. 자격증의 종류 및 인정 범위는 회사 내규에 따른다.</p>
       <p style="font-weight:700;margin:14px 0 5px;">제3조 (지급시기 및 방법)</p>
       <p style="margin-bottom:4px;">① 연봉을 12개월로 균등 분할해 익월 말일에 지급한다.</p>
       <p style="margin-bottom:4px;">② 지급일이 휴일인 경우 다음 은행 영업일에 지급한다.</p>
       <p style="margin-bottom:10px;">③ 임금은 제세공과금 원천징수 후 급여 계좌로 입금한다.</p>
       <p style="font-weight:700;margin:14px 0 5px;">제4조 (기밀유지)</p>
       <p style="margin-bottom:10px;">직원은 본 계약 내용 및 타 직원 연봉에 관한 사항에 대하여 기밀을 유지하여야 한다.</p>
-      <p style="font-weight:700;margin:14px 0 5px;">제5조 ~ 제7조</p>
-      <p style="margin-bottom:20px;">효력정지, 기타사항, 근로계약서 교부에 관한 사항은 당사 취업규칙 및 근로기준법에 준한다.</p>
+      <p style="font-weight:700;margin:14px 0 5px;">제5조 (계약의 효력정지 및 해지)</p>
+      <p style="margin-bottom:4px;">① "을"이 휴직, 정직 등 근로 제공이 정지되는 사유가 발생한 경우, 그 기간 동안 본 계약의 효력은 정지된다.</p>
+      <p style="margin-bottom:10px;">② 근로계약이 해지되거나 종료되는 경우, 본 연봉계약도 동시에 종료된 것으로 본다.</p>
+      <p style="font-weight:700;margin:14px 0 5px;">제6조 (기타사항)</p>
+      <p style="margin-bottom:4px;">① 본 계약에 명시되지 않은 사항은 근로기준법, 회사 취업규칙 및 관련 법령이 정하는 바에 따른다.</p>
+      <p style="margin-bottom:10px;">② 본 계약의 내용은 "갑"과 "을" 쌍방의 서면 합의에 의해서만 변경할 수 있다.</p>
+      <p style="font-weight:700;margin:14px 0 5px;">제7조 (계약서 교부)</p>
+      <p style="margin-bottom:20px;">본 계약서는 2부를 작성하여 "갑"과 "을"이 각각 서명 또는 날인한 후 1부씩 보관한다.</p>
       <p style="font-weight:600;margin-bottom:20px;">계약일자 : ${fmtDp(f.contractDate)}</p>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:32px;margin-top:16px;">
         <div style="border-top:1px solid #333;padding-top:14px;"><p style="font-weight:700;margin-bottom:8px;">(갑)</p><p>사업체명 : 제이에이치솔루션</p><p style="display:flex;align-items:center;gap:4px;">대&nbsp;&nbsp;&nbsp;&nbsp;표 : 김 종 화&nbsp;${_compSignatures&&_compSignatures.kjh?`<img src="${_compSignatures.kjh}" style="height:34px;max-width:80px;object-fit:contain;vertical-align:middle;opacity:0.9;">`:`<span style="display:inline-block;width:56px;height:30px;border:1px dashed #ccc;vertical-align:middle;text-align:center;line-height:30px;font-size:10px;color:#aaa;">(인)</span>`}</p><p>사업자번호 : 383-09-02847</p></div>
@@ -5740,19 +6014,95 @@ window.showLeaveDetail = async function(wid, wname, hireDate) {
 
     const STATUS_LBL = {posted:'게시',approved:'승인'};
     const listEl = document.getElementById('leave-detail-list');
+    window._leaveDetailLeaves = leaves; // 수정 모달에서 참조
+    window._leaveDetailWname = wname;
+    window._leaveDetailWid = wid;
+    window._leaveDetailHireDate = hireDate;
     if(listEl) listEl.innerHTML = leaves.length ? leaves.map(lv=>`
-      <div style="display:flex;align-items:center;gap:12px;padding:12px 22px;border-bottom:1px solid #EEF2F7;">
+      <div onclick="editLeaveEntry('${lv.id}')" style="display:flex;align-items:center;gap:12px;padding:12px 22px;border-bottom:1px solid #EEF2F7;cursor:pointer;" onmouseover="this.style.background='#F7F9FC'" onmouseout="this.style.background='transparent'">
         <span style="flex-shrink:0;font-size:11px;font-weight:600;padding:3px 9px;border-radius:7px;background:#E1F5EE;color:#085041;">${STATUS_LBL[lv.status]||lv.status}</span>
         <div style="flex:1;min-width:0;">
           <div style="font-size:13px;font-weight:600;color:#1A2540;">${lv.title||lv.leaveType||'-'}</div>
           <div style="font-size:11px;color:#5C6F8A;margin-top:2px;">${lv.startDate||lv.sdate||''} ~ ${lv.endDate||lv.edate||''}</div>
         </div>
         <span style="flex-shrink:0;font-size:14px;font-weight:700;color:#1D5BA6;">${lv.days||lv.leaveDays||0}일</span>
+        <span style="flex-shrink:0;font-size:13px;color:#9AAABF;">✏️</span>
       </div>`).join('')
     : '<div style="padding:40px;text-align:center;color:#9AAABF;">사용한 연차가 없습니다.</div>';
   } catch(e) { console.warn('연차 상세 로드 오류:', e); }
 };
 window.showLeaveDetail = window.showLeaveDetail;
+
+// 연차 상세 목록에서 항목 클릭 → 사유·기간만 조회/수정 (결재라인·게시상태는 변경하지 않음)
+window.editLeaveEntry = function(leaveId){
+  const lv = (window._leaveDetailLeaves||[]).find(l=>l.id===leaveId);
+  if(!lv) return;
+  const old = document.getElementById('leave-edit-modal');
+  if(old) old.remove();
+  const modal = document.createElement('div');
+  modal.id = 'leave-edit-modal';
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(19,51,92,0.55);z-index:10000;display:flex;align-items:center;justify-content:center;padding:20px;';
+  modal.onclick = function(e){ if(e.target===modal) modal.remove(); };
+  const TYPES = ['연차(유급)','반차(유급)','경조사(유급)','병가(무급)','기타(무급)'];
+  const box = document.createElement('div');
+  box.style.cssText = 'background:#fff;border-radius:16px;max-width:420px;width:100%;padding:22px;box-shadow:0 20px 60px rgba(0,0,0,0.3);';
+  box.innerHTML = `<div style="font-size:16px;font-weight:800;color:#13335C;margin-bottom:4px;">✏️ 연차신청서 내용 수정</div>
+    <div style="font-size:11px;color:#9AAABF;margin-bottom:16px;">결재라인·게시상태는 변경되지 않고, 사유와 기간만 수정됩니다.</div>
+    <label style="font-size:12px;font-weight:600;color:#5C6F8A;">휴가 종류</label>
+    <select id="led-type" style="width:100%;padding:9px 10px;border:1.5px solid #DDE4EF;border-radius:9px;font-size:13px;margin:5px 0 12px;font-family:inherit;">
+      ${TYPES.map(t=>`<option ${(lv.leaveType||'')===t?'selected':''}>${t}</option>`).join('')}
+    </select>
+    <div style="display:flex;gap:8px;">
+      <div style="flex:1;"><label style="font-size:12px;font-weight:600;color:#5C6F8A;">시작일</label>
+      <input type="date" id="led-start" value="${lv.startDate||lv.sdate||''}" style="width:100%;padding:9px 10px;border:1.5px solid #DDE4EF;border-radius:9px;font-size:13px;margin:5px 0 12px;box-sizing:border-box;"></div>
+      <div style="flex:1;"><label style="font-size:12px;font-weight:600;color:#5C6F8A;">종료일</label>
+      <input type="date" id="led-end" value="${lv.endDate||lv.edate||''}" style="width:100%;padding:9px 10px;border:1.5px solid #DDE4EF;border-radius:9px;font-size:13px;margin:5px 0 12px;box-sizing:border-box;"></div>
+    </div>
+    <label style="font-size:12px;font-weight:600;color:#5C6F8A;">사유</label>
+    <textarea id="led-reason" rows="3" style="width:100%;padding:9px 10px;border:1.5px solid #DDE4EF;border-radius:9px;font-size:13px;margin:5px 0 16px;font-family:inherit;box-sizing:border-box;resize:vertical;">${lv.reason||''}</textarea>
+    <div id="led-msg" style="font-size:12px;color:#DC2626;min-height:16px;margin-bottom:6px;"></div>
+    <div style="display:flex;gap:10px;">
+      <button onclick="document.getElementById('leave-edit-modal').remove()" style="flex:1;padding:11px;background:#F4F7FB;border:none;border-radius:10px;color:#5C6F8A;font-size:14px;cursor:pointer;">취소</button>
+      <button id="led-save-btn" onclick="saveLeaveEntryEdit('${leaveId}')" style="flex:2;padding:11px;background:#1D5BA6;color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;">저장</button>
+    </div>`;
+  modal.appendChild(box);
+  document.body.appendChild(modal);
+};
+
+function _hrCalcLeaveDays(startDate, endDate, leaveType){
+  if (leaveType && leaveType.includes('반차')) return 0.5;
+  if (!startDate || !endDate) return 0;
+  const s = new Date(startDate), e = new Date(endDate);
+  if (isNaN(s)||isNaN(e)) return 0;
+  let days = 0; const cur = new Date(s);
+  while (cur <= e) { const dow = cur.getDay(); if (dow!==0 && dow!==6) days++; cur.setDate(cur.getDate()+1); }
+  return days;
+}
+
+window.saveLeaveEntryEdit = async function(leaveId){
+  const type = document.getElementById('led-type').value;
+  const start = document.getElementById('led-start').value;
+  const end = document.getElementById('led-end').value;
+  const reason = document.getElementById('led-reason').value.trim();
+  const msgEl = document.getElementById('led-msg');
+  if(!start || !end){ if(msgEl) msgEl.textContent='시작일/종료일을 입력해주세요.'; return; }
+  if(end < start){ if(msgEl) msgEl.textContent='종료일이 시작일보다 빠를 수 없습니다.'; return; }
+  const days = _hrCalcLeaveDays(start, end, type);
+  const btn = document.getElementById('led-save-btn');
+  if(btn){ btn.disabled=true; btn.textContent='저장 중...'; }
+  try{
+    const { doc, updateDoc } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+    await updateDoc(doc(window._db,'edoc_leave',leaveId), { leaveType:type, startDate:start, endDate:end, days });
+    document.getElementById('leave-edit-modal').remove();
+    // 상세 모달 새로고침
+    if(window._leaveDetailWid!=null){
+      showLeaveDetail(window._leaveDetailWid, window._leaveDetailWname, window._leaveDetailHireDate);
+    }
+  }catch(e){
+    if(msgEl) msgEl.textContent = '저장 실패: '+(e.message||e);
+    if(btn){ btn.disabled=false; btn.textContent='저장'; }
+  }
+};
 
 window.renderLeaveStatusMain = async () => {
   const el = document.getElementById('tab-leave'); if(!el) return;
@@ -6150,8 +6500,186 @@ window.retireDelete = async (wid, rid, wname) => {
   await deleteDoc(doc(window._db, `severance/${wid}/records`, rid));
   retireViewWorker(wid, wname);
 };
+
+/* ==================== 급여테이블 (시급 기준 · 학력 10% 차등 · 통합표 — 회사 내규) ====================
+   ⚠️ 이 표는 회사가 정하는 표준 급여 기준(호봉표)입니다. 특정 직원 개인의 현재 급여가 아니라,
+   "이 학력·직급·호봉이면 시급이 얼마, 연봉으로 환산하면 얼마"라는 내규를 관리하는 화면입니다.
+   시급이 기준값이고 연봉은 계산되어 표시됩니다(시급×209시간×12개월).
+   고졸 사원 1호봉 시급 = 법정 최저시급 고정. 학력 트랙 간 시급 10% 단계 차등(고졸→비전공대졸→전공대졸).
+   호봉마다 표준인상률(기본 3.5%)로 복리 인상되며, 직급이 바뀌어도 호봉은 이어서 계산됩니다.
+   여기서 수정해도 급여명세서 자동계산 로직에는 영향을 주지 않습니다(참고·내규용). */
+const SAL_POSITIONS=['사원','대리','과장','차장'];
+let _salTableData = null;
+// { minWage, standardRate, eduGapRate, perfRateMin, perfRateMax, tenure:{사원,대리,과장,차장}, tracks:[{id,label,pinned,cellsHourly:{'사원-1':시급,...}}] }
+
+async function salTableLoad() {
+  const { doc, getDoc } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+  const snap = await getDoc(doc(window._db, 'company_settings', 'salaryTable'));
+  if (snap.exists() && snap.data().tracks && snap.data().tracks[0]?.cellsHourly) {
+    _salTableData = snap.data();
+  } else {
+    _salTableData = {
+      minWage: 10320,
+      standardRate: 3.5,
+      eduGapRate: 10,
+      perfRateMin: 2.0,
+      perfRateMax: 5.0,
+      tenure: { '사원':3, '대리':4, '과장':5, '차장':3 },
+      tracks: [
+        { id:'high', label:'고졸', pinned:true, cellsHourly:{} },
+        { id:'nonmajor', label:'비전공대졸', pinned:false, cellsHourly:{} },
+        { id:'major', label:'전공대졸', pinned:false, cellsHourly:{} },
+      ],
+    };
+    salTableRegenerateAll();
+  }
+}
+
+function salTableTrackStartHourly(track, d, allTracks){
+  if (track.pinned) return Number(d.minWage)||0;
+  const idx = allTracks.findIndex(t=>t.id===track.id);
+  const prevTrack = allTracks[idx-1];
+  const prevStart = prevTrack ? salTableTrackStartHourly(prevTrack, d, allTracks) : (Number(d.minWage)||0);
+  return Math.round(prevStart * (1+((Number(d.eduGapRate)||0)/100)));
+}
+function salTableBuildTrack(track, d, allTracks){
+  const rate=1+((Number(d.standardRate)||0)/100);
+  const start=salTableTrackStartHourly(track, d, allTracks);
+  const cells={};
+  let cur=start;
+  SAL_POSITIONS.forEach(pos=>{
+    const years=Math.max(1, Number(d.tenure?.[pos])||1);
+    for(let step=1; step<=years; step++){
+      const key=pos+'-'+step;
+      cells[key]= (track.cellsHourly && track.cellsHourly[key]!=null) ? track.cellsHourly[key] : Math.round(cur);
+      cur = cur*rate;
+    }
+  });
+  return cells;
+}
+function salTableRegenerateAll(){
+  _salTableData.tracks.forEach(t=>{ t.cellsHourly = salTableBuildTrack(t, _salTableData, _salTableData.tracks); });
+}
+function salTableRegenerateForce(){
+  _salTableData.tracks.forEach(t=>{ t.cellsHourly = {}; });
+  _salTableData.tracks.forEach(t=>{ t.cellsHourly = salTableBuildTrack(t, _salTableData, _salTableData.tracks); });
+}
+
+function salTableAnnual(hourly) { return Math.round(hourly*209*12); }
+
+window.renderSalaryTableMain = async function() {
+  const el = document.getElementById('tab-salarytable');
+  el.innerHTML = `<div style="text-align:center;padding:40px;"><div class="spinner"></div></div>`;
+  if (!_salTableData) await salTableLoad();
+  renderSalaryTableBody();
+};
+
+function won2(v) { return Math.round(v||0).toLocaleString(); }
+
+function renderSalaryTableBody() {
+  const el = document.getElementById('tab-salarytable');
+  if (!el) return;
+  const d = _salTableData;
+
+  let rows='';
+  SAL_POSITIONS.forEach((pos,posIdx)=>{
+    const years=Math.max(1, Number(d.tenure?.[pos])||1);
+    for(let step=1; step<=years; step++){
+      const key=pos+'-'+step;
+      const rowBg = posIdx%2===0 ? '#fff' : '#FAFCFE';
+      rows+=`<tr style="border-bottom:1px solid #F0F4F9;background:${rowBg};">
+        <td style="padding:5px 8px;font-weight:700;color:${C2.text};font-size:11.5px;white-space:nowrap;">${step===1?pos:''}</td>
+        <td style="padding:5px 8px;font-size:11.5px;color:${C2.sub};white-space:nowrap;">${step}호봉</td>
+        ${d.tracks.map(t=>{
+          const hourly=t.cellsHourly[key]||0;
+          const annual=salTableAnnual(hourly);
+          const isPinnedCell = t.pinned && key==='사원-1';
+          const belowMinWage = hourly>0 && hourly < (Number(d.minWage)||0);
+          return `<td style="padding:5px 8px;white-space:nowrap;">
+            ${isPinnedCell
+              ? `<span style="font-weight:700;color:#1D5BA6;font-size:11.5px;">${won2(hourly)}원</span>`
+              : `<input type="number" value="${hourly}" onchange="salTableEditCell('${t.id}','${key}',this.value)" style="width:76px;border:1px solid #E4EAF2;border-radius:5px;padding:3px 5px;font-size:11px;text-align:right;font-weight:700;color:${belowMinWage?'#DC2626':C2.text};">`}
+            <div style="font-size:10px;color:${C2.mute};margin-top:1px;">연 ${won2(annual)}</div>
+          </td>`;
+        }).join('')}
+      </tr>`;
+    }
+  });
+
+  el.innerHTML = wrap2(`
+    <div style="font-size:14px;font-weight:700;color:${C2.text};margin-bottom:4px;">📊 학력·직급·호봉별 표준 급여테이블 (회사 내규)</div>
+    <div style="font-size:11px;color:${C2.mute};margin-bottom:14px;line-height:1.6;">
+      <b>시급이 기준값</b>이며 연봉은 시급×209시간×12개월로 자동 계산되어 아래 작은 글씨로 표시됩니다. 고졸 사원 1호봉 시급은 법정 최저시급에 고정됩니다.<br>
+      ⚠️ 참고·내규용 표이며, 여기서 값을 바꿔도 급여명세서 자동계산에는 반영되지 않습니다.
+    </div>
+
+    <div class="card" style="padding:12px 14px;margin-bottom:14px;">
+      <div style="font-size:12.5px;font-weight:700;color:${C2.text};margin-bottom:10px;">⚙️ 기준 설정</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;">
+        <div><label style="font-size:11px;color:${C2.mute};display:block;margin-bottom:3px;">법정 최저시급(원)</label>
+          <input type="number" value="${d.minWage}" onchange="salTableSetField('minWage',this.value)" style="width:100%;padding:6px 8px;border:1px solid #DDE4EF;border-radius:7px;font-size:12.5px;font-weight:700;box-sizing:border-box;"></div>
+        <div><label style="font-size:11px;color:${C2.mute};display:block;margin-bottom:3px;">호봉별 표준 인상률(%)</label>
+          <input type="number" step="0.1" value="${d.standardRate}" onchange="salTableSetField('standardRate',this.value)" style="width:100%;padding:6px 8px;border:1px solid #DDE4EF;border-radius:7px;font-size:12.5px;font-weight:700;box-sizing:border-box;"></div>
+        <div><label style="font-size:11px;color:${C2.mute};display:block;margin-bottom:3px;">학력별 시급 차등(%)</label>
+          <input type="number" step="0.1" value="${d.eduGapRate}" onchange="salTableSetField('eduGapRate',this.value)" style="width:100%;padding:6px 8px;border:1px solid #DDE4EF;border-radius:7px;font-size:12.5px;font-weight:700;box-sizing:border-box;"></div>
+        <div><label style="font-size:11px;color:${C2.mute};display:block;margin-bottom:3px;">고과 반영 최소(%)</label>
+          <input type="number" step="0.1" value="${d.perfRateMin}" onchange="salTableSetField('perfRateMin',this.value)" style="width:100%;padding:6px 8px;border:1px solid #DDE4EF;border-radius:7px;font-size:12.5px;box-sizing:border-box;"></div>
+        <div><label style="font-size:11px;color:${C2.mute};display:block;margin-bottom:3px;">고과 반영 최대(%)</label>
+          <input type="number" step="0.1" value="${d.perfRateMax}" onchange="salTableSetField('perfRateMax',this.value)" style="width:100%;padding:6px 8px;border:1px solid #DDE4EF;border-radius:7px;font-size:12.5px;box-sizing:border-box;"></div>
+        <div><label style="font-size:11px;color:${C2.mute};display:block;margin-bottom:3px;">기술수당(자격증 1개당, 원)</label>
+          <input type="number" value="${d.techAllowancePerCert??50000}" onchange="salTableSetField('techAllowancePerCert',this.value)" style="width:100%;padding:6px 8px;border:1px solid #DDE4EF;border-radius:7px;font-size:12.5px;font-weight:700;box-sizing:border-box;"></div>
+      </div>
+      <div style="font-size:11px;color:${C2.mute};margin-top:8px;">기술수당은 근로자 명부에 등록된 자격증 <b>1개당 ${won2(d.techAllowancePerCert??50000)}원</b>씩 상한 없이 누적 지급됩니다(예: 3개 보유 시 ${won2((d.techAllowancePerCert??50000)*3)}원). 급여명세서 작성 시 필요하면 직접 수정(삭감 등)할 수 있습니다.</div>
+      <div style="font-size:11px;color:${C2.mute};margin-top:8px;">학력 트랙은 고졸 기준 시급 <b>${d.eduGapRate}%씩 단계적</b>으로 높아집니다(고졸→비전공대졸→전공대졸). 실제 개인별 인상률은 고과에 따라 <b>${d.perfRateMin}%~${d.perfRateMax}%</b> 사이에서 적용될 수 있으며, 표준(${d.standardRate}%)은 이 표의 기준값입니다.</div>
+      <div style="font-size:12.5px;font-weight:700;color:${C2.text};margin:14px 0 8px;">직급 체류연한(년)</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(80px,1fr));gap:10px;">
+        ${SAL_POSITIONS.map(pos=>`<div><label style="font-size:11px;color:${C2.mute};display:block;margin-bottom:3px;">${pos}</label>
+          <input type="number" value="${d.tenure?.[pos]||1}" onchange="salTableSetTenure('${pos}',this.value)" style="width:100%;padding:6px 8px;border:1px solid #DDE4EF;border-radius:7px;font-size:12.5px;text-align:center;box-sizing:border-box;"></div>`).join('')}
+      </div>
+      <button onclick="salTableRegenerateAllClick()" style="margin-top:12px;width:100%;padding:9px;background:#FEF3C7;border:1px solid #F59E0B;border-radius:8px;color:#92400E;font-size:12px;font-weight:700;cursor:pointer;">🔄 표 다시 생성 (직접 수정한 값 전부 표준공식 기준으로 재계산)</button>
+    </div>
+
+    <div class="scroll"><table style="width:100%;border-collapse:collapse;min-width:560px;">
+      <thead><tr style="background:#F0F4F9;">
+        <th style="padding:6px 8px;text-align:left;color:${C2.sub};font-weight:700;font-size:11px;white-space:nowrap;">직급</th>
+        <th style="padding:6px 8px;text-align:left;color:${C2.sub};font-weight:700;font-size:11px;white-space:nowrap;">호봉</th>
+        ${d.tracks.map(t=>`<th style="padding:6px 8px;text-align:left;color:${C2.sub};font-weight:700;font-size:11px;white-space:nowrap;">${t.label} <span style="font-weight:400;color:${C2.mute};">(시급/연봉)</span></th>`).join('')}
+      </tr></thead>
+      <tbody>${rows}</tbody>
+    </table></div>
+
+    <button onclick="salTableSave()" style="width:100%;margin-top:14px;padding:11px;background:#1D5BA6;border:none;border-radius:9px;color:#fff;font-size:13px;font-weight:700;cursor:pointer;">💾 저장</button>
+  `);
+}
+
+window.salTableSetField = function(field, value) {
+  _salTableData[field] = Number(value)||0;
+  if (field==='minWage' || field==='standardRate' || field==='eduGapRate') salTableRegenerateAll();
+  renderSalaryTableBody();
+};
+window.salTableSetTenure = function(pos, value) {
+  if (!_salTableData.tenure) _salTableData.tenure={};
+  _salTableData.tenure[pos] = Math.max(1, Number(value)||1);
+  salTableRegenerateAll();
+  renderSalaryTableBody();
+};
+window.salTableEditCell = function(tid, key, value) {
+  const t=_salTableData.tracks.find(x=>x.id===tid); if(!t) return;
+  t.cellsHourly[key] = Number(value)||0;
+  renderSalaryTableBody();
+};
+window.salTableRegenerateAllClick = function() {
+  if (!confirm('직접 수정한 값을 포함해 전체 표를 표준공식 기준으로 다시 계산합니다. 계속할까요?')) return;
+  salTableRegenerateForce();
+  renderSalaryTableBody();
+};
+window.salTableSave = async function() {
+  try {
+    const { doc, setDoc } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+    await setDoc(doc(window._db, 'company_settings', 'salaryTable'), _salTableData);
+    alert('저장되었습니다.');
+  } catch(e) { alert('저장 실패: '+e.message); }
+};
 </script>
 </body>
 </html>
-
-
