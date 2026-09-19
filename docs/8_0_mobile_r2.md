@@ -1,7 +1,7 @@
 # 8.0. 모바일 UI 통합 (r2)
 
 > Firebase 프로젝트: `p4ph2-fab-506a7` (PC와 공용)
-> 작성: 2026-07-04 · 최종 수정: 2026-09-19 (m/admin.html 조직도 정렬 · 종료 PJT 모바일 반영) · 작성: 춘식이(Claude) · 릴리스: v2.0.0 → v2.1.0
+> 작성: 2026-07-04 · 최종 수정: 2026-09-19 (m/admin.html 조직도 정렬 · 종료 PJT 모바일 반영 · 통합 일정 작성/수정/완료체크) · 작성: 춘식이(Claude) · 릴리스: v2.0.0 → v2.1.0
 
 ---
 
@@ -26,7 +26,7 @@
 | `m/admin.html` | 조직도(portal_users by dept) + Portal관리(계정 권한). `?v=org|admin`. 조직도 정렬: 대표 최상단 → 지정 부서순서 → 부서 내 사번순 (→ `5_org_chart.md` 모바일 조직도, 모바일 관리 2.7.0). |
 | `m/account.html` | 로그인 계정 정보 (jh_login_full + portal_users). |
 | `m/pjt.html` | PJT 앱 (아래 상세). 종료된 고정 PJT(FAB/SUP)는 홈 카드·딥링크에서 제외(모바일 PJT 5.3.0). |
-| `m/schedule.html` | 오늘 일정 통합(FAB·SUP·경량PJT). 종료된 고정 PJT 일정은 제외(1.0.1). |
+| `m/schedule.html` | 오늘 일정 통합(FAB·SUP·경량PJT). 종료된 고정 PJT 일정 제외(1.0.1). **등록·수정·삭제·완료체크**(PC 홈 일정과 동일 스키마, PJT 권한자·관리자만 — 1.1.0). |
 
 ---
 
@@ -143,3 +143,24 @@
 **미변경**: `m/pjt_manday.html`(월간 공수) — PC 월간 공수도 FAB/SUP를 고정 표시하므로 동일 유지. 모바일 FAB/SUP 카드의 이름·설명은 `pjt_settings` 값과 동기화하지 않음(코드 고정 문구 유지). 카드 표시 순서 변경 없음.
 
 상세 로그: `7_40_log_mobile_ended_pjt_hide.md` · 백업: `backup/v2.7.1/m/home.html`, `backup/v5.3.0/m/pjt.html`, `backup/v1.0.1/m/schedule.html`
+
+---
+
+## 통합 일정 작성/수정/삭제/완료체크 (2026-09-19 · 일정 1.1.0)
+
+`m/schedule.html`(홈 상단 "오늘 일정" 버튼) — 기존 조회 전용을 PC 홈 일정(4.5.0/4.5.1)과 같은 방식으로 확장.
+
+**권한**: `jh_login_perms`의 `admin` 또는 `perms.pjt`가 있는 사용자만 작성·수정·삭제·체크 가능(PC PJT 관리 진입 권한과 동일). 그 외는 목록·상세 조회만(체크박스·버튼 미노출).
+
+**기능**
+- **등록**(`＋ 일정 등록`): 프로젝트(진행 중 FAB·SUP·경량PJT만, 종료 PJT 제외)·내용·카테고리 9종·시작/종료일·시작/종료 시간·장소·참석자·등록자(로그인 이름 기본값)·`할 일` 토글(켜면 시간 공란 + `isTodo:true`). 현재 보고 있는 날짜가 기본 시작일, 저장 후 등록한 날짜로 이동.
+- **상세**: 일정 카드 탭 → 카테고리·일정·기간·장소·참석자·등록자·프로젝트·완료 상태 + `✏️ 수정`·`🗑 삭제`·"현장 열기".
+- **수정**: 프로젝트는 고정(PC와 동일). 저장은 같은 문서 `setDoc(merge)`.
+- **완료체크**: 카드 왼쪽 체크박스 → 문서 `done`·`doneUpdatedAt`(merge). 다일(多日) 일정도 문서 1개당 done 1개(PC와 동일). 완료 시 취소선·흐림.
+- **검증 추가(PC엔 없음)**: 내용 필수, 같은 날 종료시간<시작시간 차단, 종료일<시작일은 시작일로 보정.
+
+**저장 필드(PC와 동일)**: `reg`·`text`·`place`·`att`·`tag`·`tagLabel`·`sdate`·`edate`·`stime`·`etime`·`isTodo`·`savedAt`, 완료 `done`·`doneUpdatedAt`. 컬렉션: FAB `user_schedules` / SUP `ph4_schedules` / 경량 `pjt_registry/{id}/schedules`. 모바일·PC 양방향 호환.
+
+**미변경 / 후속 후보**: `m/pjt.html` 현장별 일정 탭 폼은 기존 필드(메모 중심, 장소·참석자·종료시간·할 일 없음, 완료 필드 `doneAt`)를 유지 — 동일 항목으로 맞추는 작업은 별도.
+
+상세 로그: `7_41_log_mobile_schedule_crud.md` · 백업: `backup/v1.1.0/m/schedule.html`

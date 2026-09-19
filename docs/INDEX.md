@@ -1216,3 +1216,18 @@
 
 ---
 ---
+
+## 2026-09-19 세션(이어서 2) — 모바일 통합 일정 작성/수정/완료체크
+
+**요청**: 대표님 — 모바일 오늘 일정 화면에서 PC처럼 일정 작성/수정/완료 체크.
+
+**구현**: `m/schedule.html`(조회 전용)에 등록·수정·삭제·완료체크·할 일 추가. PC 홈 일정과 동일 스키마(`reg·text·place·att·tag·tagLabel·sdate·edate·stime·etime·isTodo·savedAt`, 완료 `done·doneUpdatedAt`)로 `user_schedules`·`ph4_schedules`·`pjt_registry/{id}/schedules`에 저장 → PC와 양방향 호환. PJT 권한자·관리자만 편집, 그 외 조회 전용. 프로젝트는 진행 중인 것만 선택, 수정 시 고정.
+
+**배포**: 대표님 지시("둘 다")로 production + portal-test 동시. 일정 1.1.0. 검증(문법·CSS·jsdom 28항목·설정 혼입 없음) 통과, 실기기 렌더링은 배포 후 확인 필요.
+
+**백업**: `backup/v1.1.0/m/schedule.html` (양쪽)
+
+**상세**: `8_0_mobile_r2.md`, `4_0_pjt_home.md`, `7_41_log_mobile_schedule_crud.md`, `8_31_log_2026-09-19_session.md`
+
+---
+---
