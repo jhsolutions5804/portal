@@ -1,7 +1,7 @@
 # 8.0. 모바일 UI 통합 (r2)
 
 > Firebase 프로젝트: `p4ph2-fab-506a7` (PC와 공용)
-> 작성: 2026-07-04 · 최종 수정: 2026-07-06 · 작성: 춘식이(Claude) · 릴리스: v2.0.0 → v2.1.0
+> 작성: 2026-07-04 · 최종 수정: 2026-09-19 (m/admin.html 조직도 정렬) · 작성: 춘식이(Claude) · 릴리스: v2.0.0 → v2.1.0
 
 ---
 
@@ -23,7 +23,7 @@
 | `m/gihoek.html` | 기획 SPA. 프로젝트/거래처/견적/정산/회계 (list→detail). |
 | `m/hr.html` | 인사 SPA. **모든 메뉴에서 근로자 명단 먼저 → 클릭 시 해당 내용**(근로자명부·근로계약서·연봉계약서·급여명세서·퇴직금). 근로자명부·퇴직금 클릭은 초과근로 미표시(기본정보만). 컨텍스트=`detailFrom`. (v2.1.0) |
 | `m/edoc.html` | 전자결재 SPA. 조회 + **결재(승인/반려·관리자 대행)·작성(업무일지/연차/초과근로)·삭제**. 로그인정보 `_me`=jh_login_perms. → 상세 `8_1_mobile_edoc` (v2.1.0) |
-| `m/admin.html` | 조직도(portal_users by dept) + Portal관리(계정 권한). `?v=org|admin`. |
+| `m/admin.html` | 조직도(portal_users by dept) + Portal관리(계정 권한). `?v=org|admin`. 조직도 정렬: 대표 최상단 → 지정 부서순서 → 부서 내 사번순 (→ `5_org_chart.md` 모바일 조직도, 모바일 관리 2.7.0). |
 | `m/account.html` | 로그인 계정 정보 (jh_login_full + portal_users). |
 | `m/pjt.html` | PJT 앱 (아래 상세). |
 
