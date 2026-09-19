@@ -1201,3 +1201,18 @@
 
 ---
 ---
+
+## 2026-09-19 세션(이어서) — 모바일 종료 PJT(FAB/SUP) 노출 수정
+
+**요청**: 대표님 — SUP 현장을 종료 처리했는데 PC에서는 안 보이고 모바일에는 그대로 나옴. 순서는 무관, 신규/종료 PJT만 정확히 표시. 모바일은 '현재 진행 중인' 업무 중심으로 구축 예정.
+
+**구현**: 모바일이 FAB/SUP를 하드코딩해 종료 상태를 읽지 않던 문제. `pjt_settings/{p4ph2|p4ph4}.status==='ended'`를 실시간 구독해 `m/home.html`(카드·오늘 일정 집계), `m/pjt.html`(홈 카드·딥링크), `m/schedule.html`(일정)에서 종료된 고정 PJT 제외. 경량PJT 신규/종료/재개 표시도 재검증.
+
+**배포**: 대표님 지시("큰 건 아니니까 둘 다 동시에 해") 따라 production + portal-test 동시 배포. 모바일 홈 2.7.1 / PJT 5.3.0 / 오늘 일정 1.0.1. 검증(JS 문법·CSS·jsdom 22항목·설정 혼입 없음) 통과.
+
+**백업**: `backup/v2.7.1/m/home.html`, `backup/v5.3.0/m/pjt.html`, `backup/v1.0.1/m/schedule.html` (양쪽)
+
+**상세**: `8_0_mobile_r2.md`, `7_40_log_mobile_ended_pjt_hide.md`, `8_31_log_2026-09-19_session.md`
+
+---
+---

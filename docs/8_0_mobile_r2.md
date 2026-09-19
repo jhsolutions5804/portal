@@ -1,7 +1,7 @@
 # 8.0. 모바일 UI 통합 (r2)
 
 > Firebase 프로젝트: `p4ph2-fab-506a7` (PC와 공용)
-> 작성: 2026-07-04 · 최종 수정: 2026-09-19 (m/admin.html 조직도 정렬) · 작성: 춘식이(Claude) · 릴리스: v2.0.0 → v2.1.0
+> 작성: 2026-07-04 · 최종 수정: 2026-09-19 (m/admin.html 조직도 정렬 · 종료 PJT 모바일 반영) · 작성: 춘식이(Claude) · 릴리스: v2.0.0 → v2.1.0
 
 ---
 
@@ -19,13 +19,14 @@
 
 | 파일 | 내용 |
 |---|---|
-| `m/home.html` | 모바일 홈. 4개 대형 타일(기획=파랑·인사=주황·전자결재=보라·PJT=초록) + 조직도/Portal관리(admin) + 아바타→계정. 권한 게이팅(perms 없는 섹션 🔒). |
+| `m/home.html` | 모바일 홈. 4개 대형 타일(기획=파랑·인사=주황·전자결재=보라·PJT=초록) + 조직도/Portal관리(admin) + 아바타→계정. 권한 게이팅(perms 없는 섹션 🔒). 종료된 고정 PJT(FAB/SUP)는 카드·오늘 일정 집계에서 제외(모바일 홈 2.7.1). |
 | `m/gihoek.html` | 기획 SPA. 프로젝트/거래처/견적/정산/회계 (list→detail). |
 | `m/hr.html` | 인사 SPA. **모든 메뉴에서 근로자 명단 먼저 → 클릭 시 해당 내용**(근로자명부·근로계약서·연봉계약서·급여명세서·퇴직금). 근로자명부·퇴직금 클릭은 초과근로 미표시(기본정보만). 컨텍스트=`detailFrom`. (v2.1.0) |
 | `m/edoc.html` | 전자결재 SPA. 조회 + **결재(승인/반려·관리자 대행)·작성(업무일지/연차/초과근로)·삭제**. 로그인정보 `_me`=jh_login_perms. → 상세 `8_1_mobile_edoc` (v2.1.0) |
 | `m/admin.html` | 조직도(portal_users by dept) + Portal관리(계정 권한). `?v=org|admin`. 조직도 정렬: 대표 최상단 → 지정 부서순서 → 부서 내 사번순 (→ `5_org_chart.md` 모바일 조직도, 모바일 관리 2.7.0). |
 | `m/account.html` | 로그인 계정 정보 (jh_login_full + portal_users). |
-| `m/pjt.html` | PJT 앱 (아래 상세). |
+| `m/pjt.html` | PJT 앱 (아래 상세). 종료된 고정 PJT(FAB/SUP)는 홈 카드·딥링크에서 제외(모바일 PJT 5.3.0). |
+| `m/schedule.html` | 오늘 일정 통합(FAB·SUP·경량PJT). 종료된 고정 PJT 일정은 제외(1.0.1). |
 
 ---
 
@@ -124,3 +125,21 @@
 - `pjt.html?site=fab` / `?site=sup` 쿼리파라미터 딥링크 지원 추가 (카드 클릭 시 홈 경유 없이 해당 현장 바로 진입)
 
 상세 로그: `7_12_log_mobile_auth_fix.md` · 백업: `backup/v5.2.0/m/`
+
+---
+
+## 종료 PJT 모바일 반영 (2026-09-19 · 홈 2.7.1 / PJT 5.3.0 / 일정 1.0.1)
+
+**증상**: PC에서 P4 Ph4 (SUP)를 종료 처리해도 모바일 홈·PJT 관리에는 계속 노출됨.
+**원인**: 모바일은 FAB/SUP 카드를 코드에 고정해 두고 종료 상태를 확인하지 않음. (PC는 `pjt_settings/{p4ph2|p4ph4}.status==='ended'`로 사이드바에서 제거, 경량PJT는 `pjt_registry.status==='ended'` 필터가 모바일에도 이미 있었음)
+
+**규칙 (PC와 동일)**
+- 고정 PJT 종료 여부 = `pjt_settings/p4ph2`(FAB), `pjt_settings/p4ph4`(SUP)의 `status==='ended'` — `onSnapshot` 실시간 구독, PC에서 종료/재개하면 모바일도 즉시 반영.
+- `m/home.html`: FAB/SUP 카드 숨김 + "오늘 일정 N건" 집계에서 제외. 상태 확인 전에는 카드를 `visibility:hidden`으로 두어 깜빡임 방지, 조회 오류·3초 경과 시 카드 노출(숨김 고착 방지).
+- `m/pjt.html`: `isEndedSite()`로 홈 카드·`SITE()`·`?site=` 딥링크 제외. 상태 확인 전 `render()` 보류(`fixedLoaded`), 현장 화면을 보는 중 종료되면 홈으로 전환.
+- `m/schedule.html`: 종료된 고정 PJT 일정 제외. 상태 확인 전 로딩 유지.
+- 신규 경량PJT 즉시 노출 / 종료 즉시 제거 / 재개 시 재노출은 기존 `pjt_registry` 구독으로 정상 동작(이번에 재검증).
+
+**미변경**: `m/pjt_manday.html`(월간 공수) — PC 월간 공수도 FAB/SUP를 고정 표시하므로 동일 유지. 모바일 FAB/SUP 카드의 이름·설명은 `pjt_settings` 값과 동기화하지 않음(코드 고정 문구 유지). 카드 표시 순서 변경 없음.
+
+상세 로그: `7_40_log_mobile_ended_pjt_hide.md` · 백업: `backup/v2.7.1/m/home.html`, `backup/v5.3.0/m/pjt.html`, `backup/v1.0.1/m/schedule.html`
