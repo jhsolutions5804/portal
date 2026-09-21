@@ -1,7 +1,8 @@
 # 2.3. 인사 — 연봉계약서
 
 > Firestore 컬렉션: `annual_contracts/{workerId}/contracts/{yyyymmdd}`
-> 최초 작성: 2026-06-27 · 최종 수정: 2026-06-27 · 작성: 춘식이(Claude)
+> 최초 작성: 2026-06-27 · 최종 수정: 2026-09-19(양식 동결 참조) · 작성: 춘식이(Claude)
+> ℹ️ **저장 서류 양식 동결(2026-09-19, hr v2.4.1)** — 저장된 서류는 저장 당시 양식(`tplVer`)으로만 조회·PDF 출력. 상세 `2_9_hr_saved_doc_freeze.md`
 
 ---
 
@@ -152,7 +153,7 @@ renderAnnualMain()  ← 탭 진입, PC 테이블 (사원번호 순)
 | `renderAnnualRegister()` | 신규 작성 폼 (근로자 선택부터) |
 | `annualViewWorker2(wid, wname)` | 특정 근로자 계약서 카드 목록 |
 | `annualDeleteContract2(wid, cid, wname)` | 계약서 삭제 |
-| `annualPreviewSaved2(d)` | 저장된 계약서 PDF 출력 |
+| `annualPreviewSaved2(d)` | 저장된 계약서 PDF 출력 (저장 당시 양식 — `tplVer`, 전역 폼 미변경) |
 | `annualWorkerSelect2(wid)` | 근로자 선택 시 정보 + 시급 자동 채움 |
 | `annualUpdateSalaryPreview()` | 시급 → 급여 구성 실시간 계산 |
 | `annualPreview2()` | A4 PDF 미리보기 새창 |
