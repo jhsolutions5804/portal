@@ -1,9 +1,10 @@
 # 2.2. 인사 — 근로계약서
 
 > Firestore 컬렉션: `labor_contracts/{workerId}/contracts/{yyyymmdd}`
-> 최초 작성: 2026-06-26 · 최종 수정: 2026-06-27 · 작성: 춘식이(Claude)
+> 최초 작성: 2026-06-26 · 최종 수정: 2026-09-19(양식 동결 참조) · 작성: 춘식이(Claude)
 
 > ℹ️ **연봉계약서(2.3)는 `2_3_hr_annual.md`로 분리됨** (2026-06-27)
+> ℹ️ **저장 서류 양식 동결(2026-09-19, hr v2.4.1)** — 저장된 서류는 저장 당시 양식(`tplVer`)으로만 조회·PDF 출력. 상세 `2_9_hr_saved_doc_freeze.md`
 
 ---
 
@@ -113,4 +114,4 @@ annual   = (basic + fixedOt + weekly) × 12
 | `laborPreview2()` | A4 PDF 새창 |
 | `laborSave2()` | Firestore 저장 |
 | `laborDeleteContract2(wid,cid,wname)` | 계약서 삭제 |
-| `laborPreviewSaved2(d)` | 저장된 계약서 PDF 출력 |
+| `laborPreviewSaved2(d)` | 저장된 계약서 PDF 출력 (저장 당시 양식 — `tplVer`) |
