@@ -1,7 +1,7 @@
 # 2.8. 인사 — 근로시간
 
 > Firestore 컬렉션: `worker_attendance_log/{workerId}_{date}` (직원 개인 출퇴근 기록, edoc 출퇴근 기록 탭에서 작성)
-> 최초 작성: 2026-08-29 · 작성: 춘식이(Claude)
+> 최초 작성: 2026-08-29 · 최종 수정: 2026-09-23(v2.7.0, 관리자 휴가 직접 부여 추가) · 작성: 춘식이(Claude)
 
 ---
 
@@ -24,6 +24,21 @@
   - 🔵 파랑: 정상 근무 / 🟡 노랑: 연차·휴가(승인된 것만, `leaveOnDate`로 결근과 구분) / 🔴 빨강: 평일 결근(기록·연차 둘 다 없음) / 🟣 보라: 휴일근무 / 주황 점: 관리자 수정 표시(`updatedByAdmin:true`)
 - 팝업 내 "📋 업무일지" 버튼 → `otShowDailyReport(workerName, date)` — `edoc_daily`를 `authorName`+`date`로 조회해 그 날짜 업무일지 표시.
 - 좌측 하단 옛 "➕ 초과근로 입력" 폼(overtime 컬렉션 수동입력)은 제거됨. 초과근로수당(급여 연동)은 이제 실근무기록 기반으로 급여명세서 작성 시 자동 계산되므로 불필요.
+
+## 관리자 휴가 직접 부여 (v2.7.0, 2026-09-23)
+
+**요청**: 대표님 — 근로시간 탭에서 연차·근무시간을 관리자가 직접 넣을 수 있게 해달라. (근무시간 직접 입력은 위 `otAttOpenEdit`으로 기존에 있었음 — 이번 건은 휴가 쪽 보완이며, 헷갈리지 않도록 "➕ 기록 추가" 버튼명도 "➕ 근무시간 추가"로 바꿈.)
+
+기존에는 관리자가 연차를 직접 등록하려면 "연차 현황" 탭으로 이동해 `openLeaveAdminForm()`을 열어야 했다. 근로시간 탭에서 근무 내역을 보다가 바로 휴가를 넣거나 고칠 수 있도록 진입 경로를 추가했다(신규 로직 없이 기존 `edoc_leave` 등록 폼을 재사용).
+
+- **`otPcShowPersonDetail` 헤더**: "🌴 휴가 부여" 버튼 추가 → 오늘 날짜로 `openLeaveAdminForm(null, preset)` 호출.
+- **`otAttOpenEdit`(날짜 클릭 모달)**: 상단에 그 날짜의 휴가 상태를 보여주는 배너 삽입.
+  - 이미 승인/게시된 연차 기간에 포함된 날짜 → `🌴 OO 기간입니다 (시작~종료)` + `수정/삭제` 버튼(해당 `edoc_leave` 문서 id로 편집 모드 오픈).
+  - 휴가가 없는 날짜 → `🌴 이 날짜에 휴가 부여` 버튼(그 날짜를 시작·종료일로 프리필한 신규 등록 모드 오픈).
+  - 날짜별 조회를 위해 `otPcShowPersonDetail`이 로드한 해당 근로자의 연차 목록을 `_otLeaveCache[workerName]`(id 포함)에 캐시해 둔다.
+- **`openLeaveAdminForm(editId, preset)`**: `preset`(근로자명·날짜·복귀정보) 파라미터 추가. `preset.workerName`으로 근로자 선택 드롭다운을 프리필하고, `preset.date`를 시작일·종료일 기본값으로 채운다. 기존 "연차 현황" 탭에서의 무인자 호출은 그대로 동작(하위호환).
+- **복귀 처리**: 모달에 `dataset.returnJson`으로 "어디서 열렸는지"(`{type:'ot', workerId, workerName, rank}`)를 심어두고, 저장/삭제 후 `leaveAdminReturn()`이 이를 읽어 근로시간 탭에서 열렸으면 `otPcShowPersonDetail`로, 아니면 기존처럼 `renderLeaveStatusMain()`으로 되돌아간다.
+- 저장되는 데이터는 기존 "연차 현황"의 관리자 등록과 완전히 동일(`edoc_leave`, `adminCreated:true`, `status:'posted'`) — 별도 컬렉션·필드 추가 없음.
 
 ## 관련 함수 위치 (hr/index.html)
 
