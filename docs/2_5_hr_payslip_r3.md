@@ -1,7 +1,7 @@
 # 2.5. 인사 — 급여명세서
 
 > Firestore 컬렉션: `payslips/{workerId}/months/{yyyy-mm}`
-> 최초 작성: 2026-06-26 · 최종 수정: 2026-09-19(양식 동결 참조)·08-29(r7)-23(r6)-22(r5)-03(r4)-29(r3)-27(r2) · 작성: 춘식이(Claude)
+> 최초 작성: 2026-06-26 · 최종 수정: 2026-09-19(양식 동결 참조)·08-29(r7)-23(r6)-22(r5)-03(r4)-29(r3)-27(r2) · 최종 개정: 2026-09-24(여비교통비 근로시간 연동)
 
 > ℹ️ **저장 서류 양식 동결(2026-09-19, hr v2.4.1)** — 저장된 서류는 저장 당시 양식(`tplVer`)으로만 조회·PDF 출력. 상세 `2_9_hr_saved_doc_freeze.md`
 > 저장 시 `tplVer` 필드 추가. 저장 명세서 조회(`psViewDetail`)는 재계산 없이 저장값 그대로 출력.
@@ -227,7 +227,15 @@ PC 급여명세서 작성 화면에서 **상여금(초과근로)·특별상여·
 ### 급여명세서 화면 UI
 지급내역 카드/인쇄용 명세서에 "휴일근로수당" 행 신규 추가, 라벨을 "기본근로수당/연장근로수당/야간근로수당"으로 통일. 실근무시간·인정시간·초과/부족시간·개근 판정 결과를 요약 정보로 함께 표시. 인쇄용 명세서 표는 `colgroup`으로 열 너비 고정 + `white-space:nowrap`으로 라벨 줄바꿈 문제 해결, 하단 "산출식" 문구를 새 계산 로직에 맞게 갱신.
 
+### 여비교통비 근로시간 연동 (2026-09-24)
+
+여비교통비(`travelItems`, 유형별 일수)를 급여명세서에서 매번 수기 입력하지 않도록, 근로시간 탭에서 미리 체크해둔 출장일을 그대로 불러오는 기능. 출장 체크 자체는 `2_8_hr_worktime.md` 참고.
+
+- `psFetchAttendanceData`가 해당 월 `worker_attendance_log` 중 `isBusinessTrip:true`인 날짜를 `{date, tripType}` 배열로 모아 `ps.attBusinessTrips`에 캐싱.
+- 여비교통비 입력 영역에 "📥 근로시간에서 불러오기(N일)" 버튼(`psImportTravelFromAttendance`) 추가 — 클릭 시 `tripType`별로 일수를 집계해 `travelItems`에 반영(기존 수기 입력값은 덮어씀 — 불러온 뒤 필요하면 수동 조정).
+- PC·모바일 두 화면 모두 동일하게 버튼 추가.
+
 ### 관련 함수 (hr/index.html)
-`calcAnnualSalary`(고정수당 0으로 변경), `psFetchAttendanceData`, `hrComputeLeaveHoursForMonth`, `hrCalcNightHours`, `hrCalcWeeklyHolidayPay`, `hrCalcHolidayPay`, `psCalcAll`(전면 개편)
+`calcAnnualSalary`(고정수당 0으로 변경), `psFetchAttendanceData`, `hrComputeLeaveHoursForMonth`, `hrCalcNightHours`, `hrCalcWeeklyHolidayPay`, `hrCalcHolidayPay`, `psCalcAll`(전면 개편), `psImportTravelFromAttendance`(2026-09-24 추가)
 
 상세 기술 배경은 `2_8_hr_worktime.md` 참고.
