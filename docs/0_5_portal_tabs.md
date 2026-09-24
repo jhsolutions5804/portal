@@ -1,7 +1,7 @@
 # 0.5. 포털 — 다중 작업탭 (하단 탭바)
 
 > 대상: `index.html` (포털 셸 전체 — 특정 모듈이 아닌 임베드 프레임워크 자체)
-> 최초 작성: 2026-09-23 · 작성: 춘식이(Claude)
+> 최초 작성: 2026-09-23 · 최종 개정: 2026-09-24 · 작성: 춘식이(Claude)
 
 ---
 
@@ -13,19 +13,22 @@
 
 포털은 기획/인사/전자결재/PJT 각 모듈을 `iframe#emb-frame` **하나**에 로드하는 구조였다(`openModule`). 다른 메뉴를 열면 그 iframe의 `src`를 바꿔치기해서 기존 화면(스크롤 위치, 입력하던 내용, 열어둔 모달 등)이 통째로 사라졌다 — 메뉴를 자주 오가는 실사용 패턴과 안 맞았다.
 
-## 구현
+## 구현 (2026-09-24 재설계 — 서브탭 단위 분리)
 
 **핵심 아이디어**: iframe을 하나가 아니라 **탭 개수만큼** 만들어 두고, 활성 탭만 `display:block`, 나머지는 `display:none`으로 숨긴다. 화면 전환이 곧 "재로딩 없는 표시 전환"이 되어 상태가 보존된다.
 
-- **탭 단위**: 모듈(`m.key`, 예: `hr`)이거나 개별 워크스페이스(`overrideUrl`, 예: 특정 PJT `pjt/`). 같은 모듈 안에서 서브탭(예: 인사의 근로자명부→급여명세서)을 바꾸는 것은 새 탭을 만들지 않고 **기존처럼 `postMessage`로 그 탭의 iframe 안에서만** 처리한다(`{source:'jh-portal', action:'goTab', key}` — 각 모듈의 `window.addEventListener('message', ...)` 수신부는 무수정).
+- **탭 단위 (2026-09-24 변경)**: 처음엔 탭 단위가 모듈(`m.key`)이라 같은 모듈 안의 서브탭(예: 인사의 근로자명부→퇴직금정산)은 기존 탭을 재사용·재라벨링했는데, 대표님 피드백으로 **서브탭(세부 메뉴) 단위**로 재설계했다 — 기획>프로젝트와 기획>견적처럼 같은 모듈이라도 서로 다른 세부 메뉴를 열면 각각 별도 탭으로 열려 하단 탭바에서 바로 오갈 수 있다. `overrideUrl`이 있는 개별 워크스페이스(예: 특정 PJT `pjt/`)는 기존과 동일하게 그 자체가 탭 단위.
+- **탭 이름·아이콘**: 상위 모듈명이 아니라 **실제 서브탭(세부 메뉴)의 이름·이모지**를 사용(`SUBTABS[m.key].find(s=>s.key===subKey)`). 모듈명 고정이던 예전 버전의 "업무일지 메뉴인데 탭엔 '전자결재'로 나온다"는 문제를 해결.
 - **`openModule(m, tab, overrideUrl)` 재작성**:
-  - 이미 열려 있는 탭(`jhTabId(m, overrideUrl)`로 식별)이면 **재로딩 없이** 그 탭을 활성화만 하고, 서브탭 지정이 있으면 postMessage.
-  - 없으면 새 iframe(`jhMakeFrame`)을 만들어 `#emb-frame-stack`에 추가하고 탭 목록(`jhTabs`)에 등록.
-  - 이미 10개(`JH_TABS_MAX`)면 새로 열지 않고 안내(`탭은 최대 10개까지 열 수 있습니다. 먼저 하단에서 탭을 닫아주세요.`).
+  - 탭 id는 `jhTabId(m, overrideUrl, tab)` — `overrideUrl` 있으면 `ov:<url>`, `SUBTABS[m.key]` 있으면 `sub:<모듈key>:<서브탭key>`, 둘 다 없으면 `m:<모듈key>`.
+  - 이미 열려 있는 서브탭 탭이면 **재로딩 없이** 활성화만 한다(예전처럼 postMessage로 기존 탭 내용을 바꿔치기하지 않음 — 각 서브탭이 처음부터 자기 iframe을 가짐).
+  - 없으면 새 iframe(`jhMakeFrame`)을 `?tab=<서브탭key>`로 만들어 `#emb-frame-stack`에 추가하고 탭 목록(`jhTabs`)에 등록 — 각 모듈 앱은 원래도 `tab` 쿼리파라미터로 초기 화면을 결정했으므로 앱 쪽 코드 변경 없이 그대로 동작.
+  - 이미 10개(`JH_TABS_MAX`)면 새로 열지 않고 안내.
+- **탭 라벨 실시간 동기화 (신규)**: 사이드바를 거치지 않고 임베드된 앱 **내부**에서 사용자가 직접 화면을 이동하는 경우(예: 업무일지 화면 안의 "🏠 전자결재 홈" 버튼)도 하단 탭 라벨이 실제 화면과 어긋나지 않도록, 각 앱(`edoc`/`hr`/`gihoek`)의 `goTab`/`tab` 함수가 `portal-embed` 모드일 때 `window.parent.postMessage({source:'jh-embed', mod, key}, '*')`로 알려주고, 포털은 `e.source`(메시지를 보낸 iframe의 contentWindow)로 정확히 어느 탭인지 특정해 라벨·이모지·상단 타이틀을 갱신한다. 여러 탭이 동시에 열려 있어도 모듈명만으로 매칭하지 않고 `e.source` 기준으로 특정하므로 안전하다.
 - **`jhActivateTab(id)`**: 모든 탭의 iframe display를 토글하고, 상단 타이틀·"새 창에서 열기" 링크·사이드바 활성 표시(`_activeMod`/`_activeSub`)를 갱신한 뒤 `showView('embed')`.
 - **`jhCloseTab(id)`**: 해당 iframe을 DOM에서 제거하고 탭 목록에서 삭제. 닫은 탭이 활성 탭이었으면 인접 탭으로 전환하고, 마지막 탭이었으면 포털 홈으로 돌아간다.
 - **`jhRenderTabbar()`**: `#jh-tabbar`(하단, `.main` 안쪽이라 사이드바와 안 겹침)에 탭 목록을 그린다. 탭이 없으면 숨김.
-- **세션 복원**: `jhSaveTabs()`가 탭 메타(iframe DOM 제외, url·이름·서브탭 등)를 `sessionStorage`에 저장하고, 로그인 직후(`enterPortal()` → `jhRestoreTabs()`) 같은 세션 안에서 새로고침해도 열려 있던 탭 목록과 iframe이 복원된다. 단, 화면은 강제로 전환하지 않고(포털 홈에서 시작) 활성 탭 표시도 초기화한다 — 클릭해야 보여준다. iframe 안 입력 내용까지 복원되진 않는다(iframe 자체를 새로 불러오기 때문).
+- **새로고침 시 항상 초기화 (2026-09-24 변경)**: 처음엔 `sessionStorage`로 탭 목록을 저장해뒀다가 같은 세션 안에서 새로고침해도 복원되게 했는데, 대표님 요청으로 **복원 기능을 제거**했다. `jhRestoreTabs()`(로그인/새로고침 시 1회 호출)는 이제 저장된 탭을 불러오는 대신 `jhTabs`를 비우고 `sessionStorage`의 관련 키를 지운다 — 새로고침하면 항상 하단 탭 없이 포털 홈부터 시작. `jhSaveTabs()` 자체는 그대로 남아 있지만(탭 생성·전환·닫기마다 호출) 다음 새로고침 때 읽히지 않으므로 사실상 미사용 상태.
 
 ## 제약·주의사항
 
@@ -39,12 +42,12 @@
 | 함수 | 역할 |
 |------|------|
 | `openModule(m, tab, overrideUrl)` | 탭 오픈/재사용 진입점 (기존 함수, 내부만 재작성) |
-| `jhTabId(m, overrideUrl)` | 탭 고유 id 생성 (`m:<key>` 또는 `ov:<url>`) |
+| `jhTabId(m, overrideUrl, tab)` | 탭 고유 id 생성 (`sub:<모듈key>:<서브탭key>` / `ov:<url>` / `m:<모듈key>`) |
 | `jhMakeFrame(name, fullUrl)` | 탭용 iframe 생성 (절대 위치 스택) |
 | `jhActivateTab(id)` / `jhCloseTab(id, evt)` | 탭 전환 / 닫기 |
 | `jhRenderTabbar()` | 하단 탭바 렌더 |
-| `jhSaveTabs()` / `jhRestoreTabs()` | sessionStorage 저장·복원 (`enterPortal()`에서 1회 호출) |
+| `jhSaveTabs()` / `jhRestoreTabs()` | sessionStorage 저장(사용은 하지만 복원은 안 함) / 새로고침 시 탭 초기화 (`enterPortal()`에서 1회 호출) |
 
-## 검증
+## 검증 (2026-09-23, 최초 구현 시점)
 
-jsdom으로 탭 관리 로직만 추출해 37개 시나리오 검증(관리자 권한, 탭 생성/재사용/전환/닫기, iframe 재생성 없음, postMessage 서브탭 전환, 10개 초과 차단, 세션 저장/복원) — 전부 통과.
+jsdom으로 탭 관리 로직만 추출해 37개 시나리오 검증(관리자 권한, 탭 생성/재사용/전환/닫기, iframe 재생성 없음, postMessage 서브탭 전환, 10개 초과 차단, 세션 저장/복원) — 전부 통과. (2026-09-24 재설계분은 node --check 구문 검증 + 수동 시나리오 확인으로 검증.)
