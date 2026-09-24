@@ -1,7 +1,7 @@
 # 2.8. 인사 — 근로시간
 
 > Firestore 컬렉션: `worker_attendance_log/{workerId}_{date}` (직원 개인 출퇴근 기록, edoc 출퇴근 기록 탭에서 작성)
-> 최초 작성: 2026-08-29 · 최종 수정: 2026-09-23(v2.7.0, 관리자 휴가 직접 부여 추가) · 작성: 춘식이(Claude)
+> 최초 작성: 2026-08-29 · 최종 수정: 2026-09-23(v2.7.0, 관리자 휴가 직접 부여 추가) · 최종 개정: 2026-09-24(출장 체크 + 여비교통비 연동) · 작성: 춘식이(Claude)
 
 ---
 
@@ -39,6 +39,15 @@
 - **`openLeaveAdminForm(editId, preset)`**: `preset`(근로자명·날짜·복귀정보) 파라미터 추가. `preset.workerName`으로 근로자 선택 드롭다운을 프리필하고, `preset.date`를 시작일·종료일 기본값으로 채운다. 기존 "연차 현황" 탭에서의 무인자 호출은 그대로 동작(하위호환).
 - **복귀 처리**: 모달에 `dataset.returnJson`으로 "어디서 열렸는지"(`{type:'ot', workerId, workerName, rank}`)를 심어두고, 저장/삭제 후 `leaveAdminReturn()`이 이를 읽어 근로시간 탭에서 열렸으면 `otPcShowPersonDetail`로, 아니면 기존처럼 `renderLeaveStatusMain()`으로 되돌아간다.
 - 저장되는 데이터는 기존 "연차 현황"의 관리자 등록과 완전히 동일(`edoc_leave`, `adminCreated:true`, `status:'posted'`) — 별도 컬렉션·필드 추가 없음.
+
+## 출장(여비교통비 연동) 체크 (2026-09-24, hr v2.1x)
+
+**요청 배경**: 급여명세서 여비교통비 항목을 매번 수기로 입력하지 않고, 근로시간 탭에서 이미 관리하는 출퇴근 기록에 "이 날은 출장"만 체크해두면 급여명세서 작성 시 자동으로 불러오도록 함.
+
+- **`otAttOpenEdit`(날짜 클릭 모달)**에 "✈️ 출장" 체크박스 추가(`#ot-att-trip`, `otAttTripToggle(this)`). 체크하면 출장 유형 선택 드롭다운이 나타남(`PS_TRAVEL_TYPE_LABEL` — 급여명세서 여비교통비 유형과 동일한 목록, `#ot-att-triptype`).
+- **저장**(`otAttSave`): `worker_attendance_log` 레코드에 `isBusinessTrip`(bool)·`tripType`(문자열) 필드로 함께 저장. 체크 해제 시 `tripType`은 빈 문자열.
+- **캘린더 표시**(`otRenderAttendanceCalendar`): 출장일은 ✈️ 아이콘 표시, 상세 카드 헤더에 "이번달 출장 N일" 요약.
+- **급여명세서 연동**: `psFetchAttendanceData`가 해당 월 출퇴근 기록을 모을 때 `isBusinessTrip:true`인 날짜들을 `businessTrips: [{date, tripType}]` 배열로 함께 반환(`ps.attBusinessTrips`에 캐시). 급여명세서 여비교통비 입력란의 "📥 근로시간에서 불러오기" 버튼(`psImportTravelFromAttendance`)을 누르면 `tripType`별로 일수를 집계해 여비교통비 항목에 자동 반영 — 상세는 `2_5_hr_payslip_r3.md` 참고.
 
 ## 관련 함수 위치 (hr/index.html)
 
