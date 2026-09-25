@@ -1,7 +1,7 @@
 # 2.8. 인사 — 근로시간
 
 > Firestore 컬렉션: `worker_attendance_log/{workerId}_{date}` (직원 개인 출퇴근 기록, edoc 출퇴근 기록 탭에서 작성)
-> 최초 작성: 2026-08-29 · 최종 수정: 2026-09-23(v2.7.0, 관리자 휴가 직접 부여 추가) · 최종 개정: 2026-09-24(출장 체크 + 여비교통비 연동) · 작성: 춘식이(Claude)
+> 최초 작성: 2026-08-29 · 최종 수정: 2026-09-23(v2.7.0, 관리자 휴가 직접 부여 추가) · 최종 개정: 2026-09-25(v2.13.0, 반차 4h 판정 강건화 + 근로시간 탭 퇴사자 월별 필터) · 작성: 춘식이(Claude)
 
 ---
 
@@ -48,6 +48,16 @@
 - **저장**(`otAttSave`): `worker_attendance_log` 레코드에 `isBusinessTrip`(bool)·`tripType`(문자열) 필드로 함께 저장. 체크 해제 시 `tripType`은 빈 문자열.
 - **캘린더 표시**(`otRenderAttendanceCalendar`): 출장일은 ✈️ 아이콘 표시, 상세 카드 헤더에 "이번달 출장 N일" 요약.
 - **급여명세서 연동**: `psFetchAttendanceData`가 해당 월 출퇴근 기록을 모을 때 `isBusinessTrip:true`인 날짜들을 `businessTrips: [{date, tripType}]` 배열로 함께 반환(`ps.attBusinessTrips`에 캐시). 급여명세서 여비교통비 입력란의 "📥 근로시간에서 불러오기" 버튼(`psImportTravelFromAttendance`)을 누르면 `tripType`별로 일수를 집계해 여비교통비 항목에 자동 반영 — 상세는 `2_5_hr_payslip_r3.md` 참고.
+
+## 반차 4h 판정 강건화 (2026-09-25, hr v2.13.0)
+
+**증상**: 반차(半日) 사용 시 근무시간 환산이 8h로 잘못 반영되는 사례 발견(연차 1일+반차 1일인데 유급휴가 반영이 12h가 아니라 16h로 집계).
+
+**조치**: `hrComputeLeaveHoursForMonth`의 반차 판정을 `leaveType` 문자열에 "반차"가 포함되는지만 보던 것에서, 저장된 `days`/`leaveDays` 필드가 0.5인 경우도 반차로 인정하도록 OR 조건으로 강건화(`/반차/.test(leaveType) || days===0.5 || leaveDays===0.5`). 관리자 휴가부여 모달(`la-type` select)에서도 반차 선택 시 일수 입력칸이 자동으로 0.5로 맞춰지도록 `onchange` 핸들러 추가 — 관리자가 일수를 수동으로 고치는 걸 깜빡해 `leaveType`은 반차인데 `days`는 기본값 1로 남는 경우를 예방. **edoc의 동일 함수도 같은 방식으로 강건화**(양쪽 로직 통일 원칙 유지).
+
+## 근로시간 탭 — 퇴사자는 퇴사월까지만 표시 (2026-09-25, hr v2.13.0)
+
+기존엔 `otPcInit`이 `workers` 컬렉션 전체를 조건 없이 불러와 퇴사자도 모든 달에 계속 노출됐음. `otFilterWorkersForMonth(workers, year, month)`를 신설해, `status==='resigned'`인 근로자는 `resignDate`가 속한 달까지만 목록에 남고 그 이후 달로 이동하면 사라지도록 수정. 월 이동(`otPcChangeMonth`)마다 목록을 다시 필터링·재렌더링(`otRenderWorkerListHtml`).
 
 ## 관련 함수 위치 (hr/index.html)
 
