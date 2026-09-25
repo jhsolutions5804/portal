@@ -1,4 +1,7 @@
-# 3.4. 전자결재 — 초과근로 결재 (r6)
+# 3.4. 전자결재 — 초과근로 결재 (REMOVED 2026-09-25)
+
+> ⚠️ 2026-09-25부로 초과근로 결재 기능 자체가 PC·모바일에서 완전히 제거됨. 초과근로는 출퇴근 기록(`3_5_edoc_attendance_mycard.md`)만으로 관리하며, 인사 모듈(`hr/index.html`)의 `overtime` 컬렉션 수기 입력으로 대체함. 상세 경위는 `3_6_mobile_edoc_parity_2026-09-25.md` §8 참고.
+> 아래는 제거 전(r6까지) 구현 기록이며 더 이상 유효하지 않음 — 참고용으로만 보존.
 
 > Firestore 컬렉션: `edoc_overtime`, `overtime`, `annual_contracts/{workerId}/contracts`, `workers`
 > 최초 작성: 2026-07-06 · 최종 수정: 2026-07-26(r6, 목록 노출 로직을 canView 표준 패턴으로 재수정) · 작성: 춘식이(Claude) · 릴리스: v2.1.0 → v2.1.1 → v2.6.2 → v2.6.4 → v2.6.7

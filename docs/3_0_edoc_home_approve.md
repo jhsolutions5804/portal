@@ -1,7 +1,7 @@
 # 3.0. 전자결재 — 홈 · 결재함
 
-> Firestore 컬렉션: `edoc_daily`, `edoc_leave`, `edoc_resign`, `edoc_cert`, `edoc_purchase`, `edoc_expense`, `edoc_overtime`, `portal_users`
-> 최종 수정: 2026-08-05 (fetchEdocDocs 스코프 버그 수정 · r5) · 최초 작성: 2026-07-01 · 작성: 춘식이(Claude)
+> Firestore 컬렉션: `edoc_daily`, `edoc_leave`, `edoc_resign`, `edoc_cert`, `edoc_purchase`, `edoc_expense`, `portal_users` (`edoc_overtime`는 2026-09-25부로 기능 제거, 3_4 참고)
+> 최종 수정: 2026-09-25 (결재함을 결재대기/결재완료 2탭 → 결재단계·서류종류·작성자 3종 필터 방식으로 전면 교체, 모바일과 동일화. 상세는 `3_6_mobile_edoc_parity_2026-09-25.md` §9) · 2026-08-05 (fetchEdocDocs 스코프 버그 수정 · r5) · 최초 작성: 2026-07-01 · 작성: 춘식이(Claude)
 
 ---
 
