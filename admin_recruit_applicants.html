@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title>채용 지원자 검토</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; }
+  body{font-family:-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Pretendard",sans-serif;background:#f5f5f7;color:#1A2540;margin:0;padding:24px;max-width:1000px;margin:0 auto}
+  h1{font-size:19px;margin:16px 0 4px}
+  .sub{color:#86868b;font-size:13px;margin-bottom:20px}
+  .card{background:#fff;border:1px solid #e5e5e5;border-radius:14px;padding:20px;margin-bottom:16px}
+  button{font-size:13px;font-weight:600;padding:8px 16px;border-radius:9px;border:1px solid #1D5BA6;background:#1D5BA6;color:#fff;cursor:pointer}
+  button.ghost{background:#fff;color:#1D5BA6}
+  button:disabled{opacity:.4;cursor:not-allowed}
+  select{font-size:12px;padding:5px 8px;border-radius:7px;border:1px solid #dcdcdc;background:#fff}
+  table{width:100%;border-collapse:collapse;margin-top:10px;font-size:13px}
+  th,td{text-align:left;padding:9px 10px;border-bottom:1px solid #eee;vertical-align:middle}
+  th{color:#86868b;font-weight:600;font-size:12px}
+  tr:hover td{background:#FAFBFF}
+  .job-tag{display:inline-block;font-size:11px;font-weight:700;color:#1D5BA6;background:#EAF3FD;padding:2px 8px;border-radius:10px}
+  .status-badge{font-size:11px;font-weight:700;padding:3px 9px;border-radius:10px}
+  .st-new{background:#EAF3FD;color:#1D5BA6}
+  .st-review{background:#FEF3C7;color:#92400E}
+  .st-pass{background:#DCFCE7;color:#166534}
+  .st-fail{background:#FEE2E2;color:#991B1B}
+  #status{font-size:13px;color:#86868b;margin-top:10px;white-space:pre-wrap;line-height:1.6}
+  .filter-row{display:flex;gap:10px;align-items:center;margin-bottom:14px;flex-wrap:wrap}
+  .filter-row select{font-size:13px;padding:7px 10px}
+
+  /* 상세 모달 */
+  #modalBg{display:none;position:fixed;inset:0;background:rgba(17,24,39,0.45);z-index:200;align-items:flex-start;justify-content:center;overflow-y:auto;padding:40px 16px;}
+  #modal{background:#fff;border-radius:16px;max-width:640px;width:100%;padding:30px 32px;margin-bottom:40px;}
+  #modal h2{font-size:17px;margin-bottom:16px}
+  #modal table{font-size:12.5px}
+  #modal th{background:#EAF3FD;color:#1D5BA6;width:100px;white-space:nowrap}
+  #modal td,#modal th{border:1px solid #E5EDF7;padding:8px 10px}
+  #modal .sec{background:#1D5BA6;color:#fff;font-weight:700;padding:7px 10px;font-size:12.5px;margin-top:14px;border-radius:6px 6px 0 0}
+  #modal .close{float:right;background:none;border:none;color:#86868b;font-size:18px;cursor:pointer;padding:0}
+  #modal .print-btn{float:right;margin-right:10px}
+  .empty-hint{color:#B0BAC7;font-style:italic}
+
+  @media print {
+    @page { margin: 12mm; }
+    html, body { overflow-x: visible !important; width:auto !important; }
+    body > *:not(#modalBg){display:none !important}
+    #modalBg{position:static !important;background:none !important;padding:0 !important;display:block !important;overflow:visible !important;inset:auto !important;}
+    #modal{box-shadow:none !important;max-width:100% !important;width:100% !important;margin:0 !important;padding:0 !important;border-radius:0 !important;}
+    #modal .close, #modal .print-btn{display:none !important}
+    #modal table{width:100% !important;table-layout:fixed;font-size:11px;}
+    #modal th{width:auto !important;}
+  }
+</style>
+</head>
+<body>
+  <h1>📋 채용 지원자 검토</h1>
+  <div class="sub">recruit.html 지원 폼을 통해 접수된 지원자 목록입니다 · 관리자 전용</div>
+
+  <div id="gate" class="card">로그인 확인 중...</div>
+
+  <div id="tool" class="card" style="display:none">
+    <div class="filter-row">
+      <select id="jobFilter" onchange="render()"><option value="">전체 공고</option></select>
+      <select id="statusFilter" onchange="render()">
+        <option value="">전체 상태</option>
+        <option value="new">신규</option>
+        <option value="review">검토중</option>
+        <option value="pass">합격</option>
+        <option value="fail">불합격</option>
+      </select>
+      <button class="ghost" onclick="load()">🔄 새로고침</button>
+    </div>
+    <div id="status">불러오는 중...</div>
+    <div id="tableWrap"></div>
+  </div>
+
+  <div id="modalBg" onclick="if(event.target===this) closeModal()">
+    <div id="modal"></div>
+  </div>
+
+<script type="module">
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
+import { getFirestore, collection, getDocs, doc, getDoc, updateDoc, orderBy, query }
+  from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+import { getAuth, onAuthStateChanged }
+  from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
+
+const firebaseConfig = {
+  apiKey: "AIzaSyCyQxBJ_ftfM0ImBXubmqD5gfzFR54iPmE",
+  authDomain: "p4ph2-fab-506a7.firebaseapp.com",
+  projectId: "p4ph2-fab-506a7",
+  storageBucket: "p4ph2-fab-506a7.firebasestorage.app",
+  messagingSenderId: "36946317914",
+  appId: "1:36946317914:web:c6ad5f3a1b98130c99fe63"
+};
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+const auth = getAuth(app);
+
+const STATUS_LABEL = { new:'신규', review:'검토중', pass:'합격', fail:'불합격' };
+let applicants = [];
+
+
+const gateEl = document.getElementById('gate');
+const toolEl = document.getElementById('tool');
+const statusEl = document.getElementById('status');
+const tableWrap = document.getElementById('tableWrap');
+
+onAuthStateChanged(auth, async (user) => {
+  if (!user){
+    gateEl.innerHTML = '🔒 로그인이 필요합니다. <a href="https://portal.jhsol.kr/">portal.jhsol.kr</a>에서 먼저 로그인한 뒤, 이 페이지를 새로고침 해주세요.';
+    return;
+  }
+  try{
+    const uSnap = await getDoc(doc(db,'portal_users',user.uid));
+    const uData = uSnap.exists() ? uSnap.data() : null;
+    const ok = !!(uData && uData.status==='approved' && uData.admin===true);
+    if (!ok){ gateEl.innerHTML = '🔒 관리자 권한이 있는 계정만 조회할 수 있습니다.'; return; }
+    gateEl.style.display = 'none';
+    toolEl.style.display = 'block';
+    await load();
+  }catch(e){ gateEl.innerHTML = '오류: ' + e.message; }
+});
+
+window.load = async function(){
+  statusEl.textContent = '불러오는 중...';
+  try{
+    const q = query(collection(db,'recruit_applicants'), orderBy('createdAt','desc'));
+    const snap = await getDocs(q);
+    applicants = snap.docs.map(d => ({ id:d.id, ...d.data() }));
+    const jobFilter = document.getElementById('jobFilter');
+    const jobs = [...new Set(applicants.map(a=>a.jobTitle).filter(Boolean))];
+    jobFilter.innerHTML = '<option value="">전체 공고</option>' + jobs.map(j=>`<option value="${esc(j)}">${esc(j)}</option>`).join('');
+    statusEl.textContent = `총 ${applicants.length}건`;
+    render();
+  }catch(e){
+    statusEl.textContent = '오류: ' + e.message;
+  }
+}
+
+function esc(s){ return (s||'').toString().replace(/</g,'&lt;'); }
+function fmtDate(ts){
+  if (!ts) return '-';
+  const d = ts.toDate ? ts.toDate() : new Date(ts);
+  return d.getFullYear()+'.'+String(d.getMonth()+1).padStart(2,'0')+'.'+String(d.getDate()).padStart(2,'0')+' '+String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');
+}
+
+window.render = function(){
+  const jobF = document.getElementById('jobFilter').value;
+  const stF = document.getElementById('statusFilter').value;
+  const list = applicants.filter(a =>
+    (!jobF || a.jobTitle===jobF) && (!stF || (a.status||'new')===stF)
+  );
+  if (!list.length){
+    tableWrap.innerHTML = `<p class="empty-hint" style="padding:20px 0;">조건에 맞는 지원자가 없습니다.</p>`;
+    return;
+  }
+  tableWrap.innerHTML = `
+  <table>
+    <tr><th>이름</th><th>연락처</th><th>공고</th><th>제출일</th><th>상태</th><th></th></tr>
+    ${list.map(a => `
+      <tr>
+        <td>${esc(a.name)}</td>
+        <td>${esc(a.phone)}</td>
+        <td>${a.jobTitle ? `<span class="job-tag">${esc(a.jobTitle)}</span>` : '-'}</td>
+        <td>${fmtDate(a.createdAt)}</td>
+        <td>
+          <select onchange="changeStatus('${a.id}', this.value)">
+            ${Object.entries(STATUS_LABEL).map(([k,label])=>`<option value="${k}" ${(a.status||'new')===k?'selected':''}>${label}</option>`).join('')}
+          </select>
+        </td>
+        <td><button class="ghost" onclick="openDetail('${a.id}')">상세보기</button></td>
+      </tr>`).join('')}
+  </table>`;
+}
+
+window.changeStatus = async function(id, newStatus){
+  try{
+    await updateDoc(doc(db,'recruit_applicants',id), { status:newStatus });
+    const a = applicants.find(x=>x.id===id);
+    if (a) a.status = newStatus;
+    statusEl.textContent = '상태가 변경되었습니다.';
+  }catch(e){
+    statusEl.textContent = '상태 변경 오류: ' + e.message;
+  }
+}
+
+window.openDetail = function(id){
+  const d = applicants.find(x=>x.id===id);
+  if (!d) return;
+  const rows = (list, cols) => list && list.length
+    ? list.map(item => `<tr>${cols.map(c=>`<td>${esc(item[c]||'')}</td>`).join('')}</tr>`).join('')
+    : `<tr><td colspan="${cols.length}" class="empty-hint">입력된 내용이 없습니다</td></tr>`;
+
+  document.getElementById('modal').innerHTML = `
+    <button class="close" onclick="closeModal()">✕</button>
+    <button class="print-btn ghost" onclick="window.print()">🖨 인쇄 / PDF 저장</button>
+    <h2>${esc(d.name)} 님 지원서 ${d.jobTitle?`<span class="job-tag">${esc(d.jobTitle)}</span>`:''}</h2>
+    <div class="sec">인 적 사 항</div>
+    <table style="width:100%;">
+      <tr><th>성명</th><td>${esc(d.name)}</td><th>생년월일</th><td>${esc(d.birth)}</td></tr>
+      <tr><th>연락처</th><td>${esc(d.phone)}</td><th>성별</th><td>${esc(d.gender)}</td></tr>
+      <tr><th>이메일</th><td>${esc(d.email)}</td><th>최종학력</th><td>${esc(d.eduLevel)}</td></tr>
+      <tr><th>주소</th><td colspan="3">${esc(d.address)}</td></tr>
+      ${d.notes ? `<tr><th>특이사항</th><td colspan="3">${esc(d.notes)}</td></tr>` : ''}
+    </table>
+    <div class="sec">학 력 사 항</div>
+    <table style="width:100%;">
+      <tr><th>기간</th><th>학교명/전공</th><th>소재지</th><th>졸업구분</th></tr>
+      ${rows(d.educations, ['period','school','location','grad'])}
+    </table>
+    <div class="sec">경 력 사 항</div>
+    <table style="width:100%;">
+      <tr><th>근무기간</th><th>근무처</th><th>담당업무</th><th>직위</th></tr>
+      ${rows(d.careers, ['period','company','duty','position'])}
+    </table>
+    <div class="sec">자격 및 면허사항</div>
+    <table style="width:100%;">
+      <tr><th>취득일자</th><th>자격/면허명</th><th>발행처</th><th>등급</th></tr>
+      ${rows(d.certs, ['date','name','issuer','grade'])}
+    </table>
+    <div class="sec">병 역 사 항</div>
+    <table style="width:100%;">
+      <tr><th>군별</th><td>${esc(d.military?.branch)}</td><th>제대구분</th><td>${esc(d.military?.discharge)}</td></tr>
+      <tr><th>복무기간</th><td>${esc(d.military?.period)}</td><th>비고</th><td>${esc(d.military?.exempt)}</td></tr>
+    </table>
+    <div style="margin-top:16px;color:#86868b;font-size:12px;">제출일시: ${fmtDate(d.createdAt)}</div>
+  `;
+  document.getElementById('modalBg').style.display = 'flex';
+}
+window.closeModal = function(){ document.getElementById('modalBg').style.display = 'none'; }
+
+</script>
+</body>
+</html>
