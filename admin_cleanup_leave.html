@@ -1,0 +1,67 @@
+<!DOCTYPE html><!-- 일회성 관리자 도구: 회사 일정으로 옮긴 옛 연차 일정 정리 · 2026-09-30 -->
+<html lang="ko"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>옛 연차 일정 정리 (관리자)</title>
+<style>
+body{font-family:-apple-system,'Apple SD Gothic Neo','Pretendard',sans-serif;background:#F4F7FB;color:#1A2540;margin:0;padding:24px}
+.card{max-width:860px;margin:0 auto;background:#fff;border-radius:14px;padding:22px;box-shadow:0 2px 12px rgba(0,0,0,.06)}
+h1{font-size:18px;margin:0 0 6px}.sub{color:#5C6F8A;font-size:13px;line-height:1.6}
+table{width:100%;border-collapse:collapse;margin-top:14px;font-size:13px}th,td{border-bottom:1px solid #E4EAF2;padding:8px 6px;text-align:left}th{background:#F4F7FB;color:#5C6F8A}
+.ok{color:#1b7f3b;font-weight:700}.no{color:#c0392b;font-weight:700}
+button{padding:10px 18px;border:none;border-radius:9px;font-size:14px;font-weight:700;cursor:pointer;margin-top:14px;margin-right:8px}
+.b1{background:#1D5BA6;color:#fff}.b2{background:#c0392b;color:#fff}button:disabled{opacity:.4;cursor:default}
+</style></head><body><div class="card">
+<h1>🗓 옛 연차 일정 정리</h1>
+<div class="sub">연차를 P4 Ph2 일정이 아닌 <b>회사 일정</b>으로 옮긴 뒤, P4 Ph2 일정 저장소에 남아 있는 <b>옛 연차 일정</b>을 삭제하는 일회성 도구입니다.<br>
+회사 일정에 복사본이 확인된 항목만 삭제 대상이 되며, 삭제하면 Outlook의 <code>[P4 Ph2] [연차]</code> 일정도 자동으로 사라집니다. <b>삭제는 되돌릴 수 없습니다.</b></div>
+<div id="gate" class="sub" style="margin-top:14px">확인 중...</div>
+<div id="tool" style="display:none">
+  <button class="b1" id="scanBtn" onclick="scan()">🔍 조회</button>
+  <button class="b2" id="delBtn" onclick="doDelete()" disabled>🗑 복사본이 확인된 옛 일정 삭제</button>
+  <div id="status" class="sub" style="margin-top:10px"></div><div id="tableWrap"></div>
+</div>
+</div>
+<script type="module">
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
+import { getFirestore, collection, getDocs, doc, getDoc, deleteDoc } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+import { getAuth, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
+const firebaseConfig = {
+  apiKey: "AIzaSyCyQxBJ_ftfM0ImBXubmqD5gfzFR54iPmE", authDomain: "p4ph2-fab-506a7.firebaseapp.com", projectId: "p4ph2-fab-506a7",
+  storageBucket: "p4ph2-fab-506a7.firebasestorage.app", messagingSenderId: "36946317914", appId: "1:36946317914:web:c6ad5f3a1b98130c99fe63"
+};
+// 포털과 같은 로그인 상태를 쓰기 위해 기본 앱 사용
+const app = initializeApp(firebaseConfig); const db = getFirestore(app); const auth = getAuth(app);
+const gate = document.getElementById('gate'), tool = document.getElementById('tool'), st = document.getElementById('status'), wrap = document.getElementById('tableWrap');
+let confirmed = [];
+onAuthStateChanged(auth, async (user) => {
+  if (!user) { gate.innerHTML = '🔒 로그인이 필요합니다. <a href="https://portal.jhsol.kr/">portal.jhsol.kr</a>에서 먼저 로그인한 뒤, 이 페이지를 새로고침 해 주세요.'; return; }
+  try {
+    const u = await getDoc(doc(db, 'portal_users', user.uid)); const d = u.exists() ? u.data() : null;
+    if (!(d && d.status === 'approved' && d.admin === true)) { gate.textContent = '🔒 관리자 계정만 사용할 수 있습니다.'; return; }
+    gate.style.display = 'none'; tool.style.display = 'block';
+  } catch (e) { gate.textContent = '오류: ' + e.message; }
+});
+window.scan = async function () {
+  const b = document.getElementById('delBtn'); b.disabled = true; st.textContent = '조회 중...'; wrap.innerHTML = ''; confirmed = [];
+  try {
+    const snap = await getDocs(collection(db, 'user_schedules')); const rows = [];
+    for (const d of snap.docs) {
+      const v = d.data(); if (v.tag !== 'off' || !String(v.text || '').startsWith('[연차]')) continue;
+      const cp = await getDoc(doc(db, 'company_schedules', 'leave_legacy_' + d.id));
+      rows.push({ id: d.id, text: v.text, sdate: v.sdate, edate: v.edate, copied: cp.exists() });
+    }
+    rows.sort((a, b) => (a.sdate || '').localeCompare(b.sdate || ''));
+    confirmed = rows.filter(r => r.copied).map(r => r.id);
+    wrap.innerHTML = rows.length ? '<table><thead><tr><th>기간</th><th>내용</th><th>회사 일정 복사본</th></tr></thead><tbody>' + rows.map(r => '<tr><td>' + (r.sdate || '') + (r.edate && r.edate !== r.sdate ? ' ~ ' + r.edate : '') + '</td><td>' + r.text + '</td><td class="' + (r.copied ? 'ok' : 'no') + '">' + (r.copied ? '✔ 확인됨' : '✘ 없음(삭제 안 함)') + '</td></tr>').join('') + '</tbody></table>' : '';
+    st.textContent = rows.length ? `옛 연차 일정 ${rows.length}건 중 복사본 확인 ${confirmed.length}건` : '정리할 옛 연차 일정이 없습니다.';
+    b.disabled = confirmed.length === 0;
+  } catch (e) { st.textContent = '조회 오류: ' + e.message; }
+};
+window.doDelete = async function () {
+  if (!confirmed.length) return;
+  if (!confirm(`회사 일정에 복사본이 있는 옛 연차 일정 ${confirmed.length}건을 삭제합니다.\n삭제는 되돌릴 수 없습니다. 계속할까요?`)) return;
+  const b = document.getElementById('delBtn'); b.disabled = true; let n = 0;
+  try { for (const id of confirmed) { await deleteDoc(doc(db, 'user_schedules', id)); n++; st.textContent = `삭제 중... ${n}/${confirmed.length}`; }
+    st.textContent = `✅ ${n}건 삭제 완료. 잠시 후 Outlook의 옛 [P4 Ph2] [연차] 일정도 사라집니다.`; wrap.innerHTML = ''; confirmed = []; }
+  catch (e) { st.textContent = `오류로 중단: ${e.message} (삭제 ${n}건 완료)`; }
+};
+</script></body></html>
