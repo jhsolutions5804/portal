@@ -1617,3 +1617,13 @@ PJT관리 PC 하단 잘림 수정(경량PJT 3.8.1·메인 PJT), 발주처·시�
 **상세**: `7_76_log_mobile_structure_pc_parity.md`(정정 절)
 
 ---
+
+## 2026-09-30 세션(이어서 20) — 일정 통합(“일정”)·GUEST 사번 제한 (테섭)
+
+**결정**: GUEST(사번 `guest…`)는 회사 공통 일정을 못 보고 프로젝트 일정만 조회, 일정 등록·수정·삭제·완료 불가(B안: 화면 + 보안규칙). 화면 낱말은 PJT·회사 구분 없이 “일정”, 모바일에도 월 캘린더.
+
+**조치**: 보안규칙(`isGuestEmp`, 일정 4종, 포괄 규칙 제외 — 경로 인덱스 오류 결함 발견·수정), 모바일 통합 일정 캘린더, PC 포털·pjt·pjt_ph4·pjt_light·모바일 pjt/home GUEST 제한. **본섭 미반영.**
+
+**상세**: `7_77_log_schedule_guest.md`, `8_72_log_2026-09-30q_session.md`, 규칙 보관 portal-test `backup/firestore_rules_20260930_schedule_guest/`
+
+---
