@@ -1,4 +1,4 @@
-<!DOCTYPE html><!-- gihoek module build: 20260925c · ver 5.7.3 · 연동 PJT 사이드바 표시명 동기화 기준을 '설명'에서 'PJT 코드'로 변경(신규 생성 시도 동일 우선순위) · 이전: 20260925b ver 5.7.2 -->
+<!DOCTYPE html><!-- gihoek module build: 20260930b · ver 5.9.0 · 정산 탭에 '팀별 노무비' 보기 신설(월간 공수의 팀별 합계 이전 — 팀 공수 × 팀 단가, 프로젝트별 소계, 팀 단가는 관리자 전용 문서 master_worker_private에 저장) · 이전: 20260930a ver 5.8.0 · 견적 목록: 견적상태 필터(진행중/종결/폐기) 추가·현장상태 필터 명칭 분리, 상세→목록 복귀 시 필터·페이지·스크롤 유지(브라우저 뒤로가기 포함) · 이전: 20260925d ver 5.7.4 · 프로젝트 목록 생성일순 정렬 강건화(createdAt 없는 옛 데이터는 문서ID 타임스탬프로 폴백) · 이전: 20260925c ver 5.7.3 -->
 <html lang="ko">
 <head>
 <meta charset="utf-8">
@@ -177,13 +177,13 @@
 <script type="module">
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
 import { getAuth, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
-import { getFirestore, collection, doc, getDoc, getDocs, setDoc, updateDoc, deleteDoc, onSnapshot, serverTimestamp, query, where, addDoc }
+import { getFirestore, collection, doc, getDoc, getDocs, setDoc, updateDoc, deleteDoc, onSnapshot, serverTimestamp, query, where, addDoc, documentId }
   from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
 
 const firebaseConfig = {
   apiKey:"AIzaSyCyQxBJ_ftfM0ImBXubmqD5gfzFR54iPmE", authDomain:"p4ph2-fab-506a7.firebaseapp.com",
   projectId:"p4ph2-fab-506a7", storageBucket:"p4ph2-fab-506a7.firebasestorage.app",
-  messagingSenderId:"36946317914", appId:"1:36946317914:web:c6ad5f3a1b98130c99fe63"
+  messagingSenderId:"36946317914", appId:"1:36946317914:web:4a0c7062a2f1a4e9a03de5"
 };
 const app=initializeApp(firebaseConfig); const auth=getAuth(app); const db=getFirestore(app);
 
@@ -199,6 +199,13 @@ function toast(t){ const e=$('toast'); e.textContent=t; e.classList.add('show');
 
 let me=null;
 let projects=[], estimates=[], settlements=[], companies=[], expenses=[], pjtRegistryList=[], pnlEntries=[];
+// 프로젝트 목록 생성일순 정렬 키 — createdAt 필드가 없는 옛 데이터는 문서ID(pjt_{타임스탬프}) 패턴에서 생성시각을 추정해 폴백
+function pjtCreatedKey(p){
+  if (p.createdAt && p.createdAt.seconds) return p.createdAt.seconds*1000;
+  const m = /^pjt_(\d+)$/.exec(p.id||'');
+  if (m) return parseInt(m[1],10);
+  return 0;
+}
 const supplierList=()=>companies.filter(c=>c.roleSupplier);
 const clientList=()=>companies.filter(c=>c.roleClient);
 const compById=id=>companies.find(c=>c.id===id)||null;
@@ -244,7 +251,7 @@ onAuthStateChanged(auth, async user => {
           $('splash').style.display = 'none';
           $('app').style.display = 'block';
           document.documentElement.classList.add('portal-embed');
-          onSnapshot(collection(db,'gihoek_projects'), s=>{ projects=[]; s.forEach(d=>projects.push({id:d.id,...d.data()})); projects.sort((a,b)=>(a.createdAt?.seconds||0)-(b.createdAt?.seconds||0)); if(curTab==='pjt'&&!detailId&&!pjtForm) renderPjt(); else if(curTab==='home') renderPlanHome(); });
+          onSnapshot(collection(db,'gihoek_projects'), s=>{ projects=[]; s.forEach(d=>projects.push({id:d.id,...d.data()})); projects.sort((a,b)=>pjtCreatedKey(a)-pjtCreatedKey(b)); if(curTab==='pjt'&&!detailId&&!pjtForm) renderPjt(); else if(curTab==='home') renderPlanHome(); });
           onSnapshot(collection(db,'gihoek_estimates'), s=>{ estimates=[]; s.forEach(d=>estimates.push({id:d.id,...d.data()})); estimates.sort((a,b)=>{ const dc=(b.date||'').localeCompare(a.date||''); if(dc) return dc; return (b.createdAt?.seconds||0)-(a.createdAt?.seconds||0); }); if(curTab==='pjt'&&detailId) pjtDetail(detailId); else if(curTab==='pjt'&&!pjtForm) renderPjt(); if(curTab==='est'&&!estDraft&&!viewEstId){ if(document.getElementById('est-list-wrap')) renderEstList(); else renderEst(); } else if(curTab==='home') renderPlanHome(); });
           onSnapshot(collection(db,'gihoek_settlements'), s=>{ settlements=[]; s.forEach(d=>settlements.push({id:d.id,...d.data()})); if(curTab==='pjt') { detailId?pjtDetail(detailId):renderPjt(); } else if(curTab==='settle'&&!settleDraft&&!viewSetId) renderSettle(); else if(curTab==='acct') renderAcct(); else if(curTab==='home') renderPlanHome(); });
           onSnapshot(collection(db,'gihoek_companies'), s=>{ companies=[]; s.forEach(d=>companies.push({id:d.id,...d.data()})); companies.sort((a,b)=>(a.company||'').localeCompare(b.company||'')); if(curTab==='comp'&&!compForm) renderComp(); });
@@ -278,7 +285,7 @@ async function startApp(){
       else { for(const x of SEED_COMPANIES){ const {id,...r}=x; await setDoc(doc(db,'gihoek_companies',id),r); } }
     }
   }catch(e){}
-  onSnapshot(collection(db,'gihoek_projects'), s=>{ projects=[]; s.forEach(d=>projects.push({id:d.id,...d.data()})); projects.sort((a,b)=>(a.createdAt?.seconds||0)-(b.createdAt?.seconds||0)); if(curTab==='pjt'&&!detailId&&!pjtForm) renderPjt(); else if(curTab==='home') renderPlanHome(); });
+  onSnapshot(collection(db,'gihoek_projects'), s=>{ projects=[]; s.forEach(d=>projects.push({id:d.id,...d.data()})); projects.sort((a,b)=>pjtCreatedKey(a)-pjtCreatedKey(b)); if(curTab==='pjt'&&!detailId&&!pjtForm) renderPjt(); else if(curTab==='home') renderPlanHome(); });
   onSnapshot(collection(db,'gihoek_estimates'), s=>{ estimates=[]; s.forEach(d=>estimates.push({id:d.id,...d.data()})); estimates.sort((a,b)=>{ const dc=(b.date||'').localeCompare(a.date||''); if(dc) return dc; return (b.createdAt?.seconds||0)-(a.createdAt?.seconds||0); }); if(curTab==='pjt'&&detailId) pjtDetail(detailId); else if(curTab==='pjt'&&!pjtForm) renderPjt(); if(curTab==='est'&&!estDraft&&!viewEstId){ if(document.getElementById('est-list-wrap')) renderEstList(); else renderEst(); } else if(curTab==='home') renderPlanHome(); });
   onSnapshot(collection(db,'gihoek_settlements'), s=>{ settlements=[]; s.forEach(d=>settlements.push({id:d.id,...d.data()})); if(curTab==='pjt') { detailId?pjtDetail(detailId):renderPjt(); } else if(curTab==='settle'&&!settleDraft&&!viewSetId) renderSettle(); else if(curTab==='acct') renderAcct(); else if(curTab==='home') renderPlanHome(); });
   onSnapshot(collection(db,'gihoek_companies'), s=>{ companies=[]; s.forEach(d=>companies.push({id:d.id,...d.data()})); companies.sort((a,b)=>(a.company||'').localeCompare(b.company||'')); if(curTab==='comp'&&!compForm) renderComp(); });
@@ -560,7 +567,8 @@ window.delPjt=async function(id){ if(!confirm('이 프로젝트를 삭제할까�
 
 /* ---------------- 견적 ---------------- */
 let estDraft=null, viewEstId=null, estPage=1;
-let estFilterPjt='', estFilterClient='', estFilterMonth='', estFilterPjtStatus='';
+let estFilterPjt='', estFilterClient='', estFilterMonth='', estFilterPjtStatus='', estFilterStatus='';
+let estListScroll=0; // 견적 상세 진입 직전 목록 스크롤 위치 (복귀 시 복원)
 const EST_PAGE_SIZE=10;
 
 window.estGoPage = function(p){
@@ -574,12 +582,13 @@ window.estFilterChange = function(kind, v){
   else if (kind==='client') estFilterClient = v;
   else if (kind==='month') estFilterMonth = v;
   else if (kind==='pjtStatus') estFilterPjtStatus = v;
+  else if (kind==='status') estFilterStatus = v;
   estPage = 1;
   renderEstList();
 };
 window.estFilterReset = function(){
-  estFilterPjt=''; estFilterClient=''; estFilterMonth=''; estFilterPjtStatus=''; estPage=1;
-  ['est-filter-pjt','est-filter-client','est-filter-month','est-filter-pjtstatus'].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
+  estFilterPjt=''; estFilterClient=''; estFilterMonth=''; estFilterPjtStatus=''; estFilterStatus=''; estPage=1;
+  ['est-filter-pjt','est-filter-client','est-filter-month','est-filter-pjtstatus','est-filter-status'].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
   renderEstList();
 };
 
@@ -607,6 +616,10 @@ function estFilteredList(){
     if (estFilterPjt && e.pjtId !== estFilterPjt) return false;
     if (estFilterClient && e.client?.company !== estFilterClient) return false;
     if (estFilterMonth && !(e.date||'').startsWith(estFilterMonth)) return false;
+    if (estFilterStatus) { // 견적 자체 상태: 진행중(유효) / 종결 / 폐기
+      const st = e.status==='void' ? 'void' : e.status==='closed' ? 'closed' : 'active';
+      if (st !== estFilterStatus) return false;
+    }
     if (estFilterPjtStatus) {
       const p = projects.find(x=>x.id===e.pjtId);
       const pStatus = p ? (p.status==='done' ? 'done' : 'run') : null;
@@ -639,8 +652,10 @@ function renderEstList(){
     monthSel.value = estFilterMonth;
   }
 
+  const stSel = document.getElementById('est-filter-status'); if (stSel) stSel.value = estFilterStatus;
+  const pjtStSel = document.getElementById('est-filter-pjtstatus'); if (pjtStSel) pjtStSel.value = estFilterPjtStatus;
   const filtered = estFilteredList();
-  const isFiltered = estFilterPjt || estFilterClient || estFilterMonth || estFilterPjtStatus;
+  const isFiltered = estFilterPjt || estFilterClient || estFilterMonth || estFilterPjtStatus || estFilterStatus;
   const totalPages = Math.max(1, Math.ceil(filtered.length/EST_PAGE_SIZE));
   if (estPage > totalPages) estPage = totalPages;
   const startIdx = (estPage-1)*EST_PAGE_SIZE;
@@ -663,7 +678,7 @@ function renderEstList(){
   wrap.innerHTML = listHtml + pagerHtml;
 }
 
-function renderEst(){ estDraft=null; viewEstId=null; estPage=1; estFilterPjt=''; estFilterClient=''; estFilterMonth=''; estFilterPjtStatus='';
+function renderEst(keep){ estDraft=null; viewEstId=null; if(!keep){ estPage=1; estFilterPjt=''; estFilterClient=''; estFilterMonth=''; estFilterPjtStatus=''; estFilterStatus=''; estListScroll=0; } // keep=true: 상세/폼에서 목록 복귀 → 필터·페이지·스크롤 유지
   const opt = estFilterOptions();
   $('v-est').innerHTML=`<button onclick="tab('home')" style="background:#F0F4F9;border:1px solid #DDE4EF;border-radius:8px;padding:5px 12px;color:#5C6F8A;font-size:12px;cursor:pointer;font-weight:600;">🏠 기획 홈</button>
   <div class="sec-h"><h2>견적</h2><button class="btn pri sm" onclick="newEst()">+ 견적 작성</button></div>
@@ -673,9 +688,15 @@ function renderEst(){ estDraft=null; viewEstId=null; estPage=1; estFilterPjt='';
       ${opt.pjtOptions.map(([id,label])=>`<option value="${id}">${label}</option>`).join('')}
     </select>
     <select id="est-filter-pjtstatus" onchange="estFilterChange('pjtStatus',this.value)" style="flex:1;min-width:120px;padding:9px 10px;border:1px solid #DDE4EF;border-radius:9px;font-size:12.5px;font-family:inherit;background:#fff;color:#1A2540;">
-      <option value="">진행상태 전체</option>
-      <option value="run">진행중</option>
-      <option value="done">종결</option>
+      <option value="">현장상태 전체</option>
+      <option value="run">현장 진행중</option>
+      <option value="done">현장 종료</option>
+    </select>
+    <select id="est-filter-status" onchange="estFilterChange('status',this.value)" style="flex:1;min-width:120px;padding:9px 10px;border:1px solid #DDE4EF;border-radius:9px;font-size:12.5px;font-family:inherit;background:#fff;color:#1A2540;">
+      <option value="">견적상태 전체</option>
+      <option value="active">진행중</option>
+      <option value="closed">종결</option>
+      <option value="void">폐기</option>
     </select>
     <select id="est-filter-client" onchange="estFilterChange('client',this.value)" style="flex:1;min-width:150px;padding:9px 10px;border:1px solid #DDE4EF;border-radius:9px;font-size:12.5px;font-family:inherit;background:#fff;color:#1A2540;">
       <option value="">거래처 전체</option>
@@ -689,6 +710,7 @@ function renderEst(){ estDraft=null; viewEstId=null; estPage=1; estFilterPjt='';
   </div>
   <div id="est-list-wrap"></div>`;
   renderEstList();
+  if(keep) window.scrollTo(0, estListScroll||0);
 }
 window.renderEst=renderEst;
 
@@ -745,7 +767,7 @@ function contactDropdown(compId, selName, onchangeJs){
 }
 
 function drawEstForm(){ const d=estDraft;
-  $('v-est').innerHTML=`<button class="back" onclick="renderEst()">← 견적 목록</button>
+  $('v-est').innerHTML=`<button class="back" onclick="renderEst(true)">← 견적 목록</button>
   <div class="card">
     ${d.editId?`<div class="void-banner" style="background:#fff3e0;color:#9a5a00;border-color:#f3e0c4">📝 개정 발행: 저장하면 원본 <b>${d.srcNo}</b>은 폐기 처리되고, 개정본이 새로 발행됩니다.</div>`:''}
     <div class="row2">
@@ -774,7 +796,7 @@ function drawEstForm(){ const d=estDraft;
       <div class="totrow big"><span>합계금액</span><span id="t-total">0 원</span></div>
     </div>
     <div class="field" style="margin-top:12px"><label>특기사항 <span class="small muted" style="font-weight:500">(선택사항)</span></label><textarea class="inp" id="ed-notes" rows="3" placeholder="예: 납기·설치조건·특이사항 등을 입력하세요" oninput="setDraft('notes',this.value)" style="resize:vertical;font-family:inherit">${(d.notes||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</textarea></div>
-    <div style="display:flex; gap:8px; margin-top:16px"><button class="btn line full" onclick="renderEst()">취소</button><button class="btn pri full" id="est-save" onclick="saveEst()">저장</button></div>
+    <div style="display:flex; gap:8px; margin-top:16px"><button class="btn line full" onclick="renderEst(true)">취소</button><button class="btn pri full" id="est-save" onclick="saveEst()">저장</button></div>
   </div>`;
   drawRows(); window.scrollTo(0,0);
 }
@@ -842,17 +864,22 @@ window.saveEst=async function(){ const d=estDraft;
   try{
     await setDoc(doc(db,'gihoek_estimates',id), payload);
     if(d.editId){ await setDoc(doc(db,'gihoek_estimates',d.editId), {status:'void', voidedAt:serverTimestamp(), replacedBy:no}, {merge:true}); }
-    toast(d.editId?'개정본을 발행했습니다. (원본 폐기)':'견적을 저장했습니다.'); renderEst(); }
+    toast(d.editId?'개정본을 발행했습니다. (원본 폐기)':'견적을 저장했습니다.'); renderEst(true); }
   catch(e){ $('est-save').disabled=false; toast('저장 실패: '+(e.code||e.message)); } };
 
+// 견적 상세 → 직전 화면 복귀 (프로젝트 상세에서 왔으면 프로젝트로, 목록에서 왔으면 필터·페이지·스크롤 유지한 목록으로)
+function estBackRender(){ if(estOrigin) pjtDetail(estOrigin); else renderEst(true); }
+window.estBack=function(){ if(history.state&&history.state.estView){ history.back(); } else { estBackRender(); } };
+window.addEventListener('popstate',()=>{ if(curTab==='est'&&viewEstId) estBackRender(); });
 let estOrigin=null; // 견적 상세에 어디서 들어왔는지: 프로젝트id(프로젝트 상세에서 진입) 또는 null(견적 목록에서 진입)
-window.openEst=function(id, fromPjtId){ viewEstId=id; if(fromPjtId!==undefined) estOrigin=fromPjtId;
-  const e=estimates.find(x=>x.id===id); if(!e){ renderEst(); return; }
+window.openEst=function(id, fromPjtId){ const fromList=!!document.getElementById('est-list-wrap'); if(fromList) estListScroll=window.scrollY||document.documentElement.scrollTop||0; viewEstId=id; if(fromPjtId!==undefined) estOrigin=fromPjtId;
+  const e=estimates.find(x=>x.id===id); if(!e){ renderEst(true); return; }
+  try{ if(history.state&&history.state.estView) history.replaceState({estView:1},''); else history.pushState({estView:1},''); }catch(_){} // 브라우저 뒤로가기 → 직전 화면
   const p=projects.find(x=>x.id===e.pjtId); const sup=estSupply(e), vat=Math.round(sup*0.1);
   tabSilent('est');
   const partyHtml=(label,o)=> `<div class="party"><div class="pl">${label}</div><div class="pc">${o?.company||'-'}</div>
     <div class="pd">${o?.ceo?'대표 '+o.ceo:''}${o?.bizno?' · '+o.bizno:''}</div>${o?.contact?`<div class="pd">담당: ${o.contact}</div>`:''}${o?.address?`<div class="pd">${o.address}</div>`:''}</div>`;
-  $('v-est').innerHTML=`<button class="back" onclick="${estOrigin?`pjtDetail('${estOrigin}')`:'renderEst()'}">← ${estOrigin?'프로젝트로 돌아가기':'견적 목록'}</button>
+  $('v-est').innerHTML=`<button class="back" onclick="estBack()">← ${estOrigin?'프로젝트로 돌아가기':'견적 목록'}</button>
     <div class="card">
       ${e.status==='void'?`<div class="void-banner">🚫 폐기된 견적입니다.${e.replacedBy?' 개정본: <b>'+e.replacedBy+'</b>':''} 집계에는 반영되지 않습니다.</div>`:''}${e.status==='closed'?`<div class="void-banner" style="background:#E6F1FB;color:#1D5BA6">🔒 종결된 견적입니다. 정산이 완료되어 유효 견적 집계에서 제외됩니다.</div>`:''}
       <div style="display:flex; justify-content:space-between; align-items:flex-start">
@@ -881,7 +908,7 @@ window.reopenEst=async function(id){
   if(!confirm('종결을 취소하고 유효 상태로 되돌릴까요?')) return;
   try{ await setDoc(doc(db,'gihoek_estimates',id),{status:'active',closedAt:null},{merge:true}); toast('종결을 취소했습니다.'); openEst(id); }catch(err){ toast('실패: '+(err.code||err.message)); }
 };
-window.delEst=async function(id){ if(!confirm('이 견적을 삭제할까요?')) return; try{ await deleteDoc(doc(db,'gihoek_estimates',id)); toast('삭제했습니다.'); renderEst(); }catch(e){ toast('삭제 실패: '+(e.code||e.message)); } };
+window.delEst=async function(id){ if(!confirm('이 견적을 삭제할까요?')) return; try{ await deleteDoc(doc(db,'gihoek_estimates',id)); toast('삭제했습니다.'); if(estOrigin) pjtDetail(estOrigin); else renderEst(true); }catch(e){ toast('삭제 실패: '+(e.code||e.message)); } };
 
 window.printEst=function(id){ const e=estimates.find(x=>x.id===id); if(!e) return; const p=projects.find(x=>x.id===e.pjtId);
   const sup=estSupply(e), vat=Math.round(sup*0.1), tot=sup+vat;
@@ -1079,6 +1106,7 @@ const setActive=s=>s.status!=='void';
 const FILTER_SEL_STYLE='flex:1;min-width:120px;padding:9px 10px;border:1px solid #DDE4EF;border-radius:9px;font-size:12.5px;font-family:inherit;background:#fff;color:#1A2540;';
 
 function renderSettle(){ settleDraft=null; viewSetId=null;
+if(window.settleView==='team'){ drawTeamLabor(); return; }
   if(!window.settleFilter) window.settleFilter={docType:'',pjtId:'',client:'',status:'',month:''};
   const f=window.settleFilter;
   const clients=[...new Set(settlements.map(s=>s.recipient&&s.recipient.company).filter(Boolean))].sort();
@@ -1144,6 +1172,7 @@ function renderSettle(){ settleDraft=null; viewSetId=null;
 
   $('v-settle').innerHTML=`<button onclick="tab('home')" style="background:#F0F4F9;border:1px solid #DDE4EF;border-radius:8px;padding:5px 12px;color:#5C6F8A;font-size:12px;cursor:pointer;font-weight:600;">🏠 기획 홈</button>
   <div class="sec-h"><h2>정산</h2><button class="btn pri sm" onclick="newSettle()">+ 정산서 발행</button></div>
+${settleSegHtml()}
     <div class="sumgrid" style="grid-template-columns:1fr 1fr 1fr;margin-bottom:16px">
       <div class="sumcell"><div class="l">대금청구 누계</div><div class="v">${won(inv)}</div></div>
       <div class="sumcell"><div class="l">지급예정 누계</div><div class="v">${won(pay)}</div></div>
@@ -1153,6 +1182,102 @@ function renderSettle(){ settleDraft=null; viewSetId=null;
     ${pagerHtml}`;
 }
 window.renderSettle=renderSettle;
+
+/* ---------------- 팀별 노무비 (월간 공수의 팀별 합계 이전) ----------------
+   팀 = 팀장(master_workers에서 leaderId가 없는 근로자) 기준. 팀 공수 = 팀장+팀원 공수 합계, 노무비 = 팀 공수 × 팀 단가.
+   팀 단가는 금액 정보이므로 관리자 전용 문서 master_worker_private/{팀장ID}.teamRate 에 저장한다(옛 위치 master_workers.teamRate 는 읽기 폴백).
+   공수는 FAB(worker_manday)·SUP(ph4_manday)·종료되지 않은 경량PJT(pjt_registry/{id}/manday)의 일자 문서를 문서 ID 범위 조회로 읽는다. */
+const settleSegHtml=()=>`<div style="display:inline-flex;border:1px solid #DDE4EF;border-radius:9px;overflow:hidden;margin:0 0 14px">
+<button onclick="setSettleView('list')" style="border:none;padding:8px 18px;font-size:13px;cursor:pointer;font-family:inherit;${window.settleView!=='team'?'background:#1D5BA6;color:#fff;font-weight:700':'background:#fff;color:#5C6F8A'}">정산서</button>
+<button onclick="setSettleView('team')" style="border:none;padding:8px 18px;font-size:13px;cursor:pointer;font-family:inherit;${window.settleView==='team'?'background:#1D5BA6;color:#fff;font-weight:700':'background:#fff;color:#5C6F8A'}">팀별 노무비</button></div>`;
+window.setSettleView=function(v){ window.settleView=v; if(v==='team') loadTeamLabor(); else renderSettle(); };
+const tl={ y:new Date().getFullYear(), m:new Date().getMonth(), seq:0, data:null, err:'' };
+const tlEsc=s=>String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+const tlPad=n=>String(n).padStart(2,'0');
+window.tlShift=function(dir){ tl.m+=dir; if(tl.m>11){ tl.m=0; tl.y++; } if(tl.m<0){ tl.m=11; tl.y--; } loadTeamLabor(); };
+async function tlMonthDocs(path, lo, hi){
+  const snap=await getDocs(query(collection(db,...path), where(documentId(),'>=',lo), where(documentId(),'<=',hi)));
+  const rows=[]; snap.forEach(d=>rows.push([d.id,(d.data().md)||{}])); return rows;
+}
+async function loadTeamLabor(){
+  const seq=++tl.seq; tl.data=null; tl.err=''; drawTeamLabor();
+  try{
+    const lo=tl.y+'-'+tlPad(tl.m+1)+'-01', hi=tl.y+'-'+tlPad(tl.m+1)+'-31';
+    const [ms,ps]=await Promise.all([ getDocs(collection(db,'master_workers')), getDocs(collection(db,'master_worker_private')) ]);
+    const masters=[], mm={}; ms.forEach(d=>{ const o={id:d.id,...d.data()}; masters.push(o); mm[d.id]=o; });
+    const rate={}; ps.forEach(d=>{ const v=d.data(); if(v.teamRate!=null) rate[d.id]=Number(v.teamRate)||0; });
+    const failed=[], roster=[];
+    const pull=async (path,label,kind,regId)=>{ try{ const sn=await getDocs(collection(db,...path));
+      sn.forEach(d=>{ const w=d.data(), m=mm[d.id]; roster.push({id:d.id,name:(m&&m.name)||w.name||'(이름없음)',birth:(m&&m.birth)||w.birth||'',label,kind,regId}); }); }catch(e){ failed.push(label); } };
+    await pull(['pjt_workers_fab'],'P4 Ph2 (FAB)','fab'); await pull(['pjt_workers_ph4'],'P4 Ph4 (SUP)','sup');
+    const regs=[]; try{ const rs=await getDocs(collection(db,'pjt_registry')); rs.forEach(d=>{ const x=d.data(); if(x.status!=='ended') regs.push({id:d.id,name:x.name||'PJT'}); }); }catch(e){ failed.push('경량 PJT 목록'); }
+    for(const rg of regs) await pull(['pjt_registry',rg.id,'workers'],rg.name,'light',rg.id);
+    const safe=async (path,label)=>{ try{ return await tlMonthDocs(path,lo,hi); }catch(e){ failed.push(label+' 공수'); return []; } };
+    const fabRows=await safe(['worker_manday'],'P4 Ph2 (FAB)'), supRows=await safe(['ph4_manday'],'P4 Ph4 (SUP)');
+    const lightRows={}; for(const rg of regs) lightRows[rg.id]=await safe(['pjt_registry',rg.id,'manday'],rg.name);
+    if(seq!==tl.seq) return;
+    const pmap={}, add=(w,a,pn)=>{ const k=(w.name||'').trim()+'|'+(w.birth||'MISSING'); const P=pmap[k]||(pmap[k]={name:w.name,birth:w.birth,total:0,byPjt:{}}); P.total+=a; P.byPjt[pn]=(P.byPjt[pn]||0)+a; };
+    const byKind=k=>{ const o={}; roster.filter(w=>w.kind===k).forEach(w=>o[w.id]=w); return o; };
+    const fabById=byKind('fab'), supById=byKind('sup');
+    fabRows.forEach(([dk,md])=>Object.keys(md).forEach(id=>{ const a=parseFloat(md[id])||0; if(a&&fabById[id]) add(fabById[id],a,'P4 Ph2 (FAB)'); }));
+    supRows.forEach(([dk,md])=>Object.keys(md).forEach(id=>{ const a=parseFloat(md[id])||0; if(a&&supById[id]) add(supById[id],a,'P4 Ph4 (SUP)'); }));
+    regs.forEach(rg=>{ const by={}; roster.filter(w=>w.kind==='light'&&w.regId===rg.id).forEach(w=>by[w.id]=w);
+      (lightRows[rg.id]||[]).forEach(([dk,md])=>Object.keys(md).forEach(id=>{ const a=parseFloat(md[id])||0; if(a&&by[id]) add(by[id],a,rg.name); })); });
+    tl.data={ masters, rate, pmap, failed };
+  }catch(e){ if(seq!==tl.seq) return; tl.err=e.message; }
+  drawTeamLabor();
+}
+window.tlEditRate=async function(leaderId){
+  if(!tl.data) return;
+  const leader=tl.data.masters.find(m=>m.id===leaderId); if(!leader) return;
+  const cur=tl.data.rate[leaderId]!=null?tl.data.rate[leaderId]:(Number(leader.teamRate)||0);
+  const inp=prompt(leader.name+' 팀의 단가(원/공수)를 입력하세요.', cur?String(cur):'');
+  if(inp===null) return;
+  const v=parseInt(String(inp).replace(/[^0-9]/g,''))||0;
+  try{ await setDoc(doc(db,'master_worker_private',leaderId),{teamRate:v},{merge:true}); tl.data.rate[leaderId]=v; drawTeamLabor(); toast('팀 단가를 저장했습니다.'); }
+  catch(e){ toast('저장 실패: '+(e.code||e.message)); }
+};
+function drawTeamLabor(){
+  const el=$('v-settle');
+  const head=`<button onclick="tab('home')" style="background:#F0F4F9;border:1px solid #DDE4EF;border-radius:8px;padding:5px 12px;color:#5C6F8A;font-size:12px;cursor:pointer;font-weight:600;">🏠 기획 홈</button>
+<div class="sec-h"><h2>정산</h2></div>${settleSegHtml()}
+<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+<div style="display:flex;align-items:center;gap:10px"><button class="btn line sm" onclick="tlShift(-1)">‹</button><b style="font-size:16px;min-width:96px;text-align:center">${tl.y}년 ${tl.m+1}월</b><button class="btn line sm" onclick="tlShift(1)">›</button></div>
+<button class="btn line sm" onclick="loadTeamLabor()">↻ 다시 계산</button></div>`;
+  if(tl.err){ el.innerHTML=head+`<div class="empty">불러오기 실패: ${tlEsc(tl.err)}</div>`; return; }
+  if(!tl.data){ el.innerHTML=head+`<div class="empty">불러오는 중...</div>`; return; }
+  const {masters,rate,pmap,failed}=tl.data;
+  const totalOf=m=>{ const k=Object.keys(pmap).find(k=>pmap[k].name===m.name&&pmap[k].birth===m.birth); return k?pmap[k]:null; };
+  const leaders=masters.filter(m=>!m.leaderId).sort((a,b)=>(a.name||'').localeCompare(b.name||'','ko'));
+  const rateOf=l=>rate[l.id]!=null?rate[l.id]:(Number(l.teamRate)||0);
+  const usedKeys=new Set(); let grandMd=0, grandAmt=0;
+  const teams=leaders.map(l=>{
+    const members=masters.filter(m=>m.leaderId===l.id).sort((a,b)=>(a.name||'').localeCompare(b.name||'','ko'));
+    const people=[l,...members].map(m=>{ const p=totalOf(m); if(p) usedKeys.add(Object.keys(pmap).find(k=>pmap[k]===p)); return { m, md:p?p.total:0, byPjt:p?p.byPjt:{} }; });
+    const md=people.reduce((s,x)=>s+x.md,0), r=rateOf(l), amt=Math.round(md*r);
+    const byPjt={}; people.forEach(x=>Object.keys(x.byPjt).forEach(pn=>{ byPjt[pn]=(byPjt[pn]||0)+x.byPjt[pn]; }));
+    grandMd+=md; grandAmt+=amt;
+    return { l, members, people, md, r, amt, byPjt };
+  }).sort((a,b)=>b.amt-a.amt||b.md-a.md);
+  const unassigned=Object.keys(pmap).filter(k=>!usedKeys.has(k)).map(k=>pmap[k]);
+  const unMd=unassigned.reduce((s,p)=>s+p.total,0);
+  const teamsHtml=teams.length?teams.map(t=>{
+    const chips=Object.keys(t.byPjt).map(pn=>`<span style="display:inline-block;font-size:10.5px;padding:2px 8px;border-radius:6px;background:#EEF4FC;color:#1D5BA6;font-weight:600;margin:0 4px 3px 0">${tlEsc(pn)} ${t.byPjt[pn].toFixed(1)}공수 · ${won(t.byPjt[pn]*t.r)}원</span>`).join('');
+    const rows=t.people.map((x,i)=>`<div style="display:flex;justify-content:space-between;padding:5px 0 5px 14px;font-size:12.5px;color:#555;${i?'border-top:1px dashed #f0f0f0':'font-weight:600'}"><span>${tlEsc(x.m.name)}${i===0?' (팀장 본인)':''}${x.m.resigned?' <span style="color:#a3a3a3;font-size:11px">퇴사</span>':''}</span><span>${x.md.toFixed(1)}공수</span></div>`).join('');
+    return `<div class="card" style="margin-bottom:10px"><div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px;margin-bottom:6px">
+<b style="font-size:14px">👑 ${tlEsc(t.l.name)} 팀 <span style="font-weight:400;color:#9AAABF;font-size:12px">(${t.members.length}명)</span></b>
+<span style="font-size:13px">${t.md.toFixed(1)}공수 · 팀단가 ${won(t.r)}원 <button onclick="tlEditRate('${tlEsc(t.l.id)}')" title="팀 단가 설정" style="border:none;background:none;color:#9AAABF;cursor:pointer;font-size:12px">✏️</button> · <b style="color:#1D5BA6;font-size:15px">${won(t.amt)}원</b></span></div>
+${chips?`<div style="margin-bottom:6px">${chips}</div>`:''}${rows}</div>`;
+  }).join(''):`<div class="empty">등록된 팀이 없습니다. (PJT관리 > 근로자 연명부에서 팀장을 등록하세요)</div>`;
+  const warn=(failed.length?`<div class="note-amber" style="margin-bottom:10px">⚠️ 일부 데이터를 불러오지 못해 집계에서 빠졌을 수 있습니다: ${failed.map(tlEsc).join(', ')}</div>`:'')
+    +(unassigned.length?`<div class="note-amber" style="margin-bottom:10px">ℹ️ 팀(마스터 근로자)에 속하지 않은 인원의 공수 ${unMd.toFixed(1)}공수는 팀별 합계에 포함되지 않았습니다: ${unassigned.map(p=>tlEsc(p.name)+(p.birth?'':'(생년월일 없음)')).join(', ')}. [PJT관리 > 근로자 연명부 > 기존 인원 마이그레이션]에서 등록하면 팀에 포함됩니다.</div>`:'');
+  el.innerHTML=head+`<div class="sumgrid" style="grid-template-columns:1fr 1fr 1fr;margin-bottom:16px">
+<div class="sumcell"><div class="l">팀 노무비 합계</div><div class="v">${won(grandAmt)}원</div></div>
+<div class="sumcell"><div class="l">팀 공수 합계</div><div class="v">${grandMd.toFixed(1)}</div></div>
+<div class="sumcell"><div class="l">팀 수</div><div class="v">${teams.length}</div></div></div>${warn}${teamsHtml}
+<div class="note-amber">팀 노무비 = 팀 공수(팀장+팀원) × 팀 단가. 팀 단가는 관리자만 조회·수정할 수 있는 별도 문서에 저장됩니다. 공수는 PJT관리 근태(FAB·SUP·경량PJT)의 월 합계입니다.</div>`;
+}
+window.loadTeamLabor=loadTeamLabor;
 window.setSettleFilter=function(key,val){ if(!window.settleFilter) window.settleFilter={docType:'',pjtId:'',client:'',status:'',month:''}; window.settleFilter[key]=val; settlePage=1; renderSettle(); };
 window.resetSettleFilter=function(){ window.settleFilter={docType:'',pjtId:'',client:'',status:'',month:''}; settlePage=1; renderSettle(); };
 window.setSettlePage=function(p){ settlePage=p; renderSettle(); const el=document.querySelector('#v-settle .sec-h'); if(el) el.scrollIntoView({block:'start'}); };
