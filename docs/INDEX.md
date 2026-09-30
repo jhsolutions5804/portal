@@ -1504,3 +1504,8 @@ PJT관리 PC 하단 잘림 수정(경량PJT 3.8.1·메인 PJT), 발주처·시�
 **상세**: `7_70_log_mobile_manday_removal.md`, `8_66_log_2026-09-30k_session.md`, `4_4_pjt_manday.md`
 
 ---
+
+
+### 2026-09-30v 세션 요약
+
+포털 일정→Outlook 즉시 반영 서버 함수 배포 및 기존 일정 177건 일괄 반영. 상세: `7_69_log_outlook_sync_deploy.md`
