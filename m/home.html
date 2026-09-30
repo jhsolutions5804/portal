@@ -228,7 +228,7 @@
       </div>
 
       <div class="hint" id="mbPcSwitchHint" style="display:flex; align-items:center; justify-content:space-between; gap:10px; cursor:pointer;" onclick="switchToPC()">
-        <span>🖥️ 화면이 넓으신가요? (Z Fold 등 펼친 화면) PC 화면으로 전환할 수 있어요.</span>
+        <span>🖥️ PC 화면으로 보기 — 화면 크기와 관계없이 PC 화면으로 표시돼요. (확대/축소 가능, 사이드바 하단 “모바일 화면으로 전환”으로 되돌릴 수 있어요)</span>
         <span style="white-space:nowrap; font-weight:800; color:var(--blue);">전환 ›</span>
       </div>
 
@@ -288,7 +288,7 @@ import { getAuth, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/
 const firebaseConfig = {
   apiKey:"AIzaSyCyQxBJ_ftfM0ImBXubmqD5gfzFR54iPmE", authDomain:"p4ph2-fab-506a7.firebaseapp.com",
   projectId:"p4ph2-fab-506a7", storageBucket:"p4ph2-fab-506a7.firebasestorage.app",
-  messagingSenderId:"36946317914", appId:"1:36946317914:web:c6ad5f3a1b98130c99fe63"
+  messagingSenderId:"36946317914", appId:"1:36946317914:web:4a0c7062a2f1a4e9a03de5"
 };
 const app=initializeApp(firebaseConfig); const db=getFirestore(app); const auth=getAuth(app);
 const esc=v=>String(v==null?'':v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
