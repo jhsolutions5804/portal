@@ -1491,6 +1491,6 @@ PJT관리 PC 하단 잘림 수정(경량PJT 3.8.1·메인 PJT), 발주처·시�
 
 **백업**: `backup/20260930_switch_mobile_fix/before|after/`(portal-test·portal).
 
-**상세**: `69_log_switch_mobile_fab_fix.md`, `8_65_log_2026-09-30j_session.md`
+**상세**: `7_69_log_switch_mobile_fab_fix.md`, `8_65_log_2026-09-30j_session.md`
 
 ---
