@@ -127,3 +127,12 @@ FAB·SUP·경량 PJT 전체에 걸쳐 발생하는 공수를 한 화면에서 PJ
 - 접근 제어: `portal_users/{uid}.admin===true && status==='approved'`를 Firestore에서 직접 재확인(클라이언트 localStorage 신뢰하지 않음) — PC와 동일한 검증 패턴
 - 모바일 홈(`m/home.html`)에 진입 카드 추가, 관리자가 아니면 카드 자체를 렌더링하지 않음(잠금 표시가 아니라 완전 비노출 — 급여 단가 정보 포함이라 더 엄격하게 처리)
 - 범위 제외(PC 전용 유지): 근로자 마스터 등록/수정/삭제, 생년월일 인라인 수정, 개인별 공수표 모달, 팀 단가 설정 — 조회 중심으로 우선 구현
+
+---
+
+## 금액 저장 위치 변경 (v1.2.0, 2026-09-30, portal-test)
+
+- 팀 단가(`teamRate`)·일당(`dailyRate`)을 `master_workers`가 아니라 관리자 전용 `master_worker_private/{ID}`에서 읽고 저장한다(`loadMasterWorkers`가 병합, 새 위치 우선·옛 위치 폴백). `editTeamRate`·`saveMaster`·`confirmMigrate`가 새 위치에 저장.
+- 팀별 합계(금액 포함)의 신규 위치는 기획>정산 `팀별 노무비`(gihoek 5.9.0). 이 화면의 팀별 합계는 그대로 동작하며 같은 단가 값을 보므로 ⑥ 메뉴 정리 전까지 함께 사용 가능.
+- 월간 공수는 관리자만 접근(포털 메뉴·모듈 검사)하며, 금액 데이터도 직원이 읽을 수 없게 됨.
+- 연명부에도 같은 집계 화면이 이전되어 있음: `4_5_pjt_roster.md`.
