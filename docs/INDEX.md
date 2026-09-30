@@ -1534,3 +1534,13 @@ PJT관리 PC 하단 잘림 수정(경량PJT 3.8.1·메인 PJT), 발주처·시�
 **상세**: `7_71_log_security_portal_users_rules.md`
 
 ---
+
+## 2026-09-30 세션(이어서 12) — 보안 2단계: 직원 비밀번호(_pw) 저장 위치 이동 (테섭)
+
+**조치**: 승인된 직원이 읽을 수 있던 계정 문서의 `_pw`를 본인·관리자 전용 `portal_secrets/{uid}`로 이동(계정 생성·관리자 비밀번호 변경·내 정보 코드 4지점 수정, 데이터 7건 이전, 규칙 전환용→최종). **본섭 미적용.**
+
+**보관**: portal-test `backup/firestore_rules_20260930_pw_secrets/`, `backup/20260930_pw_secrets/`, `scripts/migrate_pw_to_secrets.py`
+
+**상세**: `7_72_log_pw_secrets.md`, `8_68_log_2026-09-30m_session.md`
+
+---
