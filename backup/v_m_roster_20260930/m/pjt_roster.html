@@ -1,0 +1,194 @@
+<!DOCTYPE html><!-- 모바일 근로자 연명부 v1.0.0 · 2026-09-30 · 관리자 전용 조회 + 검진 결과 PDF 다운로드 (등록·수정은 PC) -->
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>근로자 연명부 · JH Solutions</title>
+<style>
+  :root{--blue:#1D5BA6;--ink:#1a2330;--sub:#6b7787;--line:#e4eaf2;--bg:#eef2f7;--card:#fff;--ok:#1b8a5a;--warn:#c0392b;--amber:#e08a1e}
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:-apple-system,'Apple SD Gothic Neo','Pretendard',sans-serif;background:var(--bg);color:var(--ink);line-height:1.5;min-height:100vh}
+  .phone{width:100%;max-width:520px;margin:0 auto;min-height:100vh}
+  .top{display:flex;align-items:center;justify-content:space-between;padding:18px 18px 6px}
+  .back{background:var(--card);border:1px solid var(--line);color:var(--blue);font-size:13px;font-weight:700;padding:8px 14px;border-radius:12px;cursor:pointer;font-family:inherit}
+  .ttl{font-size:20px;font-weight:800;padding:8px 20px 2px}
+  .ttl small{font-size:11.5px;color:var(--sub);font-weight:600;margin-left:6px}
+  .summary{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:12px 16px 0}
+  .sc{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:10px 8px;text-align:center}
+  .sc .n{font-size:20px;font-weight:800}.sc .n.warn{color:var(--warn)}.sc .k{font-size:10.5px;color:var(--sub);font-weight:600;margin-top:2px;line-height:1.3}
+  .search{margin:12px 16px 0;display:flex;gap:8px}
+  .search input{flex:1;padding:11px 14px;border:1.5px solid var(--line);border-radius:12px;font-size:14px;font-family:inherit;background:#fff;min-width:0}
+  .tabs{display:flex;gap:6px;margin:10px 16px 0}
+  .tab{flex:1;text-align:center;padding:8px 0;border-radius:10px;background:#fff;border:1px solid var(--line);font-size:13px;font-weight:700;color:var(--sub);cursor:pointer}
+  .tab.on{background:var(--blue);border-color:var(--blue);color:#fff}
+  .list{padding:12px 16px 30px;display:flex;flex-direction:column;gap:10px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:13px 14px;cursor:pointer}
+  .card:active{transform:scale(.985)}
+  .row1{display:flex;align-items:center;gap:11px}
+  .av{width:40px;height:40px;border-radius:50%;background:#eaf2fc;color:var(--blue);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:16px;flex-shrink:0}
+  .nm{font-size:15.5px;font-weight:800}.meta{font-size:11.5px;color:var(--sub);font-weight:500;margin-top:1px}
+  .go{margin-left:auto;color:#c3cedd;font-size:16px}
+  .chips{display:flex;flex-wrap:wrap;gap:5px;margin-top:9px}
+  .b{font-size:10.5px;font-weight:700;padding:3px 8px;border-radius:7px;background:#f1f4f8;color:#5b6878;white-space:nowrap}
+  .b.ok{background:#e7f5ee;color:var(--ok)}.b.soon{background:#fff1dc;color:#b86a00}.b.exp{background:#fde8e6;color:var(--warn)}.b.off{background:#f1f4f8;color:#9aa8bc}
+  .empty,.loading,.err{margin:24px 16px;padding:24px;text-align:center;color:#9aa8bc;font-size:13px;font-weight:600;background:var(--card);border:1px solid var(--line);border-radius:16px}
+  .err{color:var(--warn)}
+  .sec{margin:12px 16px 0;background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px}
+  .sec h3{font-size:13px;font-weight:800;margin-bottom:8px;color:#333}
+  .kv{display:flex;justify-content:space-between;gap:12px;padding:7px 0;border-bottom:1px dashed #eef0f3;font-size:13px}
+  .kv:last-child{border-bottom:none}.kv .k{color:var(--sub);font-weight:600;flex-shrink:0}.kv .v{font-weight:600;text-align:right;word-break:break-all}
+  .item{padding:9px 0;border-bottom:1px dashed #eef0f3}.item:last-child{border-bottom:none}
+  .item .t{font-size:13.5px;font-weight:700;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+  .item .s{font-size:11.5px;color:var(--sub);margin-top:3px}
+  .btn{display:inline-block;margin-top:7px;padding:8px 13px;border-radius:10px;border:1.5px solid var(--blue);background:#fff;color:var(--blue);font-size:12.5px;font-weight:700;font-family:inherit;cursor:pointer}
+  .btn:disabled{opacity:.5}
+  .note{margin:14px 20px 26px;font-size:11.5px;color:#9aa8bc;font-weight:600;text-align:center}
+  a.tel{color:var(--blue);text-decoration:none}
+</style>
+</head>
+<body>
+<div class="phone"><div id="app"><div class="loading">불러오는 중…</div></div></div>
+<script src="auth-guard.js"></script>
+<script type="module">
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
+import { getFirestore, collection, getDocs } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+import { getAuth, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
+import { getStorage, ref as sref, getBlob } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-storage.js';
+const firebaseConfig = {
+  apiKey:"AIzaSyCyQxBJ_ftfM0ImBXubmqD5gfzFR54iPmE", authDomain:"p4ph2-fab-506a7.firebaseapp.com",
+  projectId:"p4ph2-fab-506a7", storageBucket:"p4ph2-fab-506a7.firebasestorage.app",
+  messagingSenderId:"36946317914", appId:"1:36946317914:web:c6ad5f3a1b98130c99fe63"
+};
+const app=initializeApp(firebaseConfig); const db=getFirestore(app); const auth=getAuth(app); const storage=getStorage(app);
+
+const esc=v=>String(v==null?'':v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+const $app=()=>document.getElementById('app');
+const p2=n=>String(n).padStart(2,'0');
+const ymdToday=()=>{const d=new Date();return d.getFullYear()+'-'+p2(d.getMonth()+1)+'-'+p2(d.getDate());};
+const EDU=[{k:'e1',l:'안전담당자/화재감시자 기본 인증'},{k:'e2',l:'중량물/양중작업 안전인증'},{k:'e3',l:'화학물질취급작업 안전인증'},{k:'e4',l:'화학물질안전원 온라인 교육'}];
+const HEALTH_TYPES={general:'일반검진',preplace:'배치전검진'};
+const CO={samsung:'삼성전자',skhynix:'SK하이닉스'}; const certCo=c=>(c&&c.co)||'samsung';
+const fmtSize=n=>n>=1048576?(n/1048576).toFixed(1)+'MB':Math.max(1,Math.round((n||0)/1024))+'KB';
+const maskJumin=j=>{const d=String(j||'').replace(/[^0-9]/g,'');return d.length===13?d.slice(0,6)+'-'+d[6]+'······':'—';};
+
+// 만료 계산(PC 연명부와 같은 규칙): 검진 만료일 = 저장된 만료일, 없으면 실시일 + 1년
+function addYearsYmd(ymd,n){ if(!/^\d{4}-\d{2}-\d{2}$/.test(ymd||'')) return ''; const y=+ymd.slice(0,4),m=+ymd.slice(5,7),d=+ymd.slice(8,10); if(y<1900||y>2100) return '';
+  const dt=new Date(Date.UTC(y+n,m-1,d)); if(dt.getUTCMonth()!==m-1) dt.setUTCDate(0); return dt.getUTCFullYear()+'-'+p2(dt.getUTCMonth()+1)+'-'+p2(dt.getUTCDate()); }
+function dday(exp){ if(!exp) return null; return Math.round((new Date(exp+'T00:00:00')-new Date(ymdToday()+'T00:00:00'))/86400000); }
+function stateOf(exp){ const d=dday(exp); if(d===null) return {cls:'off',txt:'—',d:null}; if(d<0) return {cls:'exp',txt:'만료 D+'+Math.abs(d),d}; if(d<=30) return {cls:'soon',txt:'D-'+d,d}; return {cls:'ok',txt:'유효 D-'+d,d}; }
+function latestHealth(p,type){ const l=((p&&p.health)||[]).filter(h=>h.type===type&&h.date).sort((a,b)=>a.date.localeCompare(b.date)); return l.length?l[l.length-1]:null; }
+function healthExpiry(p,type){ const h=latestHealth(p,type); return h?(h.expiry||addYearsYmd(h.date,1)):''; }
+function eduOn(p,k){ return !!((p&&p.inhouseEdu)||{})[k]; }
+function eduExp(p,k){ return ((p&&p.inhouseEduExp)||{})[k]||''; }
+
+let masters=[], privs={}, tab='act', q='', view='list', detailId=null, loadError='';
+const byId=id=>masters.find(m=>m.id===id);
+const teamOf=m=>{ if(!m.leaderId) return '팀장/독립'; const l=byId(m.leaderId); return (l?l.name:'?')+' 팀'; };
+
+function topBar(){ return '<div class="top"><button class="back" onclick="goBack()">← '+(view==='list'?'홈':'목록')+'</button></div>'; }
+window.goBack=function(){ if(view==='list') location.href='home.html'; else history.back(); };
+window.addEventListener('popstate',()=>{ view='list'; detailId=null; render(); });
+window.openDetail=function(id){ view='detail'; detailId=id; history.pushState({v:'detail'},''); render(); window.scrollTo(0,0); };
+window.setTab=function(t){ tab=t; render(); };
+window.setQ=function(v){ q=v; renderList(); };
+
+function visible(){
+  const s=q.trim().toLowerCase();
+  return masters.filter(m=>tab==='all'?true:tab==='res'?!!m.resigned:!m.resigned).filter(m=>{
+    if(!s) return true; const p=privs[m.id]||{};
+    const hay=[m.name,p.phone,teamOf(m),(p.certs||[]).map(c=>c.name+' '+(c.site||'')).join(' ')].join(' ').toLowerCase(); return hay.includes(s);
+  }).sort((a,b)=>(a.name||'').localeCompare(b.name||'','ko'));
+}
+function healthChip(p,type){ const e=healthExpiry(p,type); const lbl=type==='general'?'일반':'배치전'; if(!e) return '<span class="b off">'+lbl+' 없음</span>'; const s=stateOf(e); return '<span class="b '+s.cls+'">'+lbl+' '+s.txt+'</span>'; }
+function cardHtml(m){
+  const p=privs[m.id]||{}; const edn=EDU.filter(e=>eduOn(p,e.k)).length;
+  const edExp=EDU.filter(e=>eduOn(p,e.k)&&stateOf(eduExp(p,e.k)).cls==='exp').length, edSoon=EDU.filter(e=>eduOn(p,e.k)&&stateOf(eduExp(p,e.k)).cls==='soon').length;
+  const cs=p.certs||[]; const cExp=cs.filter(c=>stateOf(c.expiry).cls==='exp').length, cSoon=cs.filter(c=>stateOf(c.expiry).cls==='soon').length;
+  const hasPdf=(p.health||[]).some(h=>h.pdf);
+  return '<div class="card" onclick="openDetail(\''+esc(m.id).replace(/'/g,"\\'")+'\')"><div class="row1"><div class="av">'+esc((m.name||'?').slice(0,1))+'</div>'
+   +'<div style="min-width:0"><div class="nm">'+esc(m.name)+(m.resigned?' <span class="b off">퇴사 '+esc(m.resignedDate||'')+'</span>':'')+'</div><div class="meta">'+esc(teamOf(m))+' · 입사 '+esc(m.hireDate||'—')+'</div></div><span class="go">›</span></div>'
+   +'<div class="chips">'+healthChip(p,'general')+healthChip(p,'preplace')
+   +'<span class="b '+(edn===4?'ok':edn===0?'exp':'soon')+'">교육 '+edn+'/4</span>'+(edExp?'<span class="b exp">교육 만료 '+edExp+'</span>':edSoon?'<span class="b soon">교육 임박 '+edSoon+'</span>':'')
+   +(cs.length?'<span class="b '+(cExp?'exp':cSoon?'soon':'ok')+'">자격 '+cs.length+(cExp?' · 만료 '+cExp:cSoon?' · 임박 '+cSoon:'')+'</span>':'')
+   +(hasPdf?'<span class="b ok">📄 검진결과</span>':'')+'</div></div>';
+}
+function summaryHtml(){
+  const act=masters.filter(m=>!m.resigned);
+  const hAlert=act.filter(m=>['general','preplace'].some(t=>{const e=healthExpiry(privs[m.id],t); const c=stateOf(e).cls; return e&&(c==='exp'||c==='soon');})).length;
+  const noGen=act.filter(m=>!latestHealth(privs[m.id],'general')).length;
+  return '<div class="summary"><div class="sc"><div class="n">'+act.length+'</div><div class="k">재직 인원</div></div>'
+   +'<div class="sc"><div class="n '+(hAlert?'warn':'')+'">'+hAlert+'</div><div class="k">검진 만료·임박(30일)</div></div>'
+   +'<div class="sc"><div class="n '+(noGen?'warn':'')+'">'+noGen+'</div><div class="k">일반검진 기록 없음</div></div></div>';
+}
+function renderList(){
+  const list=visible(); const el=document.getElementById('lst'); if(!el) return;
+  el.innerHTML=list.length?list.map(cardHtml).join(''):'<div class="empty">조건에 맞는 근로자가 없습니다.</div>';
+}
+function renderListPage(){
+  $app().innerHTML=topBar()+'<div class="ttl">👷 근로자 연명부<small>관리자 전용</small></div>'+summaryHtml()
+   +'<div class="search"><input type="search" placeholder="이름 · 연락처 · 소속 · 자격 검색" value="'+esc(q)+'" oninput="setQ(this.value)"></div>'
+   +'<div class="tabs"><div class="tab '+(tab==='act'?'on':'')+'" onclick="setTab(\'act\')">재직</div><div class="tab '+(tab==='res'?'on':'')+'" onclick="setTab(\'res\')">퇴사</div><div class="tab '+(tab==='all'?'on':'')+'" onclick="setTab(\'all\')">전체</div></div>'
+   +'<div class="list" id="lst"></div><div class="note">등록·수정은 PC 화면에서 할 수 있습니다.</div>';
+  renderList();
+}
+function badge(exp){ const s=stateOf(exp); return '<span class="b '+s.cls+'">'+s.txt+'</span>'; }
+function renderDetail(){
+  const m=byId(detailId); if(!m){ view='list'; return renderListPage(); } const p=privs[m.id]||{};
+  const health=((p.health)||[]).filter(h=>h.date).sort((a,b)=>b.date.localeCompare(a.date));
+  const certs=(p.certs||[]);
+  const tel=(p.phone||'').replace(/[^0-9+]/g,'');
+  let h='<div class="sec"><h3>👤 인적사항</h3>'
+   +'<div class="kv"><span class="k">이름</span><span class="v">'+esc(m.name)+'</span></div>'
+   +'<div class="kv"><span class="k">생년월일</span><span class="v">'+esc(m.birth||'—')+'</span></div>'
+   +'<div class="kv"><span class="k">성별</span><span class="v">'+esc(m.gender||'—')+'</span></div>'
+   +'<div class="kv"><span class="k">주민번호</span><span class="v">'+esc(maskJumin(p.jumin))+'</span></div>'
+   +'<div class="kv"><span class="k">전화</span><span class="v">'+(tel?'<a class="tel" href="tel:'+esc(tel)+'">'+esc(p.phone)+'</a>':'—')+'</span></div>'
+   +'<div class="kv"><span class="k">입사일</span><span class="v">'+esc(m.hireDate||'—')+'</span></div>'
+   +'<div class="kv"><span class="k">소속</span><span class="v">'+esc(teamOf(m))+'</span></div>'
+   +(m.resigned?'<div class="kv"><span class="k">퇴사</span><span class="v">'+esc(m.resignedDate||'')+'</span></div>':'')+'</div>';
+  h+='<div class="sec"><h3>🩺 건강검진 이력</h3>'+(health.length?health.map((x,i)=>{
+      const exp=x.expiry||addYearsYmd(x.date,1);
+      return '<div class="item"><div class="t">'+esc(HEALTH_TYPES[x.type]||'검진')+' '+badge(exp)+(x.expiryManual?'<span class="b">수정됨</span>':'')+'</div>'
+        +'<div class="s">실시 '+esc(x.date)+' · 만료 '+esc(exp)+'</div>'
+        +(x.pdf?'<div class="s">📄 '+esc(x.pdf.name)+' · '+fmtSize(x.pdf.size)+'</div><button class="btn" onclick="dlPdf(this,\''+esc(m.id).replace(/'/g,"\\'")+'\','+i+')">결과 PDF 다운로드</button>':'')+'</div>';
+    }).join(''):'<div class="s" style="color:#9aa8bc">등록된 검진 이력이 없습니다.</div>')+'</div>';
+  h+='<div class="sec"><h3>📜 자격 · 인증</h3>'+(certs.length?certs.map(c=>'<div class="item"><div class="t">'+esc(c.name)+' '+badge(c.expiry)+'</div><div class="s">'+esc(CO[certCo(c)]||'')+(c.site?' · '+esc(c.site):'')+' · 취득 '+esc(c.acquired||'—')+' · 만료 '+esc(c.expiry||'—')+'</div></div>').join(''):'<div class="s" style="color:#9aa8bc">등록된 자격/인증이 없습니다.</div>')+'</div>';
+  h+='<div class="sec"><h3>🎓 사내화 교육 (삼성전자)</h3>'+EDU.map(e=>{ const on=eduOn(p,e.k), ex=eduExp(p,e.k);
+      return '<div class="item"><div class="t">'+(on?'✅':'⬜')+' '+esc(e.l)+' '+(on?(ex?badge(ex):'<span class="b ok">이수</span>'):'<span class="b off">미이수</span>')+'</div>'+(on&&ex?'<div class="s">만료 '+esc(ex)+'</div>':'')+'</div>'; }).join('')+'</div>';
+  const fm=p.files||{}; const chips=[['photo','사진'],['idcard','신분증'],['cert','이수증']].map(([k,l])=>'<span class="b '+(fm[k]?'ok':'off')+'">'+l+(fm[k]?' 등록':' 없음')+'</span>').join(' ');
+  h+='<div class="sec"><h3>📎 첨부</h3><div class="chips" style="margin-top:0">'+chips+'</div><div class="s" style="margin-top:8px;color:#9aa8bc">사진·신분증·이수증은 PC에서 확인할 수 있습니다.</div></div>'
+   +'<div class="note">등록·수정은 PC 화면에서 할 수 있습니다.</div>';
+  $app().innerHTML=topBar()+'<div class="ttl">'+esc(m.name)+'<small>'+esc(teamOf(m))+'</small></div>'+h;
+}
+// 검진 결과 PDF: 링크를 발급하지 않고 로그인한 관리자 권한으로 직접 받아 저장
+window.dlPdf=async function(btn,id,i){
+  const p=privs[id]||{}; const health=((p.health)||[]).filter(h=>h.date).sort((a,b)=>b.date.localeCompare(a.date)); const x=health[i]; if(!x||!x.pdf) return;
+  const orig=btn.textContent; btn.disabled=true; btn.textContent='받는 중…';
+  try{
+    const blob=await getBlob(sref(storage,x.pdf.path)); const url=URL.createObjectURL(new Blob([blob],{type:'application/pdf'}));
+    const a=document.createElement('a'); a.href=url; a.download=((byId(id)||{}).name||'근로자')+'_'+(HEALTH_TYPES[x.type]||'검진')+'_'+x.date+'.pdf'; document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(()=>URL.revokeObjectURL(url),30000); btn.textContent='✔ 받았습니다';
+  }catch(e){ alert('다운로드 실패: '+e.message+'\n(관리자 계정으로 로그인했는지 확인해 주세요)'); btn.textContent=orig; }
+  setTimeout(()=>{ btn.disabled=false; btn.textContent=orig; },2500);
+};
+function render(){
+  if(loadError){ $app().innerHTML=topBar()+'<div class="err">'+esc(loadError)+'</div>'; return; }
+  if(view==='detail') renderDetail(); else renderListPage();
+}
+async function load(){
+  try{
+    const [ms,ps]=await Promise.all([getDocs(collection(db,'master_workers')),getDocs(collection(db,'master_worker_private'))]);
+    masters=[]; ms.forEach(d=>masters.push({id:d.id,...d.data()})); privs={}; ps.forEach(d=>{privs[d.id]=d.data();});
+    render();
+  }catch(e){
+    loadError=/permission|insufficient/i.test(e.message)?'관리자만 볼 수 있는 화면입니다. 관리자 계정으로 로그인해 주세요.':('불러오지 못했습니다: '+e.message);
+    render();
+  }
+}
+onAuthStateChanged(auth,user=>{
+  if(!user){ $app().innerHTML=topBar()+'<div class="err">로그인이 필요합니다.<br><a class="tel" href="../index.html">포털에서 로그인</a> 후 다시 열어 주세요.</div>'; return; }
+  load();
+});
+</script>
+</body>
+</html>
