@@ -1,8 +1,52 @@
-<!DOCTYPE html><!-- build: 20260930 · ver: 2026-09-30 (PJT 관리 > 근로자 연명부 메뉴 추가, 관리자 전용) · 이전: 20260924f 2026-09-24 (하단 작업탭 세부메뉴별 분리, 홈 출퇴근/업무일지/전체PJT일정 위젯, 회사 일정 등록, 새로고침 시 탭 초기화) -->
+<!DOCTYPE html><!-- build: 20260925e · ver: 2026-09-25 (하단 작업탭 10개 초과 시 막지 않고 가장 먼저 열었던 탭을 자동으로 닫음) · 이전: 20260925d 결재함 이동 후 탭 갇힘 현상 해결 -->
 <html lang="ko">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<script>
+/* 모바일 'PC 화면으로 전환'(jh_force_pc) 지원 — 로그인 후 앱 화면에서만 뷰포트를 데스크톱 너비(1280px)로 고정해
+   화면 너비와 무관하게 PC 레이아웃(≥900px 미디어쿼리·iframe 모듈의 PC 화면)이 적용되게 한다. 로그인 화면은 기존대로 모바일 크기. */
+window.jhForcePc=function(){ try{ return localStorage.getItem('jh_force_pc')==='1'; }catch(e){ return false; } };
+window.jhApplyViewport=function(pc){
+  try{
+    var m=document.querySelector('meta[name="viewport"]'); if(!m) return;
+    m.setAttribute('content', pc ? 'width=1280, user-scalable=yes' : 'width=device-width, initial-scale=1');
+    document.documentElement.classList.toggle('force-pc', !!pc);
+  }catch(e){}
+};
+/* 강제 PC 화면에서 모바일로 돌아가는 버튼 — 화면 우측 하단 고정(하단 작업탭이 있으면 그 위로 띄움).
+   1280px 레이아웃을 폰 화면에 맞춰 축소해 보여주므로, 축소된 비율만큼 키워서 실제 화면에서 손가락 크기로 보이게 한다. */
+window.jhPlaceFab=function(){
+  try{
+    var el=document.getElementById('jh-to-mobile-fab'); if(!el) return;
+    var k=Math.max(1, 1280/((window.screen&&screen.width)||1280));
+    var tb=document.getElementById('jh-tabbar'), h=0;
+    if(tb && tb.style.display!=='none' && tb.offsetHeight) h=tb.offsetHeight;
+    el.style.top='auto'; el.style.right=(12*k)+'px'; el.style.bottom=(h+12*k)+'px';
+  }catch(e){}
+};
+window.jhEnsureMobileFab=function(on){
+  try{
+    var id='jh-to-mobile-fab', el=document.getElementById(id);
+    if(!on){ if(el) el.remove(); return; }
+    if(el){ jhPlaceFab(); return; }
+    var k=Math.max(1, 1280/((window.screen&&screen.width)||1280));
+    el=document.createElement('button'); el.id=id; el.type='button'; el.textContent='📱 모바일 화면';
+    el.setAttribute('style','position:fixed;z-index:2147483000;background:#1D5BA6;color:#fff;border:'+(2*k)+'px solid #fff;border-radius:999px;padding:'+(9*k)+'px '+(16*k)+'px;font-size:'+(14*k)+'px;font-weight:800;line-height:1.2;box-shadow:0 '+(3*k)+'px '+(12*k)+'px rgba(0,0,0,.35);cursor:pointer;font-family:inherit;');
+    el.onclick=function(){ jhSwitchToMobile(); };
+    (document.body||document.documentElement).appendChild(el);
+    jhPlaceFab();
+    // 작업탭이 생기거나 사라지면(높이 변화) 위치를 다시 잡는다
+    var tb=document.getElementById('jh-tabbar');
+    if(tb && window.MutationObserver){ new MutationObserver(jhPlaceFab).observe(tb,{attributes:true,childList:true,subtree:true}); }
+    window.addEventListener('resize', jhPlaceFab);
+  }catch(e){}
+};
+</script>
+<style>
+/* 강제 PC 화면(jh_force_pc): 100vh는 폰에서 브라우저 툴바 뒤까지 잡혀 하단이 가려지므로 보이는 영역(dvh) 기준으로 */
+html.force-pc #s-app.shown, html.force-pc .sidebar, html.force-pc .main, html.force-pc #view-embed { height:100vh; height:100dvh; }
+</style>
 <title>JH Solutions 업무 포털</title>
 <link rel="manifest" href="/manifest.json">
 <link rel="icon" href="/icons/favicon-32.png" sizes="32x32">
@@ -581,6 +625,7 @@
     <nav class="sb-nav" id="sb-nav"></nav>
     <div class="sb-spacer"></div>
     <a href="/download/" target="_blank" style="display:flex;align-items:center;gap:6px;margin:0 12px 10px;padding:8px 10px;border-radius:8px;border:1px solid rgba(255,255,255,.18);color:#9fbbe0;text-decoration:none;font-size:11px;font-weight:600;">📥 PC·모바일 앱 다운로드</a>
+    <button type="button" id="sb-to-mobile" onclick="jhSwitchToMobile()" style="display:none;align-items:center;justify-content:center;gap:6px;margin:0 12px 10px;padding:8px 10px;border-radius:8px;border:1px solid rgba(255,255,255,.18);color:#9fbbe0;text-decoration:none;font-size:11px;background:none;cursor:pointer;font-family:inherit;">📱 모바일 화면으로 전환</button>
     <div class="sb-user">
       <button class="sb-user-btn" onclick="openMyProfile()">
         <div class="avatar" id="sb-avatar">·</div>
@@ -997,7 +1042,7 @@
 <script type="module">
 import { initializeApp, initializeApp as initApp2 } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
 import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged,
-         updatePassword, sendPasswordResetEmail }
+         updatePassword, sendPasswordResetEmail, RecaptchaVerifier, linkWithPhoneNumber }
   from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
 import { getFirestore, doc, getDoc, setDoc, updateDoc, deleteDoc, serverTimestamp, collection, query, where, getDocs, orderBy }
   from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
@@ -1040,15 +1085,22 @@ const PJT_SUBTABS=[
 // 인사(hr) 하위 탭 — portal/hr 앱의 goTab() 키와 일치
 const HR_SUBTABS=[
   { key:'home',     name:'인사 홈',     emoji:'★' },
-  { key:'roster',   name:'근로자 명부', emoji:'1' },
-  { key:'labor',    name:'근로계약서',  emoji:'2' },
-  { key:'annual',   name:'연봉계약서',  emoji:'3' },
-  { key:'overtime', name:'근로시간',    emoji:'4' },
-  { key:'payslip',  name:'급여명세서',  emoji:'5' },
-  { key:'retire',   name:'퇴직금 정산', emoji:'6' },
-  { key:'leave',    name:'연차 현황',   emoji:'7' },
-  { key:'salarytable', name:'급여테이블', emoji:'8' },
-  { key:'offer',    name:'연봉 제안서', emoji:'9' },
+  { key:'applicants', name:'채용 지원자', emoji:'1' },
+  { key:'jobposting', name:'공고 관리', emoji:'2' },
+  { key:'offer',    name:'연봉 제안서', emoji:'3' },
+  { key:'roster',   name:'근로자 명부', emoji:'4' },
+  { key:'labor',    name:'근로계약서',  emoji:'5' },
+  { key:'annual',   name:'연봉계약서',  emoji:'6' },
+  { key:'overtime', name:'근로시간',    emoji:'7' },
+  { key:'payslip',  name:'급여명세서',  emoji:'8' },
+  { key:'eval',     name:'인사평가',    emoji:'9' },
+  { key:'interview', name:'근로자 면담', emoji:'10' },
+  { key:'leave',    name:'연차 현황',   emoji:'11' },
+  { key:'change',   name:'인사 변동',   emoji:'12' },
+  { key:'resignreq', name:'휴직/퇴직 원서', emoji:'13' },
+  { key:'dismissal', name:'해고예고통지서', emoji:'14' },
+  { key:'retire',   name:'퇴직금 정산', emoji:'15' },
+  { key:'salarytable', name:'급여테이블', emoji:'📊' },
 ];
 // 기획(plan) 하위 탭 — gihoek 앱의 tab() 키와 일치
 const PLAN_SUBTABS=[
@@ -1066,7 +1118,7 @@ const EDOC_SUBTABS=[
   { key:'approve',  name:'결재함',       emoji:'📥' },
   { key:'daily',    name:'업무일지',     emoji:'1' },
   { key:'leave',    name:'연차신청서',   emoji:'2' },
-  { key:'resign',   name:'퇴직원서',     emoji:'3' },
+  { key:'resign',   name:'휴직/퇴직',     emoji:'3' },
   { key:'cert',     name:'재직증명서',   emoji:'4' },
   { key:'purchase', name:'구매품의서',   emoji:'5' },
   { key:'expense',  name:'지출결의서',   emoji:'6' },
@@ -1081,13 +1133,19 @@ Object.defineProperty(window,'me',{get:()=>me,set:v=>{me=v;
 
 const $=id=>document.getElementById(id);
 function showAuth(id){
+  if(window.jhApplyViewport) jhApplyViewport(false);
+  if(window.jhEnsureMobileFab) jhEnsureMobileFab(false);
   $('auth-stage').style.display='flex';
   $('s-app').classList.remove('shown');
   document.querySelectorAll('.authscreen').forEach(s=>s.classList.toggle('on', s.id===id));
   window.scrollTo(0,0);
 }
 function showApp(){
-  if(/Mobi/i.test(navigator.userAgent||'')){ location.href='m/home.html'; return; }
+  var _fpc = window.jhForcePc ? jhForcePc() : false;
+  if(!_fpc && /Mobi/i.test(navigator.userAgent||'')){ location.href='m/home.html'; return; }
+  if(window.jhApplyViewport) jhApplyViewport(_fpc);
+  if(window.jhEnsureMobileFab) jhEnsureMobileFab(_fpc);
+  var _tm=document.getElementById('sb-to-mobile'); if(_tm) _tm.style.display = _fpc ? 'flex' : 'none';
   $('auth-stage').style.display='none';
   $('s-app').classList.add('shown');
   window.scrollTo(0,0);
@@ -2297,38 +2355,50 @@ window.deletePjtPermanently = async function(id, name){
 // PJT 레지스트리(신규 등록 PJT)를 PJT_SUBTABS에 동적으로 편입 — 상단 카드·사이드바 메뉴 자동 반영
 async function syncPjtRegistrySubtabs(){
   try{
-    const snap=await getDocs(query(collection(db,'pjt_registry'), orderBy('createdAt','desc')));
+    const snap=await getDocs(query(collection(db,'pjt_registry'), orderBy('createdAt','asc')));
     let changed=false;
     const activeIds=new Set();
+    const orderedKeys=[];
+    const byKey={};
     snap.forEach(function(d){
       const data=d.data();
       if(data.status==='ended') return;
       activeIds.add(d.id);
       const key='reg_'+d.id;
+      orderedKeys.push(key);
       let sub='';
       if(data.client&&data.content) sub=data.client+' · '+data.content;
       else if(data.client) sub=data.client;
       else if(data.content) sub=data.content;
       else if(data.site) sub=data.site;
       const url=data.url||('pjt_light/index.html?pjtId='+d.id);
-      let st=PJT_SUBTABS.find(function(s){return s.key===key;});
-      if(!st){
-        const mandayIdx=PJT_SUBTABS.findIndex(function(s){ return s.key==='pjt_manday'; });
-        const insertAt=mandayIdx===-1?PJT_SUBTABS.length:mandayIdx;
-        PJT_SUBTABS.splice(insertAt, 0, { key:key, name:data.name||'PJT', emoji:'🏗️', desc:sub, url:url });
-        changed=true;
-      } else {
-        if(data.name && data.name!==st.name){ st.name=data.name; changed=true; }
-        if(sub!==st.desc){ st.desc=sub; changed=true; }
-        if(url!==st.url){ st.url=url; changed=true; }
-      }
+      byKey[key]={ key:key, name:data.name||'PJT', emoji:'🏗️', desc:sub, url:url };
     });
-    for(let i=PJT_SUBTABS.length-1;i>=0;i--){
-      const st=PJT_SUBTABS[i];
-      if(st.key.indexOf('reg_')===0 && !activeIds.has(st.key.slice(4))){
-        PJT_SUBTABS.splice(i,1); changed=true;
+    // 기존 항목이 이미 있으면 그 객체(참조)를 재사용해 값만 갱신 — 다른 데서 이 객체를 참조 중이어도 안전
+    const existingByKey={};
+    PJT_SUBTABS.forEach(function(s){ if(s.key.indexOf('reg_')===0) existingByKey[s.key]=s; });
+    const newRegList=orderedKeys.map(function(key){
+      const fresh=byKey[key];
+      const st=existingByKey[key];
+      if(st){
+        if(fresh.name!==st.name){ st.name=fresh.name; changed=true; }
+        if(fresh.desc!==st.desc){ st.desc=fresh.desc; changed=true; }
+        if(fresh.url!==st.url){ st.url=fresh.url; changed=true; }
+        return st;
       }
+      changed=true;
+      return fresh;
+    });
+    // 순서가 예전과 달라졌는지도 확인(생성일순 재정렬 반영용)
+    const prevOrder=PJT_SUBTABS.filter(function(s){return s.key.indexOf('reg_')===0;}).map(function(s){return s.key;});
+    if(prevOrder.join(',')!==orderedKeys.join(',')) changed=true;
+    // reg_ 항목 전부 제거 후, 생성일순으로 다시 삽입(위치는 기존과 동일하게 pjt_manday 앞)
+    for(let i=PJT_SUBTABS.length-1;i>=0;i--){
+      if(PJT_SUBTABS[i].key.indexOf('reg_')===0) PJT_SUBTABS.splice(i,1);
     }
+    const mandayIdx=PJT_SUBTABS.findIndex(function(s){ return s.key==='pjt_manday'; });
+    const insertAt=mandayIdx===-1?PJT_SUBTABS.length:mandayIdx;
+    PJT_SUBTABS.splice.apply(PJT_SUBTABS, [insertAt, 0].concat(newRegList));
     if(changed){
       renderMenu();
       const homeView=document.getElementById('view-pjt-home');
@@ -2417,6 +2487,11 @@ async function doLogin(){
   catch(e){ showMsg(msg,'err',authErr(e.code)); }
   finally{ btn.disabled=false; btn.textContent='로그인'; }
 }
+/* 최초 로그인 휴대폰 본인인증 사용 스위치.
+   ⚠️ 켜기 전 선행 설정 필수: Firebase Blaze 전환 · Authentication에서 '전화' 로그인 활성화 · 승인된 도메인 등록.
+   설정 전에 true로 두면 등록된 연락처가 있는 계정은 문자가 안 나가 로그인이 막힌다. */
+const PHONE_VERIFY_REQUIRED = false;
+
 async function enterFromUser(user,msg){
   const ref=doc(db,'portal_users',user.uid);
   let snap=await getDoc(ref); let data=snap.exists()?snap.data():null;
@@ -2427,11 +2502,91 @@ async function enterFromUser(user,msg){
   }
   if(!data){ await signOut(auth); if(msg) showMsg(msg,'err','등록되지 않은 계정입니다. 관리자에게 계정 생성을 요청하세요.'); return; }
   if(data.status!=='approved'){ await signOut(auth); if(msg) showMsg(msg,'err','승인되지 않은 계정입니다.'); return; }
+
+  // 최초 로그인 1회 휴대폰 본인인증 (등록된 연락처가 있을 때만; 매 로그인마다 X, 계정당 딱 한 번)
+  if (PHONE_VERIFY_REQUIRED && data.phone && !data.phoneVerified) {
+    const ok = await showPhoneVerifyGate(user, data.phone);
+    if (!ok) { await signOut(auth); return; }
+    await setDoc(ref, { phoneVerified:true, phoneVerifiedAt: serverTimestamp() }, { merge:true });
+    data.phoneVerified = true;
+  }
+
   // window.me 로 할당해야 setter(831줄)가 실행되어 jh_login_perms(모바일이 읽는 로그인 정보)가
   // 실제 로그인한 사용자로 갱신된다. 지역변수(me=)로 할당하면 setter를 건너뛰어 이전 계정이 잔존한다.
   window.me={ uid:user.uid, ...data };
   try{ localStorage.setItem('jh_login_name',(me.name||'').trim()); localStorage.setItem('jh_login_full',((me.name||'')+(me.rank?' '+me.rank:'')).trim()); }catch(e){}
   enterPortal();
+}
+
+function _normalizePhoneE164(phone){
+  const digits = String(phone||'').replace(/\D/g,'');
+  return '+82' + digits.replace(/^0/, '');
+}
+
+// 최초 로그인 1회 본인인증 오버레이. Promise<boolean> — true: 인증 성공, false: 사용자가 취소
+function showPhoneVerifyGate(user, phone){
+  return new Promise((resolve) => {
+    const phoneDigits = String(phone||'').replace(/\D/g,'');
+    const masked = phoneDigits.length>=8 ? phoneDigits.slice(0,3)+'-****-'+phoneDigits.slice(-4) : phone;
+    const box = document.createElement('div');
+    box.id = 'phone-verify-gate';
+    box.style.cssText = 'position:fixed;inset:0;background:#F4F7FB;z-index:99999;display:flex;align-items:center;justify-content:center;padding:20px;';
+    box.innerHTML = `
+      <div style="background:#fff;border-radius:16px;padding:26px 22px;max-width:360px;width:100%;box-shadow:0 8px 32px rgba(0,0,0,0.15);text-align:center;">
+        <div style="font-weight:900;color:#1D5BA6;margin-bottom:4px;">JH Solutions</div>
+        <div style="font-weight:800;font-size:1.05rem;margin-bottom:6px;">최초 로그인 본인확인</div>
+        <div style="font-size:0.82rem;color:#9AAABF;margin-bottom:16px;line-height:1.6;">계정 최초 로그인 시 1회만 진행됩니다.<br>등록된 연락처로 인증번호를 보내드립니다.</div>
+        <div style="font-size:1.2rem;font-weight:800;letter-spacing:1px;margin-bottom:14px;">${masked}</div>
+        <div id="pv-recaptcha"></div>
+        <button id="pv-sendBtn" style="width:100%;padding:12px;background:#1D5BA6;border:none;border-radius:10px;color:#fff;font-weight:700;font-size:0.9rem;cursor:pointer;">📩 인증번호 받기</button>
+        <div id="pv-step2" style="display:none;margin-top:12px;">
+          <input id="pv-otp" type="tel" maxlength="6" placeholder="인증번호 6자리" style="width:100%;padding:11px;border:1px solid #DDE4EF;border-radius:9px;font-size:1.05rem;text-align:center;letter-spacing:4px;margin-bottom:8px;">
+          <button id="pv-verifyBtn" style="width:100%;padding:12px;background:#1D5BA6;border:none;border-radius:10px;color:#fff;font-weight:700;font-size:0.9rem;cursor:pointer;">확인</button>
+        </div>
+        <div id="pv-msg" style="font-size:0.78rem;color:#DC2626;margin-top:10px;"></div>
+        <button id="pv-cancelBtn" style="margin-top:14px;background:none;border:none;color:#9AAABF;font-size:0.78rem;text-decoration:underline;cursor:pointer;">취소하고 로그아웃</button>
+      </div>`;
+    document.body.appendChild(box);
+
+    document.getElementById('pv-cancelBtn').onclick = () => { box.remove(); resolve(false); };
+
+    if (!phoneDigits) {
+      document.getElementById('pv-msg').textContent = '등록된 연락처가 없어 인증할 수 없습니다. 관리자에게 문의해 주세요.';
+      document.getElementById('pv-sendBtn').disabled = true;
+      return;
+    }
+
+    const verifier = new RecaptchaVerifier(auth, 'pv-recaptcha', { size:'invisible' });
+    let confirmationResult = null;
+
+    document.getElementById('pv-sendBtn').onclick = async () => {
+      const btn = document.getElementById('pv-sendBtn');
+      btn.disabled = true; btn.textContent = '전송 중...';
+      try {
+        confirmationResult = await linkWithPhoneNumber(user, _normalizePhoneE164(phone), verifier);
+        btn.textContent = '✅ 전송 완료';
+        document.getElementById('pv-step2').style.display = 'block';
+      } catch(e) {
+        btn.disabled = false; btn.textContent = '📩 인증번호 받기';
+        document.getElementById('pv-msg').textContent = '전송 실패: ' + e.message;
+      }
+    };
+
+    document.getElementById('pv-verifyBtn').onclick = async () => {
+      const code = document.getElementById('pv-otp').value.trim();
+      if (!code) return;
+      const vBtn = document.getElementById('pv-verifyBtn');
+      vBtn.disabled = true; vBtn.textContent = '확인 중...';
+      try {
+        await confirmationResult.confirm(code);
+        box.remove();
+        resolve(true);
+      } catch(e) {
+        vBtn.disabled = false; vBtn.textContent = '확인';
+        document.getElementById('pv-msg').textContent = '인증번호가 올바르지 않습니다.';
+      }
+    };
+  });
 }
 
 /* ---------- Portal 관리: 직원 계정 생성 ---------- */
@@ -3038,7 +3193,9 @@ function renderMenu(){
     };
     wrap.appendChild(card);
     // 사이드바 항목
-    if (SUBTABS[m.key] && allowed) {
+    // ⚠️ 인사(hr)는 하위 메뉴가 많아져 사이드바 아코디언 대신 단일 항목으로 유지한다.
+    //    하위 화면 이동은 인사 홈(hr/index.html)의 카드에서 새 탭으로 열도록 처리한다.
+    if (SUBTABS[m.key] && allowed && m.key !== 'hr') {
       // 확장형 드롭다운 (기획·인사)
       const grp=document.createElement('div'); grp.className='sb-group'; grp.dataset.mod=m.key;
       const head=document.createElement('button');
@@ -3132,7 +3289,7 @@ async function renderApproveCard(){
       await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
     const EDOC_COLS = ['edoc_daily','edoc_leave','edoc_resign','edoc_cert','edoc_purchase','edoc_expense'];
     const DOCTYPE_LABEL = {
-      daily:'업무일지', leave:'연차신청서', resign:'퇴직원서',
+      daily:'업무일지', leave:'연차신청서', resign:'휴직/퇴직',
       cert:'재직증명서', purchase:'구매품의서', expense:'지출결의서'
     };
     let myTurnDocs = [];
@@ -3340,7 +3497,7 @@ function jhMakeFrame(name, fullUrl){
 
 function openModule(m, tab, overrideUrl){
   if(tab==='pjt_manday' && !(me&&me.admin)){ toast('월간 공수는 관리자만 접근할 수 있습니다.'); return; }
-  if(tab==='pjt_roster' && !(me&&me.admin)){ toast('근로자 연명부는 관리자만 접근할 수 있습니다.'); return; }
+if(tab==='pjt_roster' && !(me&&me.admin)){ toast('근로자 연명부는 관리자만 접근할 수 있습니다.'); return; }
   if((m.key==='plan'||m.key==='hr') && !(me&&me.admin)){ toast('기획/인사는 관리자만 접근할 수 있습니다.'); return; }
   const actualUrl=overrideUrl||m.url;
   if(tab==='pjt_home'||m.key==='pjt'&&tab===null){
@@ -3373,8 +3530,9 @@ function openModule(m, tab, overrideUrl){
   }
 
   if (jhTabs.length >= JH_TABS_MAX) {
-    toast(`탭은 최대 ${JH_TABS_MAX}개까지 열 수 있습니다. 먼저 하단에서 탭을 닫아주세요.`);
-    return;
+    const oldest = jhTabs[0];
+    jhCloseTab(oldest.id);
+    toast(`탭이 ${JH_TABS_MAX}개를 넘어 "${oldest.name}" 탭을 닫았습니다.`);
   }
 
   const stack = $('emb-frame-stack');
@@ -3501,13 +3659,35 @@ window.addEventListener('message', async (e) => {
 window.addEventListener('message', (e) => {
   const d = e.data;
   if (!d || d.source !== 'jh-embed' || !d.mod || !d.key) return;
+
+  // 모듈 내부에서 "새 탭으로 열기"를 요청한 경우(예: 채용 지원자 → 근로자 명부 등록처럼
+  // 원래 화면은 그대로 두고 별도 탭으로 이어가야 하는 이동) — 사이드바 클릭과 동일하게 openModule로 새 탭을 연다.
+  if (d.action === 'openNewTab') {
+    const m = MODULES.find(x => x.key === d.mod);
+    if (m) openModule(m, d.key, null);
+    return;
+  }
+
   // 여러 탭이 동시에 열려 있을 수 있으므로 모듈명이 아니라 메시지를 보낸 iframe(e.source) 자체로 어느 탭인지 특정한다
   const t = jhTabs.find(x=>x.frame && x.frame.contentWindow===e.source);
   if (!t) return;
   const st = SUBTABS[d.mod] ? SUBTABS[d.mod].find(s=>s.key===d.key) : null;
   if (!st || t.subKey === d.key) return;
+  const newId = t.overrideUrl ? t.id : ('sub:'+d.mod+':'+d.key);
+  const wasActive = (jhActiveTabId === t.id);
+  if (newId !== t.id) {
+    // 같은 서브탭으로 이미 열린 다른 탭이 있으면(둘 다 같은 화면이 됨) 새 탭 대신 기존 탭을 활성화하고, 지금 탭은 그대로 둔다(내용 중복 방지)
+    const dup = jhTabs.find(x=>x.id===newId);
+    if (dup && dup!==t) {
+      if (wasActive) jhActivateTab(newId);
+      jhSaveTabs();
+      return;
+    }
+    t.id = newId;
+    if (wasActive) jhActiveTabId = newId;
+  }
   t.subKey = d.key; t.tab = d.key; t.name = st.name; t.emoji = st.emoji || t.emoji;
-  if (jhActiveTabId === t.id) { $('emb-title').textContent=t.name; $('emb-title2').textContent=t.name; _activeSub = t.subKey; }
+  if (wasActive) { $('emb-title').textContent=t.name; $('emb-title2').textContent=t.name; _activeSub = t.subKey; }
   jhRenderTabbar();
   jhSaveTabs();
 });
@@ -3647,7 +3827,7 @@ function mbnOpenMore(){
   const workItems=[];
   _MODULES.forEach(m=>{
     const allowed=(m.key==='plan'||m.key==='hr')?_me.admin:(_me.admin||(_me.perms&&_me.perms[m.key]));
-    if(_SUBTABS[m.key] && allowed){
+    if(_SUBTABS[m.key] && allowed && m.key !== 'hr'){
       const wrap=document.createElement('div'); wrap.style.cssText='width:100%';
       const head=document.createElement('button'); head.className='mmp-btn'; head.style.cssText='width:100%;padding:12px 20px';
       head.innerHTML='<span class="mmp-ic">'+m.emoji+'</span><div><div>'+m.name+'</div><div class="mmp-sub">'+m.desc+'</div></div><span style="margin-left:auto;font-size:14px;">›</span>';
@@ -3694,6 +3874,7 @@ function mbnOpenMore(){
   const orgBtn=document.createElement('button'); orgBtn.className='mmp-btn';
   orgBtn.innerHTML='<span class="mmp-ic">🏢</span><div><div>조직도</div></div>';
   orgBtn.onclick=()=>{ mbnCloseMore(); window.showView&&window.showView('org'); window.loadOrg&&window.loadOrg(); };
+
   const rulesBtnM=document.createElement('button'); rulesBtnM.className='mmp-btn';
   rulesBtnM.innerHTML='<span class="mmp-ic">📖</span><div><div>내규 열람</div></div>';
   rulesBtnM.onclick=()=>{ mbnCloseMore(); window.showView&&window.showView('rules'); window.loadRules&&window.loadRules(); };
