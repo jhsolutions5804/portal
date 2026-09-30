@@ -194,6 +194,14 @@
         </div>
         <span class="go">›</span>
       </div>
+      <div class="edoc-card" id="rosterCard" style="display:none" onclick="location.href='pjt_roster.html'">
+        <div class="ic" style="background:#eaf2fc;color:#1D5BA6">👷</div>
+        <div>
+          <div class="nm">근로자 연명부</div>
+          <div class="ds">인적사항 · 검진(PDF) · 자격/교육 · 관리자 전용</div>
+        </div>
+        <span class="go">›</span>
+      </div>
 
       <div class="edoc-card" data-perm="edoc" onclick="location.href='edoc.html'">
         <div class="ic">📋</div>
@@ -262,6 +270,7 @@
   // 월간 공수: 급여(단가) 정보가 포함되어 있어 관리자가 아니면 아예 숨김(잠금 표시가 아님)
   var _mandayCard=document.getElementById('mandayCard');
   if(_mandayCard && admin) _mandayCard.style.display='';
+  var _rosterCard=document.getElementById('rosterCard'); if(_rosterCard && admin) _rosterCard.style.display='';
   // 인사말: 로그인 사용자 + 오늘 날짜
   if(auth && auth.name){
     var nmEl=document.querySelector('.hello .name');
