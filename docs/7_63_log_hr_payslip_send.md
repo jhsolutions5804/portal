@@ -17,3 +17,9 @@
 
 ## 백업
 - portal-test `backup/v2.17.0/hr/`
+
+
+## 정정 (v2.17.1)
+
+- 2.17.0에서 급여명세서 버튼을 모바일형 카드(`psViewWorker`)에만 넣고, **PC 조회 화면(`renderPayslipPCList` → `psLoadWorkerSlips`)에는 빠뜨렸음**(대표님 화면 캡처로 발견). 2.17.1에서 PC 카드에 📧 메일 발송·🔗 링크·QR·발송 이력 줄을 추가. Chromium으로 카드 렌더링 확인.
+- 교훈: 같은 문서의 조회 화면이 여러 곳(PC/모바일형)일 수 있으니 저장 문서 렌더 지점을 전부 grep해서 반영할 것.
