@@ -1,6 +1,6 @@
 # JH Solutions 포털 — 문서 인덱스
 
-> 최초 작성: 2026-06-26 · 최종 수정: 2026-09-23 · 연봉 제안서·근로시간 휴가부여·포털 다중 작업탭 · 작성: 춘식이(Claude)
+> 최초 작성: 2026-06-26 · 최종 수정: 2026-09-30 · 견적 목록 견적상태 필터·복귀 상태 유지 · 작성: 춘식이(Claude)
 
 ---
 
@@ -1314,4 +1314,18 @@
 **상세**: `3_0_edoc_home_approve.md`, `3_1_edoc_daily_leave.md`, `3_4_edoc_overtime_r1.md`(REMOVED), `3_5_edoc_attendance_mycard.md`, `3_6_mobile_edoc_parity_2026-09-25.md`(신설), `7_47_log_2026-09-25_mobile_edoc_parity.md`, `8_35_log_2026-09-25b_session.md`
 
 ---
+---
+
+## 2026-09-30 세션 — 견적 목록 견적상태 필터 추가 · 상세 복귀 시 필터 유지 (gihoek 5.8.0)
+
+**증상**: 필터 "진행중"인데 종결 견적 표시 / 상세 진입 후 뒤로가기·종결 시 필터 전체 초기화.
+
+**원인**: 기존 필터는 현장(PJT) 상태 기준, `renderEst()`가 진입마다 필터를 리셋.
+
+**조치**: 견적상태 필터(진행중/종결/폐기) 신설·현장상태 필터 명칭 분리, `renderEst(keep)`로 필터·페이지·스크롤 유지(브라우저 뒤로가기 포함).
+
+**배포**: portal-test만(본섭 대기). **백업**: `backup/v5.8.0/gihoek/index.html`(portal-test).
+
+**상세**: `1_3_gihoek_estimate_r8.md`, `7_48_log_gihoek_est_filter_back.md`, `8_36_log_2026-09-30_session.md`
+
 ---
