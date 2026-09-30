@@ -109,3 +109,8 @@
 - ②의 마무리: 월간 공수의 마스터 관리 화면은 아직 그대로(두 화면이 같은 `master_workers`를 수정하므로 충돌은 없음). 연명부 확인 후 월간 공수 쪽 등록/수정 버튼을 안내로 대체할지 결정.
 
 상세: `7_50_log_pjt_roster.md`, `7_51_log_pjt_roster_v120.md`, `7_52_log_pjt_roster_migrate.md`, `7_53_log_pjt_roster_manday.md`, `7_54_log_team_labor_money_private.md`
+
+
+## 본섭 반영 (2026-09-30)
+
+- v1.5.0 본섭 반영 완료. 관리자 전용 컬렉션 규칙(master_worker_private/photos) 게시 후 반영, 금액 필드 이전 완료. 상세: `7_56_log_prod_roster_batch.md`
