@@ -1627,3 +1627,8 @@ PJT관리 PC 하단 잘림 수정(경량PJT 3.8.1·메인 PJT), 발주처·시�
 **상세**: `7_77_log_schedule_guest.md`, `8_72_log_2026-09-30q_session.md`, 규칙 보관 portal-test `backup/firestore_rules_20260930_schedule_guest/`
 
 ---
+
+
+### 2026-10-01 세션 요약
+
+월간 공수 화면 폐지(본섭): 안내 페이지 교체·메뉴/모바일 카드 제거. 상세: `7_73_log_manday_removal.md`
