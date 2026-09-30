@@ -3,7 +3,7 @@
 > `portal/pjt_roster/index.html` · 사이드바 PJT > `👷 근로자 연명부` (키 `pjt_roster`, **관리자 전용**)
 > 최초 작성: 2026-09-30 · 최종 수정: 2026-09-30(v1.5.0, portal-test) · 작성: 춘식이(Claude)
 
-> 적용 환경: **portal-test 배포 완료 / 본섭 미반영(대기)** — 본섭 반영 시 **Firestore 보안규칙 선반영 필수**
+> 적용 환경: **portal-test · 본섭 배포 완료(v1.5.0)** — 본섭 반영 내역·순서(규칙 게시 → 금액 이전 → 코드 → 옛 필드 제거)는 `7_56_log_prod_roster_batch.md` 참조. **월간 공수 PC 메뉴 폐지(⑥)와 모바일 월간 공수 팀 단가 수정은 테섭에만 적용**(`7_65_log_manday_removal.md`).
 
 ---
 
@@ -108,7 +108,7 @@
 - ⑥ 월간 공수 메뉴 정리 여부 결정(⑤ 팀별 노무비는 기획>정산으로 이전 완료 — `1_4_gihoek_settle.md`).
 - ②의 마무리: 월간 공수의 마스터 관리 화면은 아직 그대로(두 화면이 같은 `master_workers`를 수정하므로 충돌은 없음). 연명부 확인 후 월간 공수 쪽 등록/수정 버튼을 안내로 대체할지 결정.
 
-상세: `7_50_log_pjt_roster.md`, `7_51_log_pjt_roster_v120.md`, `7_52_log_pjt_roster_migrate.md`, `7_53_log_pjt_roster_manday.md`, `7_54_log_team_labor_money_private.md`
+상세: `7_50_log_pjt_roster.md`, `7_51_log_pjt_roster_v120.md`, `7_52_log_pjt_roster_migrate.md`, `7_53_log_pjt_roster_manday.md`, `7_54_log_team_labor_money_private.md`, `7_65_log_manday_removal.md`
 
 
 ## 본섭 반영 (2026-09-30)
