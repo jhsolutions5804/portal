@@ -1509,3 +1509,13 @@ PJT관리 PC 하단 잘림 수정(경량PJT 3.8.1·메인 PJT), 발주처·시�
 ### 2026-09-30v 세션 요약
 
 포털 일정→Outlook 즉시 반영 서버 함수 배포 및 기존 일정 177건 일괄 반영. 상세: `7_69_log_outlook_sync_deploy.md`
+
+## 2026-09-30 세션(이어서 10) — 보안: 계정 문서(portal_users) 규칙 보강 1단계 (테섭 게시)
+
+**발견**: 포괄 규칙이 계정 문서에도 적용되어 승인된 직원이 다른 직원의 `_pw`를 읽고 스스로 관리자로 승격할 수 있었음(테섭·본섭 동일 구조).
+
+**조치**: 계정 문서 전용 규칙 정리(쓰기 관리자만, 본인은 `_pw`·`phone`·`phoneVerified`·`phoneVerifiedAt`만). 테섭 게시 완료, **본섭 미게시**, 2단계(`_pw` 이동) 예정. 규칙 보관: portal-test `backup/firestore_rules_20260930_portal_users_fix/`.
+
+**상세**: `7_71_log_security_portal_users_rules.md`, `8_67_log_2026-09-30l_session.md`
+
+---
