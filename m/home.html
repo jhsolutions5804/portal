@@ -186,14 +186,6 @@
         </div>
         <span class="go">›</span>
       </div>
-      <div class="edoc-card" id="mandayCard" style="display:none" onclick="location.href='pjt_manday.html'">
-        <div class="ic" style="background:#f0edfb;color:#7C3AED">📊</div>
-        <div>
-          <div class="nm">월간 공수</div>
-          <div class="ds">전체 PJT 통합 집계 · 관리자 전용</div>
-        </div>
-        <span class="go">›</span>
-      </div>
       <div class="edoc-card" id="rosterCard" style="display:none" onclick="location.href='../pjt_roster/index.html?via=mobile&back=home.html'">
         <div class="ic" style="background:#eaf2fc;color:#1D5BA6">👷</div>
         <div>
@@ -267,9 +259,6 @@
   document.querySelectorAll('[data-admin]').forEach(function(el){
     if(auth && !admin){ el.classList.add('locked'); el.setAttribute('onclick',"alert('관리자 전용 메뉴입니다.')"); }
   });
-  // 월간 공수: 급여(단가) 정보가 포함되어 있어 관리자가 아니면 아예 숨김(잠금 표시가 아님)
-  var _mandayCard=document.getElementById('mandayCard');
-  if(_mandayCard && admin) _mandayCard.style.display='';
   var _rosterCard=document.getElementById('rosterCard'); if(_rosterCard && admin) _rosterCard.style.display='';
   // 인사말: 로그인 사용자 + 오늘 날짜
   if(auth && auth.name){
