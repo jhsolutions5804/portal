@@ -1462,3 +1462,8 @@ HTTPS 강제 적용, 원격 서명 문자 인증 확인, 인사 2.14.1 EmailJS �
 **상세**: `7_65_log_manday_removal.md`, `8_44_log_2026-09-30i_session.md`, `4_4_pjt_manday.md`
 
 ---
+
+
+### 2026-09-30r 세션 요약
+
+포털 일정→Outlook 즉시 반영 코드 작성·검증(배포 전). 상세: `7_65_log_outlook_sync_design.md`
