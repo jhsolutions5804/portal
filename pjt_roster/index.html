@@ -1,4 +1,4 @@
-<!DOCTYPE html><!-- build: 20260930h · ver: 1.6.1 · 날짜 입력 중 화면이 초기화되는 버그 수정(만료일·상태만 제자리 갱신, 타이핑 중간 날짜 무시) · 이전: 20260930g ver 1.6.0 · 검진 만료일 자동 계산(실시일+1년, 수정 가능)·자격 유효기간(년) 선택 시 만료일 자동 계산(수정 가능)·목록 만료 배지 · 이전: 20260930f ver 1.5.0 · 일당을 관리자 전용 문서(master_worker_private)로 이동 · 이전: 20260930e ver 1.4.0 월간 공수 보기 이전(PJT별 합계 · 개인별 합계 · 개인별 공수표 PNG) — 월간 공수 → 연명부 · 이전: 20260930d ver 1.3.0 기존 인원 마이그레이션 도구 이전(월간 공수 → 연명부) · 이전: 20260930c ver 1.2.0 원청별(삼성전자/SK하이닉스) 탭 구성 — 자격·인증(취득 현장명)은 탭별, 사내화 교육·상생협력포탈 계정은 삼성전자 탭 · 이전: 20260930b ver 1.1.0 연명부 개정: 인적사항 개편(전화번호 포함), 사내화 교육 만료일, 첨부 3칸(사진·신분증·건설기초이수증), 관리자 전용 급여/계좌 구역 · 이전: 20260930a ver 1.0.0 근로자 연명부 신설 — 마스터 근로자 관리(등록/수정/퇴사/삭제) 이전, 개인정보·건강검진·자격인증·사내화교육·상생협력포탈 계정·사진(파일 보관) 관리. 관리자 전용 -->
+<!DOCTYPE html><!-- build: 20260930i · ver: 1.7.0 · 건강검진 결과 PDF 첨부(Firebase Storage, 관리자만 열람·로그인 권한 다운로드) · 이전: 20260930h ver 1.6.1 · 날짜 입력 중 화면이 초기화되는 버그 수정(만료일·상태만 제자리 갱신, 타이핑 중간 날짜 무시) · 이전: 20260930g ver 1.6.0 · 검진 만료일 자동 계산(실시일+1년, 수정 가능)·자격 유효기간(년) 선택 시 만료일 자동 계산(수정 가능)·목록 만료 배지 · 이전: 20260930f ver 1.5.0 · 일당을 관리자 전용 문서(master_worker_private)로 이동 · 이전: 20260930e ver 1.4.0 월간 공수 보기 이전(PJT별 합계 · 개인별 합계 · 개인별 공수표 PNG) — 월간 공수 → 연명부 · 이전: 20260930d ver 1.3.0 기존 인원 마이그레이션 도구 이전(월간 공수 → 연명부) · 이전: 20260930c ver 1.2.0 원청별(삼성전자/SK하이닉스) 탭 구성 — 자격·인증(취득 현장명)은 탭별, 사내화 교육·상생협력포탈 계정은 삼성전자 탭 · 이전: 20260930b ver 1.1.0 연명부 개정: 인적사항 개편(전화번호 포함), 사내화 교육 만료일, 첨부 3칸(사진·신분증·건설기초이수증), 관리자 전용 급여/계좌 구역 · 이전: 20260930a ver 1.0.0 근로자 연명부 신설 — 마스터 근로자 관리(등록/수정/퇴사/삭제) 이전, 개인정보·건강검진·자격인증·사내화교육·상생협력포탈 계정·사진(파일 보관) 관리. 관리자 전용 -->
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
@@ -200,6 +200,8 @@ import { getFirestore, doc, getDoc, setDoc, collection, getDocs, writeBatch, ser
   from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
 import { getAuth, onAuthStateChanged }
   from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
+import { getStorage, ref as sref, uploadBytes, deleteObject, getBlob }
+  from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-storage.js';
 
 const firebaseConfig = {
   apiKey: "AIzaSyCyQxBJ_ftfM0ImBXubmqD5gfzFR54iPmE",
@@ -212,6 +214,7 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const auth = getAuth(app);
+const storage = getStorage(app);   // 검진 결과 PDF 보관 (관리자만 읽기/쓰기 — Storage 규칙)
 
 // ── 상수 ──
 const EDU = [
@@ -357,7 +360,8 @@ function visibleList(){
   });
 }
 
-function healthBadge(p,type){ const e=healthExpiry(p,type); return e ? eduStateHtml(true,e)+'<div class="sub">~'+esc(e)+'</div>' : ''; }
+function healthBadge(p,type,id){ const e=healthExpiry(p,type); const l=(p&&p.health||[]).filter(h=>h.type===type&&h.date).sort((a,b)=>a.date.localeCompare(b.date)); const hasPdf=l.length&&l[l.length-1].pdf;
+  return (e ? eduStateHtml(true,e)+'<div class="sub">~'+esc(e)+'</div>' : '') + (hasPdf ? '<div><a href="#" title="검진 결과 PDF 다운로드" onclick="listPdfDownload(\''+esc(id)+'\',\''+type+'\');return false">📄 결과</a></div>' : ''); }
 function render(){
   const act = masters.filter(m=>!m.resigned);
   const noHealth = act.filter(m=>!latestHealth(privs[m.id],'general')).length;
@@ -398,7 +402,7 @@ function render(){
       +'<td>'+esc(p.phone||'—')+'</td>'
       +'<td>'+esc(m.hireDate||'—')+'</td>'
       +'<td>'+team+'</td>'
-      +'<td>'+esc(gd||'—')+' '+healthBadge(p,'general')+'</td><td>'+esc(pd||'—')+' '+healthBadge(p,'preplace')+'</td>'
+      +'<td>'+esc(gd||'—')+' '+healthBadge(p,'general',m.id)+'</td><td>'+esc(pd||'—')+' '+healthBadge(p,'preplace',m.id)+'</td>'
       +'<td>'+eduB+'</td>'
       +'<td style="white-space:nowrap">'+certChips+'</td>'
       +'<td style="white-space:nowrap">'+fileChips+'</td>'
@@ -421,7 +425,7 @@ function formFromMaster(m){
   const p = privs[m.id]||{};
   return { name:m.name||'', jumin:fmtJumin(p.jumin), birth:m.birth||'', gender:m.gender||'', hireDate:m.hireDate||'', leaderId:m.leaderId||'',
            rate:((p.dailyRate!=null?p.dailyRate:m.dailyRate)?fmtMoney(p.dailyRate!=null?p.dailyRate:m.dailyRate):''), phone:p.phone||'', bank:p.bank||'', account:p.account||'',
-           health:(p.health||[]).map(h=>({type:h.type,date:h.date||'',expiry:h.expiry||addYearsYmd(h.date||'',HEALTH_VALID_YEARS),manual:!!h.expiryManual})), certs:(p.certs||[]).map(c=>({co:certCo(c),name:c.name||'',site:c.site||'',acquired:c.acquired||'',expiry:c.expiry||'',validYears:c.validYears||'',manual:!!c.expiryManual})),
+           health:(p.health||[]).map(h=>({type:h.type,date:h.date||'',expiry:h.expiry||addYearsYmd(h.date||'',HEALTH_VALID_YEARS),manual:!!h.expiryManual,pdf:h.pdf||null,pdfNew:null,pdfRemove:false})), certs:(p.certs||[]).map(c=>({co:certCo(c),name:c.name||'',site:c.site||'',acquired:c.acquired||'',expiry:c.expiry||'',validYears:c.validYears||'',manual:!!c.expiryManual})),
            edu:Object.assign({}, p.inhouseEdu||{}), eduExp:Object.assign({}, p.inhouseEduExp||{}), ssId:p.ssId||'', ssPw:p.ssPw||'', note:p.note||'',
            files: blankFiles(filesMeta(p)) };
 }
@@ -440,6 +444,50 @@ function leaderOptionsHtml(excludeId, sel){
   const leaders = masters.filter(m=>!m.leaderId && m.id!==excludeId && !m.resigned);
   return '<option value="">팀장 (또는 소속 없음)</option>'+leaders.map(l=>'<option value="'+esc(l.id)+'" '+(l.id===sel?'selected':'')+'>'+esc(l.name)+' 팀 소속</option>').join('');
 }
+// ── 검진 결과 PDF ──
+const PDF_MAX = 15*1024*1024;
+function fmtSize(n){ return n>=1048576 ? (n/1048576).toFixed(1)+'MB' : Math.max(1,Math.round(n/1024))+'KB'; }
+function healthPdfHtml(i,h){
+  if (h.pdfNew) return '📎 '+esc(h.pdfNew.name)+' · '+fmtSize(h.pdfNew.size)+' <span class="badge b-part">저장 시 업로드</span> <button class="btn sm" onclick="pdfCancel('+i+')">취소</button>';
+  if (h.pdf && !h.pdfRemove) return '📄 '+esc(h.pdf.name)+' · '+fmtSize(h.pdf.size||0)+' <button class="btn sm" onclick="pdfDownload('+i+')">다운로드</button> <button class="btn sm" onclick="pdfPick('+i+')">교체</button> <button class="btn sm red" onclick="pdfRemove('+i+')">파일 삭제</button>';
+  if (h.pdf && h.pdfRemove) return '<span class="sub">파일 삭제 예정 ('+esc(h.pdf.name)+')</span> <button class="btn sm" onclick="pdfUndo('+i+')">되돌리기</button>';
+  return '<button class="btn sm" onclick="pdfPick('+i+')">📎 검진 결과 PDF 첨부</button> <span class="sub">(관리자만 열람 · 15MB 이하)</span>';
+}
+function refreshPdf(i){ const h=wf.health[i]; const el=$('h-pdf-'+i); if(h&&el) el.innerHTML=healthPdfHtml(i,h); }
+window.pdfPick = function(i){
+  const h=wf.health[i]; if(!h) return;
+  if(!h.date){ alert('검진 실시일을 먼저 입력해 주세요.'); return; }
+  const inp=document.createElement('input'); inp.type='file'; inp.accept='application/pdf,.pdf';
+  inp.onchange=()=>{
+    const f=inp.files&&inp.files[0]; if(!f) return;
+    if(!(f.type==='application/pdf' || /\.pdf$/i.test(f.name))){ alert('PDF 파일만 첨부할 수 있습니다.'); return; }
+    if(f.size>=PDF_MAX){ alert('파일이 너무 큽니다. ('+fmtSize(f.size)+') 15MB 미만 PDF만 첨부할 수 있습니다.'); return; }
+    h.pdfNew=f; h.pdfRemove=false; refreshPdf(i);
+  };
+  inp.click();
+};
+window.pdfCancel = i=>{ const h=wf.health[i]; h.pdfNew=null; refreshPdf(i); };
+window.pdfRemove = i=>{ const h=wf.health[i]; if(!confirm('이 검진 결과 PDF를 삭제할까요? (저장하면 파일이 삭제됩니다)')) return; h.pdfRemove=true; refreshPdf(i); };
+window.pdfUndo = i=>{ const h=wf.health[i]; h.pdfRemove=false; refreshPdf(i); };
+// 다운로드: 링크를 발급하지 않고 로그인한 관리자 권한으로 직접 내려받는다(주소가 유출되어도 열리지 않음)
+async function downloadPdfBlob(pdf, filename){
+  const blob = await getBlob(sref(storage, pdf.path));
+  const url = URL.createObjectURL(new Blob([blob],{type:'application/pdf'}));
+  const a=document.createElement('a'); a.href=url; a.download=filename; document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url), 30000);
+}
+window.pdfDownload = async function(i){
+  const h=wf.health[i]; if(!h||!h.pdf) return;
+  try{ await downloadPdfBlob(h.pdf, ((wf.name||'근로자')+'_'+(HEALTH_TYPES[h.type]||'검진')+'_'+h.date+'.pdf')); }
+  catch(e){ alert('다운로드 실패: '+e.message+'\n(관리자 계정인지, Storage 규칙이 게시되었는지 확인해 주세요)'); }
+};
+// 목록에서 바로 내려받기 (종류별 최신 검진)
+window.listPdfDownload = async function(id,type){
+  const p=privs[id]||{}; const l=(p.health||[]).filter(h=>h.type===type&&h.date&&h.pdf).sort((a,b)=>a.date.localeCompare(b.date)); const h=l[l.length-1]; if(!h) return;
+  const m=masterById(id);
+  try{ await downloadPdfBlob(h.pdf, ((m&&m.name)||'근로자')+'_'+(HEALTH_TYPES[type]||'검진')+'_'+h.date+'.pdf'); }
+  catch(e){ alert('다운로드 실패: '+e.message); }
+};
 function healthStatusHtml(h){
   return (h.manual?'<span class="badge b-part">수정됨</span> ':'')+eduStateHtml(!!h.expiry, h.expiry||'');
 }
@@ -460,7 +508,8 @@ function healthRowsHtml(){
     +'<span class="sub">만료일</span><input class="in" type="date" id="h-exp-'+i+'" value="'+esc(h.expiry||'')+'" onchange="form_h('+i+',\'expiry\',this.value)">'
     +'<span id="h-st-'+i+'" style="min-width:74px">'+healthStatusHtml(h)+'</span>'
     +'<span id="h-rs-'+i+'">'+healthResetHtml(i,h)+'</span>'
-    +'<button class="btn sm red" onclick="form_hdel('+i+')">삭제</button></div>').join('');
+    +'<button class="btn sm red" onclick="form_hdel('+i+')">삭제</button>'
+    +'<div class="pdfline" id="h-pdf-'+i+'" style="flex-basis:100%;margin-top:4px">'+healthPdfHtml(i,h)+'</div></div>').join('');
 }
 function certManualBadge(c){ return c.manual?'<span class="badge b-part">수정됨</span>':''; }
 function certResetBtn(i,c){ return (c.manual&&c.validYears)?'<button class="btn sm" title="자동 계산으로 되돌리기" onclick="form_creset('+i+')">↺</button>':''; }
@@ -707,7 +756,12 @@ window.saveWorker = async function(){
   const base = { name, birth, gender, hireDate:f.hireDate||'', leaderId:f.leaderId||'' };
   // 금액 정보(일당)는 모든 직원이 읽을 수 있는 master_workers가 아니라 관리자 전용 master_worker_private에 저장한다. 예전 값이 master_workers에 남아 있으면 함께 제거.
   if (isAdmin) base.dailyRate = deleteField();
-  const health = f.health.filter(h=>h.date).map(h=>({type:h.type,date:h.date,expiry:h.expiry||addYearsYmd(h.date,HEALTH_VALID_YEARS),expiryManual:!!h.manual})).sort((a,b)=>a.date.localeCompare(b.date));
+  const pendingUp = f.health.filter(h=>h.pdfNew && !h.date);
+  if (pendingUp.length){ alert('실시일이 없는 검진 줄에 첨부한 PDF가 있습니다. 실시일을 입력하거나 첨부를 취소해 주세요.'); return; }
+  const oldPdfPaths = [];      // 저장이 성공한 뒤 삭제할 옛 파일
+  const newPdfPaths = [];      // 저장이 실패하면 되돌릴(삭제할) 새 파일
+  const healthRows = f.health.filter(h=>h.date);
+  const health = healthRows.map(h=>({type:h.type,date:h.date,expiry:h.expiry||addYearsYmd(h.date,HEALTH_VALID_YEARS),expiryManual:!!h.manual,pdf:null,_src:h})).sort((a,b)=>a.date.localeCompare(b.date));
   const incomplete = f.certs.find(c=>!(c.name||'').trim() && (c.site||c.acquired||c.expiry));
   if (incomplete){ coTab = certCo(incomplete); redrawCo(); alert('자격/인증명이 비어 있는 행이 있습니다. ('+COMPANIES.find(x=>x.k===certCo(incomplete)).label+' 탭) 이름을 입력하거나 행을 삭제해 주세요.'); return; }
   const certs = f.certs.filter(c=>(c.name||'').trim()).map(c=>({co:certCo(c),name:c.name.trim(),site:(c.site||'').trim(),acquired:c.acquired||'',expiry:c.expiry||'',validYears:c.validYears?+c.validYears:'',expiryManual:!!c.manual}));
@@ -726,6 +780,23 @@ window.saveWorker = async function(){
   if (isAdmin){ priv.bank = (f.bank||'').trim(); priv.account = (f.account||'').trim(); priv.dailyRate = parseMoney(f.rate); }
   const btn = $('save-btn'); btn.disabled=true; btn.textContent='저장 중...';
   try{
+    // 검진 결과 PDF 업로드 (신규/교체) — 실패하면 저장 전체를 중단한다
+    for (const row of health){
+      const h=row._src;
+      if (h.pdfNew){
+        btn.textContent='PDF 업로드 중... ('+h.pdfNew.name+')';
+        const path='roster_health/'+id+'/'+Date.now()+'_'+Math.random().toString(36).slice(2,8)+'.pdf';
+        await uploadBytes(sref(storage,path), h.pdfNew, { contentType:'application/pdf' });
+        newPdfPaths.push(path);
+        if (h.pdf) oldPdfPaths.push(h.pdf.path);
+        row.pdf = { path, name:h.pdfNew.name, size:h.pdfNew.size, uploadedAt:new Date().toISOString() };
+      } else if (h.pdf && !h.pdfRemove){ row.pdf = h.pdf; }
+      else if (h.pdf && h.pdfRemove){ oldPdfPaths.push(h.pdf.path); }
+    }
+    // 검진 줄을 삭제하면서 남은 PDF 정리
+    (editing ? (privs[id]&&privs[id].health||[]) : []).forEach(oh=>{ if(oh.pdf && !health.some(r=>r.pdf && r.pdf.path===oh.pdf.path) && !oldPdfPaths.includes(oh.pdf.path)) oldPdfPaths.push(oh.pdf.path); });
+    health.forEach(r=>{ delete r._src; if(!r.pdf) delete r.pdf; });
+    priv.health = health;
     const b = writeBatch(db);
     b.set(doc(db,'master_workers',id), base, { merge:true });
     b.set(doc(db,'master_worker_private',id), priv, { merge:true });
@@ -735,9 +806,13 @@ window.saveWorker = async function(){
       else if (st.mode==='delete') b.delete(doc(db,'master_worker_photos',did));
     });
     await b.commit();
+    for (const p of oldPdfPaths){ try{ await deleteObject(sref(storage,p)); }catch(e){ console.warn('옛 PDF 삭제 실패(무시):', p, e.message); } }
     closeForm();
     await loadAll();
-  }catch(e){ alert('저장 실패: '+e.message); btn.disabled=false; btn.textContent='저장'; }
+  }catch(e){
+    for (const p of newPdfPaths){ try{ await deleteObject(sref(storage,p)); }catch(_){} }   // 저장 실패 시 방금 올린 파일 정리
+    alert('저장 실패: '+e.message); btn.disabled=false; btn.textContent='저장';
+  }
 };
 window.deleteWorker = async function(){
   if (!editing) return;
@@ -749,6 +824,7 @@ window.deleteWorker = async function(){
     b.delete(doc(db,'master_workers',m.id)); b.delete(doc(db,'master_worker_private',m.id));
     FILE_SLOTS.forEach(x=>b.delete(doc(db,'master_worker_photos',slotDocId(m.id,x.k))));
     await b.commit();
+    for (const oh of ((privs[m.id]&&privs[m.id].health)||[])){ if(oh.pdf){ try{ await deleteObject(sref(storage,oh.pdf.path)); }catch(_){} } }
     closeForm(); await loadAll();
   }catch(e){ alert('삭제 실패: '+e.message); }
 };
