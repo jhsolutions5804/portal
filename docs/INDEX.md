@@ -1402,3 +1402,8 @@ PJT(Ph2) 공수표 월 중 퇴사자 누락 핫픽스(v4.10.10, 테섭·본섭 �
 **상세**: `1_4_gihoek_settle.md`, `4_4_pjt_manday.md`, `4_5_pjt_roster.md`, `7_54_log_team_labor_money_private.md`, `8_43_log_2026-09-30h_session.md`
 
 ---
+
+
+### 2026-09-30h 세션 요약
+
+경량PJT v3.7.0 본섭 반영. 상세: `7_55_log_pjt_light_v370.md`
