@@ -1387,3 +1387,8 @@
 **상세**: `4_5_pjt_roster.md`, `7_53_log_pjt_roster_manday.md`, `8_41_log_2026-09-30f_session.md`
 
 ---
+
+
+### 2026-09-30g 세션 요약
+
+PJT(Ph2) 공수표 월 중 퇴사자 누락 핫픽스(v4.10.10, 테섭·본섭 동시). 상세: `7_54_log_pjt_manday_resign_fix.md`, `8_42_log_2026-09-30g_session.md`
