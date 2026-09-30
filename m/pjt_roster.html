@@ -1,4 +1,4 @@
-<!DOCTYPE html><!-- 모바일 근로자 연명부 v1.1.0 · 2026-09-30 · 관리자 전용 조회 + 신규 등록·수정(PC와 같은 화면)·퇴사처리·검진 결과 PDF 다운로드/첨부 -->
+<!DOCTYPE html><!-- 모바일 근로자 연명부 v1.2.0 · 정렬(이름·입사일·검진 만료·교육·자격·첨부, 오름/내림) · 2026-09-30 · 관리자 전용 조회 + 신규 등록·수정(PC와 같은 화면)·퇴사처리·검진 결과 PDF 다운로드/첨부 -->
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
@@ -21,6 +21,9 @@
   .tabs{display:flex;gap:6px;margin:10px 16px 0}
   .tab{flex:1;text-align:center;padding:8px 0;border-radius:10px;background:#fff;border:1px solid var(--line);font-size:13px;font-weight:700;color:var(--sub);cursor:pointer}
   .tab.on{background:var(--blue);border-color:var(--blue);color:#fff}
+  .sortbar{display:flex;align-items:center;gap:8px;margin:10px 16px 0;font-size:12px;font-weight:700;color:var(--sub)}
+  .sortbar select{flex:1;min-width:0;padding:8px 10px;border:1.5px solid var(--line);border-radius:10px;background:#fff;font-size:13px;font-family:inherit;color:var(--ink)}
+  .sdir{padding:8px 11px;border:1.5px solid var(--line);border-radius:10px;background:#fff;font-size:12.5px;font-weight:700;color:var(--blue);font-family:inherit;white-space:nowrap;cursor:pointer}
   .list{padding:12px 16px 30px;display:flex;flex-direction:column;gap:10px}
   .card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:13px 14px;cursor:pointer}
   .card:active{transform:scale(.985)}
@@ -88,6 +91,35 @@ function eduOn(p,k){ return !!((p&&p.inhouseEdu)||{})[k]; }
 function eduExp(p,k){ return ((p&&p.inhouseEduExp)||{})[k]||''; }
 
 let masters=[], privs={}, tab='act', q='', view='list', detailId=null, loadError='';
+let sortKey='', sortDir=1;      // 정렬: '' = 기본(팀장·팀별·이름), sortDir 1 오름차순 / -1 내림차순
+const SORTS=[['','기본 순서'],['name','이름'],['gender','성별'],['hire','입사일'],['phone','전화번호'],['team','소속'],['general','일반검진 만료'],['preplace','배치전검진 만료'],['edu','사내화 교육 이수'],['cert','자격·인증 수'],['files','첨부 등록 수']];
+function sortVal(m){
+  const p=privs[m.id]||{};
+  switch(sortKey){
+    case 'name': return m.name||'';
+    case 'gender': return m.gender||'';
+    case 'phone': return String(p.phone||'').replace(/[^0-9]/g,'');
+    case 'hire': return m.hireDate||'';
+    case 'team': { const l=m.leaderId?byId(m.leaderId):null; return m.leaderId?'1'+(l?l.name:''):'0'; }
+    case 'general': return healthExpiry(p,'general')||'';
+    case 'preplace': return healthExpiry(p,'preplace')||'';
+    case 'edu': return EDU.filter(e=>eduOn(p,e.k)).length*10 - Math.min(9,EDU.filter(e=>eduOn(p,e.k)&&stateOf(eduExp(p,e.k)).cls==='exp').length);
+    case 'cert': return (p.certs||[]).length;
+    case 'files': return ['photo','idcard','cert'].filter(k=>(p.files||{})[k]).length;
+  }
+  return '';
+}
+function sortList(list){
+  const vals=new Map(list.map(m=>[m.id,sortVal(m)]));
+  return list.sort((a,b)=>{
+    const va=vals.get(a.id), vb=vals.get(b.id), ea=(va===''||va==null), eb=(vb===''||vb==null);
+    if(ea!==eb) return ea?1:-1;                                   // 값이 없는 사람은 방향과 관계없이 항상 아래
+    const c=(typeof va==='number'&&typeof vb==='number')?va-vb:String(va).localeCompare(String(vb),'ko');
+    return c?c*sortDir:(a.name||'').localeCompare(b.name||'','ko');
+  });
+}
+window.setSortKey=function(k){ sortKey=k; renderList(); };
+window.toggleSortDir=function(){ sortDir=-sortDir; const b=document.getElementById('sortDir'); if(b) b.textContent=sortDir===1?'▲ 오름차순':'▼ 내림차순'; renderList(); };
 const byId=id=>masters.find(m=>m.id===id);
 const teamOf=m=>{ if(!m.leaderId) return '팀장/독립'; const l=byId(m.leaderId); return (l?l.name:'?')+' 팀'; };
 
@@ -102,10 +134,12 @@ window.setQ=function(v){ q=v; renderList(); };
 
 function visible(){
   const s=q.trim().toLowerCase();
-  return masters.filter(m=>tab==='all'?true:tab==='res'?!!m.resigned:!m.resigned).filter(m=>{
+  const list=masters.filter(m=>tab==='all'?true:tab==='res'?!!m.resigned:!m.resigned).filter(m=>{
     if(!s) return true; const p=privs[m.id]||{};
     const hay=[m.name,p.phone,teamOf(m),(p.certs||[]).map(c=>c.name+' '+(c.site||'')).join(' ')].join(' ').toLowerCase(); return hay.includes(s);
-  }).sort((a,b)=>(a.name||'').localeCompare(b.name||'','ko'));
+  });
+  if(sortKey) return sortList(list);
+  return list.sort((a,b)=>{ const aL=!a.leaderId, bL=!b.leaderId; if(aL!==bL) return aL?-1:1; return (a.leaderId||'').localeCompare(b.leaderId||'')||(a.name||'').localeCompare(b.name||'','ko'); });
 }
 function healthChip(p,type){ const e=healthExpiry(p,type); const lbl=type==='general'?'일반':'배치전'; if(!e) return '<span class="b off">'+lbl+' 없음</span>'; const s=stateOf(e); return '<span class="b '+s.cls+'">'+lbl+' '+s.txt+'</span>'; }
 function cardHtml(m){
@@ -135,6 +169,7 @@ function renderList(){
 function renderListPage(){
   $app().innerHTML=topBar()+'<div class="ttl">👷 근로자 연명부<small>관리자 전용</small></div>'+summaryHtml()
    +'<div class="search"><input type="search" placeholder="이름 · 연락처 · 소속 · 자격 검색" value="'+esc(q)+'" oninput="setQ(this.value)"></div>'
+   +'<div class="sortbar"><span>정렬</span><select onchange="setSortKey(this.value)">'+SORTS.map(o=>'<option value="'+o[0]+'"'+(sortKey===o[0]?' selected':'')+'>'+o[1]+'</option>').join('')+'</select><button id="sortDir" class="sdir" onclick="toggleSortDir()">'+(sortDir===1?'▲ 오름차순':'▼ 내림차순')+'</button></div>'
    +'<div class="tabs"><div class="tab '+(tab==='act'?'on':'')+'" onclick="setTab(\'act\')">재직</div><div class="tab '+(tab==='res'?'on':'')+'" onclick="setTab(\'res\')">퇴사</div><div class="tab '+(tab==='all'?'on':'')+'" onclick="setTab(\'all\')">전체</div></div>'
    +'<div class="list" id="lst"></div><div class="note">수정·등록은 PC와 같은 화면으로 열립니다.</div>';
   renderList();
