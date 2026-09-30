@@ -1,4 +1,4 @@
-<!DOCTYPE html><!-- build: 20260930k · ver: 1.8.0 · 검진 PDF 첨부를 같은 줄에 한 줄 배치(아이콘 버튼)·모바일 모드(?m=1&edit=/new=1 — 모바일에서도 PC와 같은 수정·등록 화면) · 이전: 20260930j ver 1.7.1 · 수정 창 폭 확대(최대 1000px)·검진 줄 줄바꿈 제거 · 이전: 20260930i ver 1.7.0 · 건강검진 결과 PDF 첨부(Firebase Storage, 관리자만 열람·로그인 권한 다운로드) · 이전: 20260930h ver 1.6.1 · 날짜 입력 중 화면이 초기화되는 버그 수정(만료일·상태만 제자리 갱신, 타이핑 중간 날짜 무시) · 이전: 20260930g ver 1.6.0 · 검진 만료일 자동 계산(실시일+1년, 수정 가능)·자격 유효기간(년) 선택 시 만료일 자동 계산(수정 가능)·목록 만료 배지 · 이전: 20260930f ver 1.5.0 · 일당을 관리자 전용 문서(master_worker_private)로 이동 · 이전: 20260930e ver 1.4.0 월간 공수 보기 이전(PJT별 합계 · 개인별 합계 · 개인별 공수표 PNG) — 월간 공수 → 연명부 · 이전: 20260930d ver 1.3.0 기존 인원 마이그레이션 도구 이전(월간 공수 → 연명부) · 이전: 20260930c ver 1.2.0 원청별(삼성전자/SK하이닉스) 탭 구성 — 자격·인증(취득 현장명)은 탭별, 사내화 교육·상생협력포탈 계정은 삼성전자 탭 · 이전: 20260930b ver 1.1.0 연명부 개정: 인적사항 개편(전화번호 포함), 사내화 교육 만료일, 첨부 3칸(사진·신분증·건설기초이수증), 관리자 전용 급여/계좌 구역 · 이전: 20260930a ver 1.0.0 근로자 연명부 신설 — 마스터 근로자 관리(등록/수정/퇴사/삭제) 이전, 개인정보·건강검진·자격인증·사내화교육·상생협력포탈 계정·사진(파일 보관) 관리. 관리자 전용 -->
+<!DOCTYPE html><!-- build: 20260930l · ver: 1.8.1 · 수정 창 다듬기(폭 860px·인적사항 4열·급여/계좌 3열·칸 폭 상한·교육 줄 간격) · 이전: 20260930k ver 1.8.0 · 검진 PDF 첨부를 같은 줄에 한 줄 배치(아이콘 버튼)·모바일 모드(?m=1&edit=/new=1 — 모바일에서도 PC와 같은 수정·등록 화면) · 이전: 20260930j ver 1.7.1 · 수정 창 폭 확대(최대 1000px)·검진 줄 줄바꿈 제거 · 이전: 20260930i ver 1.7.0 · 건강검진 결과 PDF 첨부(Firebase Storage, 관리자만 열람·로그인 권한 다운로드) · 이전: 20260930h ver 1.6.1 · 날짜 입력 중 화면이 초기화되는 버그 수정(만료일·상태만 제자리 갱신, 타이핑 중간 날짜 무시) · 이전: 20260930g ver 1.6.0 · 검진 만료일 자동 계산(실시일+1년, 수정 가능)·자격 유효기간(년) 선택 시 만료일 자동 계산(수정 가능)·목록 만료 배지 · 이전: 20260930f ver 1.5.0 · 일당을 관리자 전용 문서(master_worker_private)로 이동 · 이전: 20260930e ver 1.4.0 월간 공수 보기 이전(PJT별 합계 · 개인별 합계 · 개인별 공수표 PNG) — 월간 공수 → 연명부 · 이전: 20260930d ver 1.3.0 기존 인원 마이그레이션 도구 이전(월간 공수 → 연명부) · 이전: 20260930c ver 1.2.0 원청별(삼성전자/SK하이닉스) 탭 구성 — 자격·인증(취득 현장명)은 탭별, 사내화 교육·상생협력포탈 계정은 삼성전자 탭 · 이전: 20260930b ver 1.1.0 연명부 개정: 인적사항 개편(전화번호 포함), 사내화 교육 만료일, 첨부 3칸(사진·신분증·건설기초이수증), 관리자 전용 급여/계좌 구역 · 이전: 20260930a ver 1.0.0 근로자 연명부 신설 — 마스터 근로자 관리(등록/수정/퇴사/삭제) 이전, 개인정보·건강검진·자격인증·사내화교육·상생협력포탈 계정·사진(파일 보관) 관리. 관리자 전용 -->
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
@@ -44,29 +44,32 @@ tr.resigned .nm{text-decoration:line-through}
 .loading{text-align:center;padding:60px 0;color:#9AAABF;font-size:13px}
 .empty{text-align:center;color:#9AAABF;font-size:13px;padding:24px 0}
 .modal{position:fixed;inset:0;z-index:300;background:rgba(0,0,0,.45);display:none;justify-content:center;align-items:flex-start;overflow-y:auto;padding:24px 12px}
-.sheet{width:100%;max-width:min(1000px,96vw);background:#fff;border-radius:16px;margin:auto}
+.sheet{width:100%;max-width:min(860px,96vw);background:#fff;border-radius:16px;margin:auto}
 .sheet-h{display:flex;align-items:center;justify-content:space-between;padding:16px 18px 8px}
 .sheet-b{padding:4px 18px 20px}
 .sec{border:1px solid #eef0f3;border-radius:10px;padding:12px 14px;margin-top:12px}
 .sec-t{font-size:12.5px;font-weight:800;color:#1D5BA6;margin-bottom:6px}
-.grid2{display:grid;grid-template-columns:1fr 1fr;gap:0 12px}
+.grid2{display:grid;grid-template-columns:repeat(2,minmax(0,320px));gap:0 12px}
+.grid3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:0 12px}
+.grid4{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:0 12px}
+.grid3 .hint,.grid4 .hint{font-size:10.5px;line-height:1.35}
+@media (max-width:760px){ .grid3,.grid4{grid-template-columns:repeat(2,minmax(0,1fr))} .grid2{grid-template-columns:1fr} }
 label.f{font-size:12px;font-weight:600;color:#555;display:block;margin:9px 0 4px}
 .in{width:100%;padding:8px 11px;border:1.5px solid #dde4ef;border-radius:8px;font-size:13.5px;font-family:inherit}
 .in:focus{outline:none;border-color:#1D5BA6}
 .rowline{display:flex;gap:8px;align-items:center;margin-bottom:6px;flex-wrap:wrap}
 .rowline .sub{white-space:nowrap}
-.rowline select.in{width:130px;flex:0 0 auto}
-.rowline input.in[type=date]{width:150px;flex:0 0 auto}
+.rowline select.in{width:112px;flex:0 0 auto;padding-left:8px;padding-right:4px}
+.rowline input.in[type=date]{width:128px;flex:0 0 auto;padding:8px 5px;font-size:13px}
 .btn{white-space:nowrap}
 .hdates{display:contents}
 .pdfgrp{display:inline-flex;align-items:center;gap:5px;flex:0 1 auto;min-width:0}
 .pdfchip{display:inline-flex;align-items:center;gap:4px;font-size:12px;color:#1D5BA6;background:#f0f6fd;border:1px solid #d7e6f7;border-radius:7px;padding:3px 8px;white-space:nowrap}
-.pdfname{display:inline-block;max-width:96px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;vertical-align:bottom}
+.pdfname{display:inline-block;max-width:56px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;vertical-align:bottom}
 .btn.ic{padding:4px 8px;min-width:28px}
-.rowline{flex-wrap:nowrap;gap:6px}
+.rowline{flex-wrap:wrap;gap:5px}   /* 평소엔 한 줄, 배지가 유난히 길 때만 겹치지 않고 다음 줄로 */
 .rowline > *{flex-shrink:0}
 .rowline > .pdfgrp{flex-shrink:1}
-@media (max-width:900px){ .rowline{flex-wrap:wrap} }
 /* 모바일 모드(?m=1): 목록 없이 수정/등록 화면만 전체 화면으로 (모바일 연명부에서 연결) */
 body.mob #app{display:none !important}
 body.mob .modal{padding:0;align-items:stretch;background:#fff}
@@ -81,7 +84,7 @@ body.mob .hdates .sub{flex:0 0 auto}
 body.mob .hdates input.in[type=date]{flex:1 1 0;min-width:0;width:0;padding:8px 6px;font-size:15px}
 body.mob .rowline > .pdfgrp{flex:1 1 auto}
 body.mob .rowline > .btn.red{margin-left:auto}
-body.mob .crow{grid-template-columns:1fr}
+body.mob .crow{grid-template-columns:1fr 1fr}
 body.mob .edurow{flex-direction:column;align-items:flex-start}
 body.mob .edudate .in{width:170px}
 .chk{display:flex;align-items:center;gap:8px;font-size:13px;padding:5px 0}
@@ -91,11 +94,11 @@ body.mob .edudate .in{width:170px}
 .frow{display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px dashed #eef0f3}
 .frow:last-of-type{border-bottom:none}
 .flbl{min-width:104px;font-weight:700;font-size:12.5px;color:#333}
-.edurow{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;padding:5px 0;border-bottom:1px dashed #eef0f3}
+.edurow{max-width:640px;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;padding:5px 0;border-bottom:1px dashed #eef0f3}
 .edurow:last-of-type{border-bottom:none}
 .edudate{display:flex;align-items:center;gap:6px}
 .edudate .in{width:150px;padding:6px 9px;font-size:13px}
-.crow{display:grid;grid-template-columns:1fr 1fr;gap:6px 8px;padding:9px;border:1px solid #eef0f3;border-radius:8px;margin-bottom:8px;background:#fcfdff}
+.crow{display:grid;grid-template-columns:repeat(auto-fit,minmax(138px,1fr));gap:6px 8px;padding:9px;border:1px solid #eef0f3;border-radius:8px;margin-bottom:8px;background:#fcfdff}
 .crow label.f{margin:0 0 3px;font-size:11px}
 .cfoot{grid-column:1/-1;display:flex;justify-content:space-between;align-items:center;min-height:24px}
 .cotabs{display:flex;gap:0;border-bottom:2px solid #e6ebf3;margin:2px 0 10px}
@@ -541,10 +544,10 @@ function healthRowsHtml(){
   if(!wf.health.length) return '<div class="hint">등록된 검진 이력이 없습니다.</div>';
   return '<div class="hint" style="margin-bottom:6px">만료일은 <b>실시일 + 1년</b>으로 자동 계산됩니다. 다르면 직접 고치세요(↺로 자동 계산 복귀). 검진 결과 PDF는 <b>📎 PDF</b>로 첨부합니다 — 관리자만 열람, 15MB 이하.</div>'
    + wf.health.map((h,i)=>'<div class="rowline">'
-    +'<select class="in" style="width:130px" onchange="form_h('+i+',\'type\',this.value)">'+Object.entries(HEALTH_TYPES).map(([k,v])=>'<option value="'+k+'" '+(h.type===k?'selected':'')+'>'+v+'</option>').join('')+'</select>'
+    +'<select class="in" onchange="form_h('+i+',\'type\',this.value)">'+Object.entries(HEALTH_TYPES).map(([k,v])=>'<option value="'+k+'" '+(h.type===k?'selected':'')+'>'+v+'</option>').join('')+'</select>'
     +'<div class="hdates"><span class="sub">실시일</span><input class="in" type="date" value="'+esc(h.date)+'" onchange="form_h('+i+',\'date\',this.value)">'
     +'<span class="sub">만료일</span><input class="in" type="date" id="h-exp-'+i+'" value="'+esc(h.expiry||'')+'" onchange="form_h('+i+',\'expiry\',this.value)"></div>'
-    +'<span id="h-st-'+i+'" style="min-width:74px">'+healthStatusHtml(h)+'</span>'
+    +'<span id="h-st-'+i+'" style="min-width:56px">'+healthStatusHtml(h)+'</span>'
     +'<span id="h-rs-'+i+'">'+healthResetHtml(i,h)+'</span>'
     +'<span class="pdfgrp" id="h-pdf-'+i+'">'+healthPdfHtml(i,h)+'</span>'
     +'<button class="btn sm red" onclick="form_hdel('+i+')">삭제</button></div>').join('');
@@ -565,7 +568,7 @@ function certRowsHtml(co){
     +'<div><label class="f">자격/인증명</label><input class="in" placeholder="예: 굴착기운전기능사" value="'+esc(c.name)+'" oninput="form_c('+i+',\'name\',this.value)"></div>'
     +'<div><label class="f">취득 현장명</label><input class="in" placeholder="예: P4 Ph2 FAB" value="'+esc(c.site)+'" oninput="form_c('+i+',\'site\',this.value)"></div>'
     +'<div><label class="f">취득일</label><input class="in" type="date" value="'+esc(c.acquired)+'" onchange="form_c('+i+',\'acquired\',this.value)"></div>'
-    +'<div><label class="f">유효기간 <span style="color:#aaa;font-weight:400">(선택 시 만료일 자동)</span></label><select class="in" onchange="form_c('+i+',\'validYears\',this.value)">'
+    +'<div><label class="f" title="선택하면 취득일 기준으로 만료일이 자동 계산됩니다">유효기간</label><select class="in" onchange="form_c('+i+',\'validYears\',this.value)">'
       +['','1','2','3','5'].map(v=>'<option value="'+v+'" '+(String(c.validYears||'')===v?'selected':'')+'>'+(v?v+'년':'직접 입력')+'</option>').join('')+'</select></div>'
     +'<div><label class="f">만료일 <span id="c-mb-'+i+'">'+certManualBadge(c)+'</span></label><input class="in" type="date" id="c-exp-'+i+'" value="'+esc(c.expiry)+'" onchange="form_c('+i+',\'expiry\',this.value)"></div>'
     +'<div class="cfoot"><span id="cert-st-'+i+'">'+eduStateHtml(true,c.expiry||'')+'</span><span id="c-rs-'+i+'">'+certResetBtn(i,c)+'</span><button class="btn sm red" onclick="form_cdel('+i+')">삭제</button></div></div>').join('');
@@ -622,13 +625,13 @@ function drawForm(){
   const juminMsg = juminMsgHtml(f.jumin);
   $('fm-body').innerHTML =
     '<div class="sec"><div class="sec-t">인적사항</div>'
-    +'<div class="grid2"><div><label class="f">이름 *</label><input class="in" id="f-name" value="'+esc(f.name)+'" oninput="wf.name=this.value"></div>'
-    +'<div><label class="f">주민(외국인)등록번호 <span style="color:#aaa;font-weight:400">(관리자만 조회)</span></label><input class="in" id="f-jumin" inputmode="numeric" placeholder="000000-0000000" value="'+esc(f.jumin)+'" oninput="jiInput(this)"><div id="ji-msg">'+juminMsg+'</div></div>'
-    +'<div><label class="f">생년월일 * <span style="color:#aaa;font-weight:400">(주민번호 입력 시 자동)</span></label><input class="in" type="date" id="f-birth" value="'+esc(f.birth)+'" onchange="wf.birth=this.value"></div>'
+    +'<div class="grid4"><div><label class="f">이름 *</label><input class="in" id="f-name" value="'+esc(f.name)+'" oninput="wf.name=this.value"></div>'
+    +'<div><label class="f">주민(외국인)등록번호</label><input class="in" id="f-jumin" inputmode="numeric" placeholder="000000-0000000" value="'+esc(f.jumin)+'" oninput="jiInput(this)"><div id="ji-msg">'+juminMsg+'</div></div>'
+    +'<div><label class="f">생년월일 *</label><input class="in" type="date" id="f-birth" value="'+esc(f.birth)+'" onchange="wf.birth=this.value"></div>'
     +'<div><label class="f">성별</label><select class="in" id="f-gender" onchange="wf.gender=this.value"><option value="">선택</option><option value="남" '+(f.gender==='남'?'selected':'')+'>남</option><option value="여" '+(f.gender==='여'?'selected':'')+'>여</option></select></div>'
     +'<div><label class="f">전화번호</label><input class="in" id="f-phone" inputmode="tel" placeholder="010-0000-0000" value="'+esc(f.phone)+'" oninput="this.value=fmtPhoneG(this.value);wf.phone=this.value"></div>'
     +'<div><label class="f">입사일</label><input class="in" type="date" value="'+esc(f.hireDate)+'" onchange="wf.hireDate=this.value"></div>'
-    +'<div><label class="f">퇴사일</label><div class="in" style="background:#f7f9fc;color:#888">'+(isEdit&&editing.resigned?esc(editing.resignedDate||'-'):'재직 중')+'</div><div class="hint">퇴사 처리는 목록의 [퇴사처리] 버튼으로 합니다.</div></div>'
+    +'<div><label class="f">퇴사일</label><div class="in" style="background:#f7f9fc;color:#888">'+(isEdit&&editing.resigned?esc(editing.resignedDate||'-'):'재직 중')+'</div><div class="hint">퇴사는 [퇴사처리] 버튼으로</div></div>'
     +'<div><label class="f">소속(팀장)</label><select class="in" id="f-leader" onchange="wf.leaderId=this.value">'+leaderOptionsHtml(isEdit?editing.id:'', f.leaderId)+'</select></div>'
     +'</div></div>'
     +'<div class="sec"><div class="sec-t">건강검진 이력</div><div id="health-rows">'+healthRowsHtml()+'</div>'
@@ -636,10 +639,10 @@ function drawForm(){
     +'<div class="sec" id="co-sec">'+coSecHtml()+'</div>'
     +'<div class="sec"><div class="sec-t">사진 파일 <span style="font-weight:400;color:#9AAABF">(사진 · 신분증 · 건설기초이수증)</span></div><div id="file-rows">'+filesHtml()+'</div></div>'
     +'<div class="sec"><div class="sec-t">비고</div><textarea class="in" rows="2" oninput="wf.note=this.value">'+esc(f.note)+'</textarea></div>'
-    +(isAdmin ? '<div class="sec admin"><div class="sec-t">🔒 관리자 전용 조회 · 급여 / 계좌</div><div class="grid2">'
+    +(isAdmin ? '<div class="sec admin"><div class="sec-t">🔒 관리자 전용 조회 · 급여 / 계좌</div><div class="grid3">'
       +'<div><label class="f">은행</label><input class="in" placeholder="예: 국민은행" value="'+esc(f.bank)+'" oninput="wf.bank=this.value"></div>'
       +'<div><label class="f">계좌번호</label><input class="in" inputmode="numeric" value="'+esc(f.account)+'" oninput="wf.account=this.value"></div>'
-      +'<div><label class="f">일당 (원) <span style="color:#aaa;font-weight:400">(월간 공수 팀 단가 집계에 사용)</span></label><input class="in" inputmode="numeric" placeholder="예: 180,000" value="'+esc(f.rate)+'" oninput="wf.rate=this.value"></div>'
+      +'<div><label class="f">일당 (원)</label><input class="in" inputmode="numeric" placeholder="예: 180,000" value="'+esc(f.rate)+'" oninput="wf.rate=this.value"></div>'
       +'</div><div class="hint">급여·계좌 정보는 관리자에게만 표시됩니다.</div></div>' : '')
     +'<div style="display:flex;gap:8px;margin-top:16px">'
     +(isEdit?'<button class="btn red" onclick="deleteWorker()">삭제</button>':'')
