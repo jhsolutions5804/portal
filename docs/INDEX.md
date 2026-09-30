@@ -1494,3 +1494,13 @@ PJT관리 PC 하단 잘림 수정(경량PJT 3.8.1·메인 PJT), 발주처·시�
 **상세**: `7_69_log_switch_mobile_fab_fix.md`, `8_65_log_2026-09-30j_session.md`
 
 ---
+
+## 2026-09-30 세션(이어서 9) — 모바일 월간 공수 제거 (portal-test)
+
+**조치**: 모바일 홈의 월간 공수 카드 제거, `m/pjt_manday.html`을 PC 화면 이전 안내 페이지로 교체(v2.0.0). 모바일 화면의 공수 0.0은 테섭에 9월 기록이 없어서였음. **본섭 미반영.**
+
+**백업**: `backup/20260930_mobile_manday_removal/before|after/`(portal-test).
+
+**상세**: `7_70_log_mobile_manday_removal.md`, `8_66_log_2026-09-30k_session.md`, `4_4_pjt_manday.md`
+
+---
