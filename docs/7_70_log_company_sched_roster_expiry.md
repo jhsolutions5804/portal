@@ -24,3 +24,10 @@
 1. 대표님: outlook-sync 재배포(README 4줄)
 2. Claude: 기존 연차 14건 → `company_schedules/leave_legacy_<원본ID>` 복사, 연명부 만료 일정 일괄 생성(연명부 문서 표식 갱신), 동기화 확인
 3. 대표님: `admin_cleanup_leave.html`에서 옛 연차 원본 삭제
+
+## 본섭 데이터 이전 결과 (2026-09-30, 함수 재배포 후)
+- 서버 함수 5개 배포 확인(`syncCompanySchedule`·`syncRosterExpiry` 신규 생성).
+- 옛 연차 14건(user_schedules, tag=off, [연차]) → `company_schedules/leave_legacy_<원본ID>` 복사(원본 유지). Outlook 공용 캘린더에 `[연차] …` 14건 확인(공용 캘린더 총 191건, 오류 0).
+- 1건(정다애 연차 2일, 8/13~14)은 원본이 '할 일'(isTodo)로 저장돼 있어 동기화 대상에서 빠졌음 → 복사본만 isTodo=false로 바로잡아 반영(원본은 그대로).
+- 옛 방식 Outlook 일정 `[P4 Ph2] … [연차]` 13건은 `admin_cleanup_leave.html`에서 원본을 삭제하면 자동 정리됨(대표님 실행 대기).
+- 연명부 만료 일정: 현재 연명부에 검진·자격·교육 입력이 없어 생성 0건. 입력·저장 시 자동 생성(서버 함수 `syncRosterExpiry`).
