@@ -1519,3 +1519,8 @@ PJT관리 PC 하단 잘림 수정(경량PJT 3.8.1·메인 PJT), 발주처·시�
 **상세**: `7_71_log_security_portal_users_rules.md`, `8_67_log_2026-09-30l_session.md`
 
 ---
+
+
+### 2026-09-30w 세션 요약
+
+연차 회사 일정 분리, 연명부 만료일 자동 계산, 만료 일정 자동 생성(화면 본섭 반영, 서버 함수 재배포 대기). 상세: `7_70_log_company_sched_roster_expiry.md`
