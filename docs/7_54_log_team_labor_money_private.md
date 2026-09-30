@@ -1,6 +1,6 @@
 # 개발로그 — ⑤ 팀별 노무비(기획>정산) + 금액 데이터 관리자 전용 이동
 
-> 작성: 춘식이(Claude) · 2026-09-30 · 배포: portal-test (본섭 대기)
+> 작성: 춘식이(Claude) · 2026-09-30 · 배포: portal-test → **본섭 반영은 별도 세션에서 완료 (`7_56_log_prod_roster_batch.md`)**
 
 ## 요청 · 결정
 
@@ -37,3 +37,8 @@
 - 2026-09-30 portal-test: gihoek·pjt_roster·pjt_manday 배포 → 백업(`backup/v5.9.0/gihoek`, `backup/v1.5.0/pjt_roster`, `backup/v1.2.0/pjt_manday`) → 서비스 페이지 서빙 확인 → 데이터 이전 실행.
 - 이전 결과(테섭 `portal-test-6e0ff`): 마스터 13명, 금액 필드 14개(`teamRate` 1, `dailyRate` 13) 복사 후 옛 위치에서 제거, 옛 위치 금액 필드 잔존 0건, 이름·생년월일 유지, 재실행 시 이전 대상 0.
 - **본섭 반영 시 순서**: ① 본섭 규칙에 관리자 전용 컬렉션 선반영(연명부 배포 때와 동일) → ② 모듈 3종 패치를 저장소별로 적용 → ③ `scripts/migrate_money.py`를 본섭 서비스 계정으로 dry-run 후 `--apply`.
+
+## 후속 정정 (2026-09-30, `7_65_log_manday_removal.md`)
+
+- 이 작업의 참조 전수 검색에서 모바일(`m/`) 폴더를 빠뜨렸다. **모바일 월간 공수(`m/pjt_manday.html`)가 팀 단가를 옛 위치(`master_workers.teamRate`)에서 읽고 있어**, 옛 필드를 제거한 뒤 팀단가·합계 금액 표시가 사라짐(테섭에서 발견·수정, **본섭은 미수정 상태로 같은 증상**).
+- 앞으로 금액·필드 이전 시 참조 검색은 저장소 전체(`m/`, `daily-report/`, `tools/` 포함)를 대상으로 한다.
