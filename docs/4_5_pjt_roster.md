@@ -1,7 +1,7 @@
 # 4.5. PJT — 근로자 연명부 (pjt_roster)
 
 > `portal/pjt_roster/index.html` · 사이드바 PJT > `👷 근로자 연명부` (키 `pjt_roster`, **관리자 전용**)
-> 최초 작성: 2026-09-30 · 최종 수정: 2026-09-30(v1.4.0, portal-test) · 작성: 춘식이(Claude)
+> 최초 작성: 2026-09-30 · 최종 수정: 2026-09-30(v1.5.0, portal-test) · 작성: 춘식이(Claude)
 
 > 적용 환경: **portal-test 배포 완료 / 본섭 미반영(대기)** — 본섭 반영 시 **Firestore 보안규칙 선반영 필수**
 
@@ -23,6 +23,7 @@
 | v1.2.0 | 원청별 탭(삼성전자/SK하이닉스), 자격·인증에 취득 현장명, 목록에 자격 칩·검색 |
 | v1.3.0 | ③ 기존 인원 마이그레이션 도구 이전(월간 공수 → 연명부) |
 | v1.4.0 | ④ 월간 공수 보기 이전 — PJT별 합계 · 개인별 합계 · 개인별 공수표(PNG) |
+| v1.5.0 | ⑤ 일당(`dailyRate`)을 관리자 전용 문서로 이동 |
 
 ※ v1.1.0은 단독 배포 없이 v1.2.0에 포함되어 함께 배포됨.
 
@@ -30,12 +31,12 @@
 
 | 컬렉션 | 문서 ID | 내용 | 접근 |
 |--------|---------|------|------|
-| `master_workers` (기존) | `이름_생년월일`(특수문자 제거) | `name, birth, leaderId, dailyRate, resigned, resignedDate` + 신규 `gender, hireDate` | 승인된 직원(기존과 동일) — FAB/경량PJT/SUP이 그대로 읽음 |
-| `master_worker_private` (신규) | 동일 ID | `jumin, phone, bank, account, health[], certs[], inhouseEdu{e1..e4}, inhouseEduExp{e1..e4}, ssId, ssPw, note, files{photo,idcard,cert}, hasPhoto, updatedAt` | **관리자만** |
+| `master_workers` (기존) | `이름_생년월일`(특수문자 제거) | `name, birth, leaderId, resigned, resignedDate` + 신규 `gender, hireDate` | 승인된 직원(기존과 동일) — FAB/경량PJT/SUP이 그대로 읽음 |
+| `master_worker_private` (신규) | 동일 ID | `jumin, phone, bank, account, dailyRate, teamRate(팀장), health[], certs[], inhouseEdu{e1..e4}, inhouseEduExp{e1..e4}, ssId, ssPw, note, files{photo,idcard,cert}, hasPhoto, updatedAt` | **관리자만** |
 | `master_worker_photos` (신규) | 사진 `ID` · 신분증 `ID__idcard` · 건설기초이수증 `ID__cert` | `dataUrl`(JPEG base64), `mime, fileName, size, slot, updatedAt` | **관리자만** |
 
 - 민감정보(주민번호·연락처·계좌·검진·포털 계정)와 첨부 파일은 모든 PJT 모듈이 읽는 `master_workers`에 넣지 않고 관리자 전용 컬렉션에 분리.
-- 일당(`dailyRate`)은 월간 공수(팀 단가 집계)가 `master_workers`에서 읽으므로 그 컬렉션에 유지 — 화면에서만 관리자 구역에 표시. 연명부를 관리자 외에도 열게 되면 별도 컬렉션 이전(+월간 공수·정산 수정)이 필요.
+- **금액 정보는 관리자 전용 문서에 저장(v1.5.0)**: 일당 `dailyRate`(개인)·팀 단가 `teamRate`(팀장)는 `master_worker_private/{ID}`에 둔다. 예전에는 `master_workers`(승인된 직원 전원이 읽을 수 있음)에 있었으나, 팀별 금액은 팀 단가(`teamRate`)로만 계산하고 `dailyRate`는 어떤 계산에도 쓰이지 않음을 코드로 확인해 이동했다(v1.2.0 시점 “월간 공수가 일당을 읽는다”는 설명은 오류였음). 저장 시 옛 위치 필드는 `deleteField()`로 제거, 읽을 때는 새 위치 우선·옛 위치 폴백. 일괄 이전은 `scripts/migrate_money.py`(멱등, dry-run 지원).
 - 퇴사처리는 기존과 같이 `master_workers.resigned/resignedDate`만 바꿈 → 각 PJT 모듈의 퇴사자 처리에 자동 반영.
 - `certs[]` 항목: `{co:'samsung'|'skhynix', name, site(취득 현장명), acquired, expiry}`. `co`가 없던 기존 자격은 삼성전자로 간주하고 저장 시 부여.
 - `files.{photo|idcard|cert}` = `{name,size,w,h}` 또는 `null`. 예전 단일 사진 필드(`photoName` 등)는 읽을 때 `files.photo`로 승격하고 저장 시 비움.
@@ -98,13 +99,13 @@
 ## 검증
 
 - module JS `node --check` OK · CSS 괄호 depth 0 · 테섭 Firebase 설정 확인.
-- 모듈 시나리오 141항목 PASS(월간 공수 보기(합계·개인별 병합·월 경계·공수표·PNG 파일명·생년월일 보정·범위 조회·연속 이동), 마이그레이션 도구(3곳 묶음·종료 PJT 제외·동명이인 경고/취소·명단 재생성·삭제·실패 처리), 권한, 필터·검색(자격/현장 포함), 마스킹, 등록/수정/삭제, 주민번호 자동입력, 원청 탭·탭별 자격 분리·기존 자격 호환, 교육 만료일 상태, 첨부 3칸 압축·해상도·보기·다운로드·삭제·취소·예전 사진 승격, 팀장 가드, 퇴사/재직 전환, 저장 실패 처리).
+- 모듈 시나리오 143항목 PASS(월간 공수 보기(합계·개인별 병합·월 경계·공수표·PNG 파일명·생년월일 보정·범위 조회·연속 이동), 마이그레이션 도구(3곳 묶음·종료 PJT 제외·동명이인 경고/취소·명단 재생성·삭제·실패 처리), 권한, 필터·검색(자격/현장 포함), 마스킹, 등록/수정/삭제, 주민번호 자동입력, 원청 탭·탭별 자격 분리·기존 자격 호환, 교육 만료일 상태, 첨부 3칸 압축·해상도·보기·다운로드·삭제·취소·예전 사진 승격, 팀장 가드, 퇴사/재직 전환, 저장 실패 처리).
 - 보안규칙 에뮬레이터 PASS(관리자 외 차단, 사진 형식·크기 제한, 첨부 3칸 문서 ID, 기존 컬렉션 회귀).
 - 실제 Firebase 연동 화면 확인은 대표님 확인 대기.
 
 ## 남은 작업
 
-- ⑤ 기획>정산 팀별 노무비, ⑥ 월간 공수 메뉴 정리.
+- ⑥ 월간 공수 메뉴 정리 여부 결정(⑤ 팀별 노무비는 기획>정산으로 이전 완료 — `1_4_gihoek_settle.md`).
 - ②의 마무리: 월간 공수의 마스터 관리 화면은 아직 그대로(두 화면이 같은 `master_workers`를 수정하므로 충돌은 없음). 연명부 확인 후 월간 공수 쪽 등록/수정 버튼을 안내로 대체할지 결정.
 
-상세: `7_50_log_pjt_roster.md`, `7_51_log_pjt_roster_v120.md`, `7_52_log_pjt_roster_migrate.md`, `7_53_log_pjt_roster_manday.md`
+상세: `7_50_log_pjt_roster.md`, `7_51_log_pjt_roster_v120.md`, `7_52_log_pjt_roster_migrate.md`, `7_53_log_pjt_roster_manday.md`, `7_54_log_team_labor_money_private.md`
