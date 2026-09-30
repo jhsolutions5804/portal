@@ -201,3 +201,14 @@ r5에서 도입한 "견적 연결"이 정산서 1건 전체에 대해 견적 1�
 
 필터 상태는 `window.settleFilter`(세션 메모리, 새로고침 시 초기화)에 저장되며, `setSettleFilter(key,val)`로 갱신 시 목록을 재렌더링. 상단 요약 카드(대금청구 누계/지급예정 누계/미수금)도 **필터가 적용된 결과 기준**으로 재계산됨. 필터가 하나라도 걸려있으면 "필터 초기화" 버튼이 노출됨.
 
+---
+
+## 팀별 노무비 (gihoek 5.9.0, 2026-09-30, portal-test)
+
+정산 탭 상단에 `[정산서] [팀별 노무비]` 전환 버튼(`settleSegHtml`, `window.settleView`). 월간 공수의 팀별 합계를 이전한 보기이며 정산서 목록 화면은 변경 없음(전환 버튼만 추가).
+- **계산**: 팀 = 팀장(`master_workers`에서 `leaderId`가 없는 근로자). 팀 공수 = 팀장+팀원의 그 달 공수 합계, **노무비 = 팀 공수 × 팀 단가**. 사람 매칭은 이름+생년월일(명단은 같은 ID의 마스터 정보로 덮어씀).
+- **공수 소스**: FAB `worker_manday`, SUP `ph4_manday`, 종료되지 않은 경량PJT `pjt_registry/{id}/manday`. 일자 문서를 `documentId()` 범위 조회로 프로젝트당 1회 읽음. 명단은 `pjt_workers_fab`/`pjt_workers_ph4`/`pjt_registry/{id}/workers`.
+- **팀 단가**: `master_worker_private/{팀장ID}.teamRate`(관리자 전용). 옛 위치 `master_workers.teamRate`는 읽기 폴백. 팀 블록의 ✏️로 관리자가 수정(새 위치에만 저장).
+- **표시**: 월 이동·다시 계산, 요약(팀 노무비 합계·팀 공수 합계·팀 수), 팀 블록(팀 공수·팀 단가·노무비, 프로젝트별 소계 칩, 팀원별 공수·퇴사 표시), 팀에 속하지 않은(마스터 미등록) 인원 공수 안내, 일부 조회 실패 경고.
+- 연속 월 이동 시 마지막 요청 결과만 반영(시퀀스 가드). `renderSettle`은 `settleView==='team'`이면 팀별 노무비를 다시 그림(정산서 스냅샷 갱신에도 보기 유지).
+- 상세: `7_54_log_team_labor_money_private.md`
