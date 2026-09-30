@@ -1652,3 +1652,13 @@ PJT관리 PC 하단 잘림 수정(경량PJT 3.8.1·메인 PJT), 발주처·시�
 **상세**: `7_77_log_schedule_guest.md`(최종 결정 정정 절), 규칙 보관 portal-test `backup/firestore_rules_20260930_schedule_guest/README.md`
 
 ---
+
+## 2026-09-30 세션(이어서 23) — 본섭 반영: 내 팀 공수표·PC/모바일 일치화·일정 통합·GUEST 제한
+
+**지시**: 대표님 “자체 검증 결과를 믿을게. 진행해.” → **본섭 반영 완료**.
+
+**내용**: 화면 12개(팀 화면 신규), 본섭 규칙(`team_rates`·일정 GUEST), `team_rates` 복사. 3자 병합으로 변경분만 적용(파일 통째 복사 금지), 충돌 3건 수동 해결, 규칙 조립 중 `team_rates` 제외 누락 결함 발견·수정. 본섭에 이미 반영돼 있던 것(월간 공수 안내·연명부 2.2.1)은 제외, 테섭 전용 미출시(SUP 완료체크·edoc 열람 제한 규칙)는 가져가지 않음.
+
+**상세**: `7_78_log_prod_release_team_schedule.md`, `8_73_log_2026-09-30r_session.md`, `4_6_team_leader_view.md`, 백업 portal-test `backup/20260930_prod_release/`
+
+---
