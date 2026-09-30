@@ -1,7 +1,7 @@
 # 1.3. 기획 — 견적
 
 > Firestore 컬렉션: `gihoek_estimates`
-> 최초 작성: 2026-06-26 · 최종 수정: 2026-08-18(r8) · 작성: 춘식이(Claude)
+> 최초 작성: 2026-06-26 · 최종 수정: 2026-09-30(gihoek 5.8.0, portal-test) · 작성: 춘식이(Claude)
 
 ---
 
@@ -168,3 +168,21 @@ A4 새 창 출력. 구성:
 ## 기능 추가 — 품목 비고란 (r7, 2026-08-13)
 
 품목 각 행에 `remark`(string, 선택입력) 필드 추가. 품명·규격·수량·단가·금액 다음 열에 위치. 작성/수정 폼(`drawRows`), 상세보기(`openEst`), 인쇄/PDF(`printEst`) 테이블 전 구간에 "비고" 컬럼으로 반영. 기존 견적의 `items`에는 `remark` 필드가 없으므로 읽을 때 `''`로 폴백 처리(하위호환). 상세: `7_18_log_gihoek_item_remark.md`
+
+---
+
+## 기능 개선 — 목록 필터 정비 + 복귀 시 화면 상태 유지 (gihoek 5.8.0, 2026-09-30)
+
+> 적용 환경: **portal-test 배포 완료 / 본섭 미반영(대기)**
+
+**1) 견적상태 필터 추가**
+- 기존 `진행상태` 드롭다운은 견적이 아닌 **현장(PJT) 상태** 기준이라, 진행중 현장에 속한 종결 견적도 함께 표시됨 → 혼동 원인.
+- 명칭 분리: `현장상태 전체 / 현장 진행중 / 현장 종료`(기존, `estFilterPjtStatus`) + 신규 `견적상태 전체 / 진행중 / 종결 / 폐기`(`estFilterStatus`, 셀렉트 `#est-filter-status`).
+- 견적상태 판정: `status==='void'`→폐기, `'closed'`→종결, 그 외→진행중(유효). 필터 간 AND 조합, `초기화` 버튼은 5개 필터 모두 초기화.
+
+**2) 상세 → 목록 복귀 시 필터·페이지·스크롤 유지**
+- 기존: `renderEst()`가 호출될 때마다 필터·페이지를 무조건 초기화 → 상세에서 종결/뒤로 시 초기화됨.
+- 변경: `renderEst(keep)` — `keep=true`면 `estFilter*`, `estPage`, 스크롤(`estListScroll`)을 유지. 신규 진입(탭 전환·기획 홈)은 종전대로 초기화.
+- `keep=true` 적용: `← 견적 목록` 버튼(`estBack()`), 작성/수정폼 취소·저장, 견적 삭제. 종결/종결취소는 `openEst(id)` 재호출이라 목록 상태 그대로 유지.
+- 브라우저 뒤로가기: `openEst` 진입 시 `history.pushState({estView:1})`(재호출은 `replaceState`로 누적 방지), `popstate`에서 `estBackRender()` 실행. 프로젝트 상세에서 진입(`estOrigin`)한 경우 프로젝트 화면으로 복귀.
+- 상세: `7_48_log_gihoek_est_filter_back.md`
