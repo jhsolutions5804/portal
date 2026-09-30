@@ -1399,6 +1399,6 @@ PJT(Ph2) 공수표 월 중 퇴사자 누락 핫픽스(v4.10.10, 테섭·본섭 �
 
 **배포**: portal-test만(본섭 대기) + 테섭 데이터 이전(마스터 13명, 14필드). **백업**: `backup/v5.9.0/gihoek`, `backup/v1.5.0/pjt_roster`, `backup/v1.2.0/pjt_manday`(portal-test).
 
-**상세**: `1_4_gihoek_settle.md`, `4_4_pjt_manday.md`, `4_5_pjt_roster.md`, `7_54_log_team_labor_money_private.md`, `8_42_log_2026-09-30g_session.md`
+**상세**: `1_4_gihoek_settle.md`, `4_4_pjt_manday.md`, `4_5_pjt_roster.md`, `7_54_log_team_labor_money_private.md`, `8_43_log_2026-09-30h_session.md`
 
 ---
