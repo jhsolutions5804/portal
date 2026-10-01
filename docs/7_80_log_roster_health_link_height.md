@@ -17,3 +17,6 @@
 - 화면 확인은 본섭에서 PDF 첨부된 행(김종화)으로 진행.
 
 백업: `backup/v2.2.2/pjt_roster/index.html`
+
+## 테섭 정합 (2026-10-01)
+- portal-test `pjt_roster/index.html`에 같은 논리 패치를 독립 적용(2.2.2). 파일 통째 복사 없이 적용해 테섭 Firebase 설정 유지. 두 저장소의 연명부 코드 차이는 Firebase 설정 블록뿐임을 diff로 확인. portal-test에도 `backup/v2.2.2/pjt_roster/` 백업.
