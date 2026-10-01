@@ -1,6 +1,6 @@
-<!DOCTYPE html><!-- holiday-shared: 20261001 공휴일 목록을 공용 파일(holidays.js) 한 곳으로 일원화 --><!-- holiday-data: 20261001 공휴일 정비(2025~2027): 누락·오류 보정 --><!-- HR module build: 20261001q · ver 2.26.0 · 공고 관리 신설(공고 등록·수정·마감·삭제, job_postings 컬렉션, 사람인 공고 양식 항목·새 공고 기본 문구 자동 채움) + 홈페이지 채용 소개·채용 공고·지원 폼 바로가기 · 이전: HR module build: 20261001p · ver 2.25.4 · 근로시간 현황 카드 하단에 이번 달 초과근로 시간·연장근로수당 집계 표시(급여명세서와 같은 계산식: 평일 소정 초과분×시급×1.5, 포괄임금제는 고정 연장수당) · 이전: HR module build: 20261001o · ver 2.25.3 · 지난 제안서에 🗑 삭제 버튼 추가(확인창 후 제안서와 회신기한 일정 함께 삭제) · 이전: HR module build: 20261001n · ver 2.25.2 · 채용 지원자 목록에 🗑 삭제 버튼 추가(확인창 후 지원자 문서와 면접 일정 함께 삭제) · 이전: HR module build: 20261001m · ver 2.25.1 · 근로자 민감 정보(주민번호·계좌·주소·서명) worker_private 분리 + 근로자 문서 ID를 주민번호 없는 임의 값으로 생성(중복 등록 차단) · 이전: build: 20261001k · ver 2.25.0 · 근로자 민감 정보 분리: 주민번호·계좌·주소·서명을 worker_private 문서로 이동(읽기는 합쳐서, 쓰기는 나눠서) · 이전: build: 20261001j · ver 2.24.3 · 공휴일 데이터 정비(2025~2027): 노동절·제헌절·부처님오신날·토요일 공휴일·대체공휴일 누락 보충, 2027 설날 연휴 오류 정정 · 이전: build: 20261001i · ver 2.24.2 · 인사 변동 화면 수정(직급·부서 목록 변수가 명부 상세 함수 안에서만 정의돼 ‘불러오는 중’에서 멈추던 오류 — 2.14.0부터) + 호봉 산정 수정(입사한 해는 1호봉, 다음 해 1/1부터 1~3분기 입사=2호봉·4분기 입사=1호봉) · 이전: build: 20261001g · ver 2.24.0 · 퇴직원서 출력(휴직원서 포함)·승인된 퇴직원서 퇴직일을 인사 캘린더 '퇴사' 일정으로 자동 반영 / 직전: ver 2.23.1 · 연봉 제안서: 출력은 미리보기 전용(저장·캘린더 등록 안 함), 💾 저장 버튼 신설(같은 건 덮어쓰기·캘린더 회신기한 1건 연동), 지난 제안서에서 열어서 수정 / 직전: ver 2.23.0 · 인사 캘린더 자동 등록 — 채용 지원자 면접일 입력 시 면접 일정, 연봉 제안서 출력·발송 시 회신 기한 일정 자동 등록(ID 고정으로 중복 방지) / 직전: ver 2.22.0 · 인사 캘린더에 연차 표시(전자결재 게시 연차를 회사 일정에서 읽기 전용으로 표시, 기간 연차는 주말·공휴일 제외, 날짜 선택 시 사용자 목록, ‘연차 표시’ 토글) / 직전: ver 2.21.0 · 인사 캘린더 — 날짜 클릭은 선택만(하단에 그날 일정 목록·‘이 날짜에 등록’ 버튼), 공휴일 표시(2025~2027, 노동절·제헌절·대체공휴일 반영) / 직전: ver 2.20.0 · 인사 홈 2단 개편(왼쪽 인사 캘린더·오른쪽 업무 메뉴 세로 배열) / 직전: ver 2.19.0 · 인사 캘린더 신설(면접·연봉제안서 회신·연봉협상·인사평가·기타, 지정 4명 한정) / 직전: ver 2.18.0 · 문서 메일 수신 주소: 명부 이메일이 없으면 포털 로그인 계정(@jhsol.kr)으로 자동 대체 / 직전: ver 2.17.1 · 급여명세서 PC 조회 화면에 메일 발송·링크/QR·발송 이력 추가 / 직전: ver 2.17.0 · 급여명세서 열람 링크(저장 당시 양식·180일)·메일 발송 이력·링크/QR / 직전: ver 2.16.0 · 저장 계약서 메일 재전송 + 발송 이력(doc_send_log) / 직전: ver 2.15.0 · 저장된 근로계약서·연봉계약서 근로자 본인 열람 링크(문자 인증, 180일, 저장 당시 양식으로 표시) / 직전: ver 2.14.0 · 인사 변동 메뉴 신설(직급·부서 변경 저장+호봉 초기화+이력, 연봉 조정은 근로계약서 작성으로 연결, 변동 현황 조회) · 이전: 20260925e ver 2.13.1 · 근로시간 캘린더 — 반차 쓰고 그날 일부 근무한 경우, 근무시간만 보이고 반차 여부가 안 보이던 문제 수정(🌴 표시 병기) · 이전: 20260925d ver 2.13.0 -->
+<!DOCTYPE html><!-- holiday-shared: 20261001 공휴일 목록을 공용 파일(holidays.js) 한 곳으로 일원화 --><!-- holiday-data: 20261001 공휴일 정비(2025~2027): 누락·오류 보정 --><!-- HR module build: 20261001r · ver 2.27.0 · 공고 관리 입력을 구인 공고식 선택지(경력·학력·고용형태·근무일시)로 변경 + 시간 입력 24시간 통일(공용 time24.js, 면접 일시는 날짜+24시간 두 칸) · 이전: HR module build: 20261001q · ver 2.26.0 · 공고 관리 신설(공고 등록·수정·마감·삭제, job_postings 컬렉션, 사람인 공고 양식 항목·새 공고 기본 문구 자동 채움) + 홈페이지 채용 소개·채용 공고·지원 폼 바로가기 · 이전: HR module build: 20261001p · ver 2.25.4 · 근로시간 현황 카드 하단에 이번 달 초과근로 시간·연장근로수당 집계 표시(급여명세서와 같은 계산식: 평일 소정 초과분×시급×1.5, 포괄임금제는 고정 연장수당) · 이전: HR module build: 20261001o · ver 2.25.3 · 지난 제안서에 🗑 삭제 버튼 추가(확인창 후 제안서와 회신기한 일정 함께 삭제) · 이전: HR module build: 20261001n · ver 2.25.2 · 채용 지원자 목록에 🗑 삭제 버튼 추가(확인창 후 지원자 문서와 면접 일정 함께 삭제) · 이전: HR module build: 20261001m · ver 2.25.1 · 근로자 민감 정보(주민번호·계좌·주소·서명) worker_private 분리 + 근로자 문서 ID를 주민번호 없는 임의 값으로 생성(중복 등록 차단) · 이전: build: 20261001k · ver 2.25.0 · 근로자 민감 정보 분리: 주민번호·계좌·주소·서명을 worker_private 문서로 이동(읽기는 합쳐서, 쓰기는 나눠서) · 이전: build: 20261001j · ver 2.24.3 · 공휴일 데이터 정비(2025~2027): 노동절·제헌절·부처님오신날·토요일 공휴일·대체공휴일 누락 보충, 2027 설날 연휴 오류 정정 · 이전: build: 20261001i · ver 2.24.2 · 인사 변동 화면 수정(직급·부서 목록 변수가 명부 상세 함수 안에서만 정의돼 ‘불러오는 중’에서 멈추던 오류 — 2.14.0부터) + 호봉 산정 수정(입사한 해는 1호봉, 다음 해 1/1부터 1~3분기 입사=2호봉·4분기 입사=1호봉) · 이전: build: 20261001g · ver 2.24.0 · 퇴직원서 출력(휴직원서 포함)·승인된 퇴직원서 퇴직일을 인사 캘린더 '퇴사' 일정으로 자동 반영 / 직전: ver 2.23.1 · 연봉 제안서: 출력은 미리보기 전용(저장·캘린더 등록 안 함), 💾 저장 버튼 신설(같은 건 덮어쓰기·캘린더 회신기한 1건 연동), 지난 제안서에서 열어서 수정 / 직전: ver 2.23.0 · 인사 캘린더 자동 등록 — 채용 지원자 면접일 입력 시 면접 일정, 연봉 제안서 출력·발송 시 회신 기한 일정 자동 등록(ID 고정으로 중복 방지) / 직전: ver 2.22.0 · 인사 캘린더에 연차 표시(전자결재 게시 연차를 회사 일정에서 읽기 전용으로 표시, 기간 연차는 주말·공휴일 제외, 날짜 선택 시 사용자 목록, ‘연차 표시’ 토글) / 직전: ver 2.21.0 · 인사 캘린더 — 날짜 클릭은 선택만(하단에 그날 일정 목록·‘이 날짜에 등록’ 버튼), 공휴일 표시(2025~2027, 노동절·제헌절·대체공휴일 반영) / 직전: ver 2.20.0 · 인사 홈 2단 개편(왼쪽 인사 캘린더·오른쪽 업무 메뉴 세로 배열) / 직전: ver 2.19.0 · 인사 캘린더 신설(면접·연봉제안서 회신·연봉협상·인사평가·기타, 지정 4명 한정) / 직전: ver 2.18.0 · 문서 메일 수신 주소: 명부 이메일이 없으면 포털 로그인 계정(@jhsol.kr)으로 자동 대체 / 직전: ver 2.17.1 · 급여명세서 PC 조회 화면에 메일 발송·링크/QR·발송 이력 추가 / 직전: ver 2.17.0 · 급여명세서 열람 링크(저장 당시 양식·180일)·메일 발송 이력·링크/QR / 직전: ver 2.16.0 · 저장 계약서 메일 재전송 + 발송 이력(doc_send_log) / 직전: ver 2.15.0 · 저장된 근로계약서·연봉계약서 근로자 본인 열람 링크(문자 인증, 180일, 저장 당시 양식으로 표시) / 직전: ver 2.14.0 · 인사 변동 메뉴 신설(직급·부서 변경 저장+호봉 초기화+이력, 연봉 조정은 근로계약서 작성으로 연결, 변동 현황 조회) · 이전: 20260925e ver 2.13.1 · 근로시간 캘린더 — 반차 쓰고 그날 일부 근무한 경우, 근무시간만 보이고 반차 여부가 안 보이던 문제 수정(🌴 표시 병기) · 이전: 20260925d ver 2.13.0 -->
 <html lang="ko">
-<head><script src="../holidays.js?v=20261001"></script>
+<head><script src="../time24.js?v=20261001"></script><script src="../holidays.js?v=20261001"></script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>인사관리 · 제이에이치솔루션</title>
@@ -3222,7 +3222,7 @@ function _renderApplicantsList(all){
     <td style="padding:10px 12px;font-size:11px;color:#5C6F8A;">${esc(a.phone)}</td>
     <td style="padding:10px 12px;font-size:11px;">${a.jobTitle?`<span style="font-size:10px;background:#E8F0FB;color:#1D5BA6;padding:2px 8px;border-radius:10px;font-weight:700;">${esc(a.jobTitle)}</span>`:'-'}</td>
     <td style="padding:10px 12px;font-size:11px;color:#9AAABF;">${_applicantsFmtDT(a.createdAt)}</td>
-    <td style="padding:8px 12px;"><input type="datetime-local" value="${esc(a.interviewAt||'')}" onchange="applicantsSetInterview('${a.id}',this.value)" title="입력하면 인사 캘린더에 면접 일정으로 자동 등록됩니다" style="font-size:11px;padding:4px 6px;border-radius:6px;border:1px solid #DDE4EF;color:#1A2540;min-width:150px;"></td>
+    <td style="padding:8px 12px;"><input type="date" id="iv-d-${a.id}" value="${esc((a.interviewAt||'').split('T')[0]||'')}" onchange="applicantsIvChange('${a.id}')" title="날짜와 시간(24시간)을 모두 입력하면 인사 캘린더에 면접 일정으로 자동 등록됩니다" style="font-size:11px;padding:4px 6px;border-radius:6px;border:1px solid #DDE4EF;color:#1A2540;"> <input type="time" id="iv-t-${a.id}" value="${esc((a.interviewAt||'').split('T')[1]||'')}" onchange="applicantsIvChange('${a.id}')" title="24시간 형식 (예: 14:30)" style="font-size:11px;padding:4px 6px;border-radius:6px;border:1px solid #DDE4EF;color:#1A2540;width:58px;text-align:center;"></td>
     <td style="padding:10px 12px;">
       <select onchange="applicantsChangeStatus('${a.id}',this.value)" style="font-size:11px;padding:4px 8px;border-radius:6px;border:1px solid #DDE4EF;color:${statusColor[a.status||'new']};font-weight:700;">
         ${Object.entries(statusLabel).map(([k,label])=>`<option value="${k}" ${(a.status||'new')===k?'selected':''}>${label}</option>`).join('')}
@@ -3269,6 +3269,18 @@ window.applicantsChangeStatus = async (id, status) => {
 };
 
 // 면접일 입력 → 지원자 문서에 저장 + 인사 캘린더에 면접 일정 자동 등록(비우면 삭제). 일정 ID = interview_<지원자ID> 고정.
+/* 면접 일시: 날짜 + 24시간 시간 두 칸 → 'YYYY-MM-DDTHH:MM' (기존 datetime-local 값 형식과 동일) */
+window.applicantsIvChange = (id) => {
+  const d = (document.getElementById('iv-d-'+id)?.value || '').trim();
+  const t = (document.getElementById('iv-t-'+id)?.value || '').trim();
+  const a = (window._applicantsDocs||[]).find(x=>x.id===id);
+  if (!d) {                                     // 날짜를 지우면 면접 일정 해제(이미 등록된 경우만)
+    if (a && a.interviewAt) { const te = document.getElementById('iv-t-'+id); if (te) te.value = ''; return window.applicantsSetInterview(id, ''); }
+    return;
+  }
+  if (!t) return;                               // 날짜·시간이 모두 입력돼야 저장
+  return window.applicantsSetInterview(id, d + 'T' + t);
+};
 window.applicantsSetInterview = async (id, v) => {
   const a = (window._applicantsDocs||[]).find(x=>x.id===id); if (!a) return;
   v = String(v||'');
@@ -9309,7 +9321,7 @@ window.evalDeleteRecord = async (wid, evalId, wname) => {
   } catch(e) { alert('삭제 오류: ' + e.message); }
 };
 
-/* ── 공고 관리 (hr 2.26.0) — 채용 공고 등록·수정·마감·삭제 + 홈페이지 채용 3페이지 바로가기
+/* ── 공고 관리 (hr 2.27.0) — 채용 공고 등록·수정·마감·삭제 + 홈페이지 채용 3페이지 바로가기
    항목 구성은 사람인 공고 양식을 따름(모집분야·경력·학력·고용형태·급여·근무일시·근무지·주요업무·자격요건·우대사항·복지·채용절차·유의사항·접수기간).
    저장: job_postings/{id}  (status: open=게시 / closed=마감 / draft=임시저장)
    홈페이지 recruit-jobs.html·recruit.html?job={id} 가 open 공고만 읽어서 보여준다. ── */
@@ -9320,16 +9332,20 @@ const JOB_PAGES = [
   { file:'recruit.html',      icon:'✍️', name:'지원 폼',          desc:'지원서 입력 화면' }
 ];
 const JOB_STATUS = { open:{t:'게시 중',bg:'#E6F6EC',c:'#1E7A3C'}, closed:{t:'마감',bg:'#F0F2F5',c:'#6B7686'}, draft:{t:'임시저장',bg:'#FFF4E0',c:'#B26A00'} };
-const JOB_CAREER_OPTS = ['경력무관 (신입 포함)','신입','경력'];
-const JOB_EDU_OPTS    = ['학력무관 (졸업 예정자 가능)','학력무관','고졸 이상','초대졸 이상','대졸 이상'];
-const JOB_EMP_OPTS    = ['정규직(수습 3개월), 계약직 3개월(정규직 전환 가능, 기간제)','정규직','계약직','인턴','일용직'];
+/* 경력·학력·고용형태·근무일시는 구인 공고에서 흔히 쓰는 선택지로 고른다(저장 시 홈페이지 표시 문장으로 조합해 career/education/empType/workTime에 저장, 선택값은 opt에 보관).
+   고용형태에 '파견직'은 두지 않는다(도급 현장 인력 공급과 법적 구분 혼동 방지). */
+const JOB_OPT = {
+  career: ['경력무관','신입','경력','신입·경력'],
+  edu: [['학력무관','학력무관'],['고졸','고졸'],['초대졸','초대졸 (2~3년제)'],['대졸','대졸 (4년제)'],['석사','석사'],['박사','박사']],
+  emp: ['정규직','계약직','일용직','인턴','프리랜서','아르바이트'],
+  days: ['주 5일 (월~금)','주 6일 (월~토)','주 4일','주 3일','주 2일','교대근무','격주 근무','요일 협의'],
+  probation: ['1','2','3','6'], contract: ['1','2','3','6','9','12']
+};
+const JOB_OPT_DEFAULT = { careerType:'경력무관', careerMin:'', careerMax:'', careerNote:'', eduLevel:'학력무관', eduAbove:true, eduGrad:true, eduNote:'',
+  emp:['정규직','계약직'], probation:'3', contractMonths:'3', convert:true, empNote:'', days:'주 5일 (월~금)', start:'07:00', end:'17:00', timeNeg:false, workNote:'' };
 /* 새 공고를 만들 때 자동으로 채워지는 기본 문구 — 공고마다 자유롭게 수정 가능. 복지·혜택은 홈페이지 채용 소개(careers.html)에 공통으로 게시하므로 비워 둔다. */
 const JOB_DEFAULTS = {
-  career: '경력무관 (신입 포함)',
-  education: '학력무관 (졸업 예정자 가능)',
-  empType: '정규직(수습 3개월), 계약직 3개월(정규직 전환 가능, 기간제)',
   salary: '면접 후 결정',
-  workTime: '주 5일 (월~금) 07:00~17:00',
   location: '경기 평택시 고덕중앙로 320 원희캐슬고덕 지식산업센터',
   duties: '공조설비 납품 일정과 공정 관리해요\n입고 현황을 관리해요\n협력사와 품질 사항 점검해요',
   requirements: '경력 무관 (신입 지원 가능)\n학력무관, 졸업 예정자 지원가능\n현장 소통을 원활히 하시는 분\n도면과 시방서 이해할 수 있는 분\n일정·자재를 꼼꼼히 관리하시는 분\n기본 문서작성과 보고가 가능하신 분\n안전수칙을 준수하며 일하시는 분',
@@ -9342,6 +9358,77 @@ const JOB_DEFAULTS = {
 let _jobDocs = [];
 const _jobEsc = s => String(s==null?'':s).replace(/[&<>"']/g, m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
 const _jobBtn = (bg,c,bd) => `background:${bg};color:${c};border:1px solid ${bd};border-radius:8px;padding:6px 11px;font-size:12px;font-weight:700;cursor:pointer;`;
+
+/* 선택값(opt) → 홈페이지 표시 문장 */
+function _jobCompose(o) {
+  const yrs = o.careerMin && o.careerMax ? `${o.careerMin}~${o.careerMax}년` : o.careerMin ? `${o.careerMin}년 이상` : o.careerMax ? `${o.careerMax}년 이하` : '';
+  let career = o.careerType === '경력무관' ? '경력무관 (신입 포함)' : (o.careerType || '');
+  if (o.careerType === '경력') career = '경력' + (yrs ? ' ' + yrs : '');
+  if (o.careerType === '신입·경력') career = '신입·경력' + (yrs ? ` (경력 ${yrs})` : '');
+  if (o.careerNote) career += ' · ' + o.careerNote;
+  let education = o.eduLevel === '학력무관' ? '학력무관' : (o.eduLevel || '') + (o.eduAbove ? ' 이상' : '');
+  if (o.eduGrad) education += ' (졸업 예정자 가능)';
+  if (o.eduNote) education += ' · ' + o.eduNote;
+  const emp = JOB_OPT.emp.filter(t => (o.emp||[]).includes(t)).map(t => {
+    if (t === '정규직') return '정규직' + (o.probation ? `(수습 ${o.probation}개월)` : '');
+    if (t === '계약직') return '계약직' + (o.contractMonths ? ` ${o.contractMonths}개월` : '') + `(${[o.convert ? '정규직 전환 가능' : '', '기간제'].filter(Boolean).join(', ')})`;
+    return t;
+  });
+  let empType = emp.join(', ');
+  if (o.empNote) empType += (empType ? ' · ' : '') + o.empNote;
+  let workTime = [o.days, (o.start && o.end) ? `${o.start}~${o.end}` : ''].filter(Boolean).join(' ');
+  if (o.timeNeg) workTime += ' (시간 협의 가능)';
+  if (o.workNote) workTime += (workTime ? ' · ' : '') + o.workNote;
+  return { career, education, empType, workTime };
+}
+/* 선택값 없이 저장된 옛 공고 → 문구에서 선택값 추정(수정 화면을 열 때만 사용) */
+function _jobParseLegacy(j) {
+  const o = JSON.parse(JSON.stringify(JOB_OPT_DEFAULT)), t = x => String(x||'');
+  const c = t(j.career);
+  if (c.includes('무관')) o.careerType = '경력무관'; else if (c.includes('신입') && c.includes('경력')) o.careerType = '신입·경력'; else if (c.includes('신입')) o.careerType = '신입'; else if (c.includes('경력')) o.careerType = '경력';
+  const yr = c.match(/(\d+)\s*~\s*(\d+)\s*년/); const yu = c.match(/(\d+)\s*년\s*이상/); const yd = c.match(/(\d+)\s*년\s*이하/);
+  if (yr) { o.careerMin = yr[1]; o.careerMax = yr[2]; } else if (yu) o.careerMin = yu[1]; else if (yd) o.careerMax = yd[1];
+  const e = t(j.education); const lv = ['박사','석사','대졸','초대졸','고졸'].find(x => e.includes(x));
+  o.eduLevel = lv || '학력무관'; o.eduAbove = e.includes('이상'); o.eduGrad = e.includes('예정자');
+  const m = t(j.empType); o.emp = JOB_OPT.emp.filter(x => m.includes(x));
+  o.probation = (m.match(/수습\s*(\d+)\s*개월/)||[])[1] || ''; o.contractMonths = (m.match(/계약직\s*(\d+)\s*개월/)||[])[1] || ''; o.convert = m.includes('전환 가능');
+  const w = t(j.workTime); o.days = JOB_OPT.days.find(x => w.includes(x.replace(/ /g,'')) || w.includes(x)) || ''; 
+  const tm = w.match(/(\d{1,2}):(\d{2})\s*~\s*(\d{1,2}):(\d{2})/);
+  o.start = tm ? tm[1].padStart(2,'0')+':'+tm[2] : ''; o.end = tm ? tm[3].padStart(2,'0')+':'+tm[4] : ''; o.timeNeg = w.includes('협의');
+  return o;
+}
+function _jobReadOpt() {
+  const root = document.getElementById('jf-root'); if (!root) return {};
+  const one = g => root.querySelector(`[data-g="${g}"].on`)?.dataset.v || '';
+  const many = g => [...root.querySelectorAll(`[data-g="${g}"].on`)].map(b => b.dataset.v);
+  const val = id => (document.getElementById(id)?.value || '').trim();
+  const chk = id => !!document.getElementById(id)?.checked;
+  const o = { careerType: one('career'), careerMin: val('jf-careerMin'), careerMax: val('jf-careerMax'), careerNote: val('jf-careerNote'),
+    eduLevel: one('edu'), eduAbove: chk('jf-eduAbove'), eduGrad: chk('jf-eduGrad'), eduNote: val('jf-eduNote'),
+    emp: many('emp'), probation: val('jf-probation'), contractMonths: val('jf-contractMonths'), convert: chk('jf-convert'), empNote: val('jf-empNote'),
+    days: val('jf-days'), start: val('jf-start'), end: val('jf-end'), timeNeg: chk('jf-timeNeg'), workNote: val('jf-workNote') };
+  if (!['경력','신입·경력'].includes(o.careerType)) { o.careerMin = ''; o.careerMax = ''; }
+  if (o.eduLevel === '학력무관') o.eduAbove = false;
+  if (!o.emp.includes('정규직')) o.probation = '';
+  if (!o.emp.includes('계약직')) { o.contractMonths = ''; o.convert = false; }
+  return o;
+}
+window.jobChip = (btn, multi) => {
+  const g = btn.dataset.g;
+  if (multi) btn.classList.toggle('on');
+  else { btn.parentElement.querySelectorAll(`[data-g="${g}"]`).forEach(b => b.classList.remove('on')); btn.classList.add('on'); }
+  _jobSync();
+};
+window._jobSync = () => {
+  const o = _jobReadOpt(); if (!o.careerType && o.careerType !== '') return;
+  const show = (id, on) => { const e = document.getElementById(id); if (e) e.style.display = on ? '' : 'none'; };
+  show('jf-yrs', ['경력','신입·경력'].includes(o.careerType));
+  show('jf-eduAbove-wrap', o.eduLevel !== '학력무관');
+  show('jf-prob-wrap', o.emp.includes('정규직'));
+  show('jf-contract-wrap', o.emp.includes('계약직'));
+  const c = _jobCompose(o);
+  [['career',c.career],['education',c.education],['empType',c.empType],['workTime',c.workTime]].forEach(([k,v]) => { const e = document.getElementById('jf-pv-'+k); if (e) e.textContent = '홈페이지 표시: ' + (v || '(선택 없음)'); });
+};
 
 window.jobOpenPage = (file, id) => window.open(JOB_HOME_BASE + '/' + file + (id ? '?job=' + encodeURIComponent(id) : ''), '_blank');
 
@@ -9403,13 +9490,20 @@ window.jobOpenForm = (id) => {
   const j = id ? (_jobDocs.find(x=>x.id===id) || {}) : {};
   const isNew = !id;
   const inp  = (k, ph, val) => `<input id="jf-${k}" value="${_jobEsc(val||'')}" placeholder="${_jobEsc(ph)}" ${inp2Style}>`;
-  const combo = (k, opts, val) => `<input id="jf-${k}" list="jfl-${k}" value="${_jobEsc(val||'')}" ${inp2Style}><datalist id="jfl-${k}">${opts.map(o=>`<option value="${_jobEsc(o)}"></option>`).join('')}</datalist>`;
   const D = JOB_DEFAULTS, pick = (k) => isNew ? D[k] : j[k];
+  const o = isNew ? JSON.parse(JSON.stringify(JOB_OPT_DEFAULT)) : (j.opt ? { ...JOB_OPT_DEFAULT, ...j.opt } : _jobParseLegacy(j));
+  const chip = (g, v, label, on, multi) => `<button type="button" class="jf-chip${on?' on':''}" data-g="${g}" data-v="${_jobEsc(v)}" onclick="jobChip(this,${multi?'true':'false'})">${_jobEsc(label||v)}</button>`;
+  const chips = (g, list, isOn, multi) => `<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px;">${list.map(x => { const v = Array.isArray(x)?x[0]:x, l = Array.isArray(x)?x[1]:x; return chip(g, v, l, isOn(v), multi); }).join('')}</div>`;
+  const sel2 = (id, opts, val, empty) => `<select id="${id}" onchange="_jobSync()" ${inp2Style.replace('width:100%;','width:auto;min-width:110px;')}><option value="">${empty}</option>${opts.map(x=>`<option value="${_jobEsc(x[0])}" ${String(val)===x[0]?'selected':''}>${_jobEsc(x[1])}</option>`).join('')}</select>`;
+  const note = (id, val) => `<input id="${id}" value="${_jobEsc(val||'')}" oninput="_jobSync()" placeholder="추가 안내(선택) — 홈페이지에 덧붙여 표시" ${inp2Style}>`;
+  const pv = k => `<div id="jf-pv-${k}" style="font-size:11.5px;color:#1D5BA6;background:#EAF3FD;border-radius:6px;padding:5px 9px;margin:6px 0;"></div>`;
+  const ck = (id, label, on) => `<label style="display:inline-flex;align-items:center;gap:5px;font-size:12.5px;color:#374151;cursor:pointer;margin-right:12px;"><input type="checkbox" id="${id}" ${on?'checked':''} onchange="_jobSync()">${label}</label>`;
+  const num = (id, ph, val) => `<input id="${id}" type="number" min="0" max="40" value="${_jobEsc(val||'')}" placeholder="${ph}" oninput="_jobSync()" style="width:84px;border:1px solid #DDE4EF;border-radius:8px;padding:8px 10px;font-size:13px;background:#FAFCFF;">`;
   const area = (k, ph, val, rows) => `<textarea id="jf-${k}" rows="${rows||4}" placeholder="${_jobEsc(ph)}" ${inp2Style}>${_jobEsc(val||'')}</textarea>`;
   const row2 = (a,b) => `<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">${a}${b}</div>`;
   const sec  = t => `<div style="font-size:12.5px;font-weight:800;color:#1D5BA6;margin:16px 0 8px;padding-bottom:5px;border-bottom:1px solid ${C2.border};">${t}</div>`;
   const hint = '<span style="font-weight:500;color:#9AAABF;"> (한 줄에 한 항목)</span>';
-  el.innerHTML = `<div style="padding:20px 24px;max-width:760px;margin:0 auto;">
+  el.innerHTML = `<style>.jf-chip{border:1px solid #DDE4EF;background:#fff;color:#5C6F8A;border-radius:18px;padding:6px 13px;font-size:12.5px;font-weight:700;cursor:pointer}.jf-chip.on{background:#1D5BA6;border-color:#1D5BA6;color:#fff}</style><div id="jf-root" style="padding:20px 24px;max-width:760px;margin:0 auto;">
     <div style="margin-bottom:12px;"><button onclick="renderJobPostingMain()" style="background:#F0F4F9;border:1px solid #DDE4EF;border-radius:8px;padding:5px 12px;color:#5C6F8A;font-size:12px;cursor:pointer;font-weight:600;">← 공고 목록</button></div>
     <div style="font-size:16px;font-weight:800;color:${C2.text};margin-bottom:4px;">${id?'공고 수정':'공고 등록'}</div>
     <div style="font-size:11.5px;color:${C2.mute};margin-bottom:12px;">사람인 공고 양식과 같은 순서입니다. 새 공고에는 기본 문구가 채워져 있으니 필요한 부분만 고쳐 쓰세요. 비워 둔 항목은 홈페이지에 표시되지 않습니다.</div>
@@ -9418,11 +9512,27 @@ window.jobOpenForm = (id) => {
       ${field2('모집 제목 *', inp('title','예) 공조설비 납품 PJT 팀원을 모집합니다', j.title))}
       ${field2('모집 분야 (태그)', inp('team','예) 공조설비 납품 PJT 팀원', j.team))}
       ${sec('지원 조건')}
-      ${row2(field2('경력', combo('career', JOB_CAREER_OPTS, pick('career'))), field2('학력', combo('education', JOB_EDU_OPTS, pick('education'))))}
-      ${field2('고용 형태 (직접 입력·수정 가능)', combo('empType', JOB_EMP_OPTS, pick('empType')))}
+      ${field2('경력', chips('career', JOB_OPT.career, v=>o.careerType===v, false)
+        + `<div id="jf-yrs" style="display:none;margin-bottom:6px;font-size:12.5px;color:#374151;">경력 연차 ${num('jf-careerMin','최소',o.careerMin)} ~ ${num('jf-careerMax','최대',o.careerMax)} 년 <span style="color:#9AAABF;">(한쪽만 입력하면 ‘N년 이상/이하’)</span></div>`
+        + note('jf-careerNote', o.careerNote) + pv('career'))}
+      ${field2('학력', chips('edu', JOB_OPT.edu, v=>o.eduLevel===v, false)
+        + `<div style="margin-bottom:6px;"><span id="jf-eduAbove-wrap">${ck('jf-eduAbove','이상', o.eduAbove)}</span>${ck('jf-eduGrad','졸업 예정자 가능', o.eduGrad)}</div>`
+        + note('jf-eduNote', o.eduNote) + pv('education'))}
+      ${field2('고용 형태 (복수 선택 가능)', chips('emp', JOB_OPT.emp, v=>(o.emp||[]).includes(v), true)
+        + `<div style="margin-bottom:6px;font-size:12.5px;color:#374151;display:flex;gap:16px;flex-wrap:wrap;align-items:center;">
+            <span id="jf-prob-wrap">정규직 수습 기간 ${sel2('jf-probation', JOB_OPT.probation.map(x=>[x,x+'개월']), o.probation, '수습 없음')}</span>
+            <span id="jf-contract-wrap">계약직 기간 ${sel2('jf-contractMonths', JOB_OPT.contract.map(x=>[x,x+'개월']), o.contractMonths, '기간 미정')} ${ck('jf-convert','정규직 전환 가능', o.convert)}</span>
+          </div>`
+        + note('jf-empNote', o.empNote) + pv('empType'))}
       ${sec('근무 조건')}
-      ${row2(field2('급여', inp('salary','예) 면접 후 결정 / 연 3,600만원', pick('salary'))), field2('근무 일시', inp('workTime','예) 주 5일(월~금) 07:00~17:00', pick('workTime'))))}
+      ${field2('급여', inp('salary','예) 면접 후 결정 / 연 3,600만원', pick('salary')))}
       ${field2('근무지', inp('location','근무지 주소', pick('location')))}
+      ${field2('근무 일시', `<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:6px;">
+          ${sel2('jf-days', JOB_OPT.days.map(x=>[x,x]), o.days, '근무 요일 선택')}
+          <input id="jf-start" type="time" value="${_jobEsc(o.start)}" onchange="_jobSync()" style="border:1px solid #DDE4EF;border-radius:8px;padding:8px 10px;font-size:13px;background:#FAFCFF;"> ~
+          <input id="jf-end" type="time" value="${_jobEsc(o.end)}" onchange="_jobSync()" style="border:1px solid #DDE4EF;border-radius:8px;padding:8px 10px;font-size:13px;background:#FAFCFF;">
+          ${ck('jf-timeNeg','시간 협의 가능', o.timeNeg)}</div>`
+        + note('jf-workNote', o.workNote) + pv('workTime'))}
       ${sec('상세 요강')}
       ${field2('주요 업무'+hint, area('duties','예) 공조설비 납품 일정과 공정 관리', pick('duties'), 4))}
       ${field2('자격 요건'+hint, area('requirements','예) 현장 소통을 원활히 하시는 분', pick('requirements'), 7))}
@@ -9440,6 +9550,7 @@ window.jobOpenForm = (id) => {
         <button id="jf-save" onclick="jobSave('${id||''}')" style="${_jobBtn('#1D5BA6','#fff','#1D5BA6')}padding:9px 18px;font-size:13px;">💾 저장</button>
       </div>
     </div></div>`;
+  _jobSync();
 };
 
 window.jobSave = async (id) => {
@@ -9447,8 +9558,10 @@ window.jobSave = async (id) => {
   if (!v('title')) { alert('모집 제목을 입력해 주세요.'); return; }
   if (v('startDate') && v('deadline') && v('deadline') < v('startDate')) { alert('접수 마감일이 시작일보다 빠릅니다.'); return; }
   const btn = document.getElementById('jf-save'); if (btn) { btn.disabled = true; btn.textContent = '저장 중...'; }
-  const data = { status: v('status') || 'open' };
-  ['title','team','career','education','empType','salary','workTime','location','duties','requirements','preferred','benefits','process','documents','notes','startDate','deadline'].forEach(k => data[k] = v(k));
+  const opt = _jobReadOpt();
+  if (!opt.careerType || !opt.eduLevel) { alert('경력과 학력을 선택해 주세요.'); const bt = document.getElementById('jf-save'); if (bt) { bt.disabled = false; bt.textContent = '💾 저장'; } return; }
+  const data = { status: v('status') || 'open', opt, ..._jobCompose(opt) };
+  ['title','team','salary','location','duties','requirements','preferred','benefits','process','documents','notes','startDate','deadline'].forEach(k => data[k] = v(k));
   try {
     const { doc, setDoc, addDoc, collection, serverTimestamp } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
     data.updatedAt = serverTimestamp();
