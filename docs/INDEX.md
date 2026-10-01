@@ -1708,3 +1708,11 @@ PJT관리 PC 하단 잘림 수정(경량PJT 3.8.1·메인 PJT), 발주처·시�
 **상세**: `2_12_hr_calendar.md`, `7_83_log_hr_resign_print_calendar_tabfix.md`, `8_77_log_2026-10-01d2_session.md`, 백업 `backup/v2.24.0/hr/`, 규칙 백업 `backup/rules/20261001_*_resign.rules`
 
 ---
+
+## 2026-10-01 세션(f) — 인사 변동 화면 오류 수정 · 호봉 산정 규칙 정정 (hr 2.24.2 본섭 반영)
+
+**내용**: 인사 변동 탭이 `RANKS2 is not defined`로 열리지 않던 오류(2.14.0부터)를 수정하고, 호봉 추정 규칙을 정정(입사한 해 1호봉, 다음 해부터 1~3분기 입사 2호봉·4분기 1호봉). 본섭 영향: 2026년 입사 3명 2→1호봉.
+
+**상세**: `2_11_hr_change.md`(수정 이력), `7_84_log_hr_change_fix_step_rule.md`, `8_78_log_2026-10-01e_session.md`, 백업 `backup/v2.24.2/hr/`
+
+---
