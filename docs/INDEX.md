@@ -1780,3 +1780,11 @@ PJT관리 PC 하단 잘림 수정(경량PJT 3.8.1·메인 PJT), 발주처·시�
 **상세**: `7_91_log_attendance_own_only_rule.md`, 규칙 백업 `backup/rules/20261001_*_attendance_own_only.rules`
 
 ---
+
+## 2026-10-01 세션(l) — 테섭 대기분 본섭 반영 (내 정보 · 공휴일 일원화 · 제안서 삭제)
+
+**내용**: 포털 홈 내 정보가 worker_private에서 읽도록 수정(build 20261001g), 공휴일 목록을 `holidays.js` 한 곳으로 일원화, 인사 지난 제안서 삭제 버튼(hr 2.25.3).
+
+**상세**: `7_92_log_prod_sync_home_holiday_offerdel.md`, `8_20260904_log_2026-10-01l_session.md`, 백업 `backup/v_workerprivate_home_20261001g/`·`backup/v_holidays_shared_20261001/`·`backup/v2.25.3/hr/`
+
+---
