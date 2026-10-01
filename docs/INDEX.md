@@ -1822,3 +1822,11 @@ PJT관리 PC 하단 잘림 수정(경량PJT 3.8.1·메인 PJT), 발주처·시�
 **상세**: `7_94_log_hr_labor_contract_v6.md`, `2_9_hr_saved_doc_freeze.md`(v6 행 추가), `2_13_hr_legal_labor_contract_r2.md`
 
 ---
+
+## 2026-10-01 세션(n) — 근로시간 현황 초과근로·수당 집계 (본섭 반영)
+
+**내용**: 인사 근로시간 현황 카드 하단에 이번 달 초과근로 시간과 연장근로수당 집계 표시(급여명세서와 같은 계산식).
+
+**상세**: `7_95_log_hr_overtime_summary.md`, `8_87_log_2026-10-01n_session.md`, 백업 `backup/v2.25.4/hr/`
+
+---
