@@ -1839,3 +1839,11 @@ PJT관리 PC 하단 잘림 수정(경량PJT 3.8.1·메인 PJT), 발주처·시�
 **상세**: `2_19_hr_job_posting.md`, `7_96_log_hr_job_posting.md`, `8_88_log_2026-10-01o_session.md`, 백업 `backup/v2.26.0/hr/`, 규칙 백업 `backup/20261001_job_postings/rules/`(테섭 레포)
 
 ---
+
+## 2026-10-01 세션(o) — 근로자 연명부 2.5.1 (주소·통장사본·인사 연동·법정교육, 본섭 반영)
+
+**내용**: 연명부에 주소 입력(인사 명단 직원은 인사 연동), 통장사본(급여/계좌 구역), 원청 하위 탭과 법정교육 시공사별 누계.
+
+**상세**: `7_97_log_roster_address_legaledu.md`, `8_89_log_2026-10-01o_session.md`, 백업 `backup/v2.5.1/pjt_roster/`
+
+---
