@@ -1662,3 +1662,13 @@ PJT관리 PC 하단 잘림 수정(경량PJT 3.8.1·메인 PJT), 발주처·시�
 **상세**: `7_78_log_prod_release_team_schedule.md`, `8_73_log_2026-09-30r_session.md`, `4_6_team_leader_view.md`, 백업 portal-test `backup/20260930_prod_release/`
 
 ---
+
+## 2026-10-01 세션 — 인사 캘린더 신설 및 본섭 반영
+
+**지시**: 대표님 “본섭에 반영하면서 hr calendar 사서함도 outlook 배포하자”.
+
+**내용**: 인사 캘린더(면접·연봉제안서 회신·연봉협상·인사평가·기타, 지정 4명 한정, 공휴일·연차 표시, 면접일·제안서 회신기한 자동 등록), 인사 홈 2단 개편. 본섭 규칙 게시·설정 문서 생성·화면 반영(hr 2.23.0). 규칙은 에뮬레이터 62건 + 변경 전후 차분 493건 검증.
+
+**상세**: `2_12_hr_calendar.md`, `7_79_log_hr_calendar.md`, `8_74_log_2026-10-01a_session.md`, 규칙 백업 `backup/rules/20261001_*`
+
+---
