@@ -148,3 +148,9 @@ kind: `'approve' | 'inbox' | 'mydocs' | 'posted'`. `window._edocLists[kind]` **�
 - **원인**: `fetchEdocDocs()`(edoc_* 컬렉션 조회 헬퍼)가 전역이 아닌 `renderEdocHome()` 함수 내부에 중첩 선언되어 있었음. 홈 화면 자체는 같은 함수 스코프라 정상 동작했지만, 별도 최상위 함수인 `renderDocList()`(연차·지출결의서 등 목록)와 `loadApproveData()`(결재함)에서는 접근 불가 → ReferenceError.
 - **수정**: `fetchEdocDocs()`를 모듈 최상위(전역) 스코프로 이동. 함수 로직은 변경 없음.
 - **검증**: `node --check` 구문 검증 통과, diff로 로직 변경 없이 위치만 이동했음을 확인.
+
+## 열람 제한 규칙 대응 (포털 build 20261001c, 2026-10-01)
+- 전자결재 문서(`edoc_*` 7종)는 Firestore 규칙에서 **작성자 · 결재선/회람(viewerUids) · 관리자 · 게시완료(posted)** 문서만 읽을 수 있다. 규칙은 필터가 아니므로, 규칙 조건을 증명하지 못하는 목록 조회(필터 없는 전체 조회)는 일반 직원에게 **통째로 거부**된다.
+- 포털 홈 결재함: 관리자는 기존과 동일, 일반 직원은 `where('viewerUids','array-contains',내 uid)` + 상태(pending/reviewing)로 조회. 한 컬렉션이 거부돼도 나머지는 계속 표시.
+- PJT·SUP 캘린더의 연차 표시: `status=='posted'`와 `status=='approved'`를 각각 구독해 합친다. 승인(미게시) 연차는 관리자만 보이며, 일반 직원에서 거부되는 것은 정상.
+- 전자결재 PC/모바일 목록은 이미 작성자·viewerUids·posted 기준으로 나눠 조회하고 있어 변경 없음. 새 `edoc_*` 조회 코드는 반드시 이 범위로 질의할 것.
