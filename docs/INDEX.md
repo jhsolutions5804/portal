@@ -1732,3 +1732,11 @@ PJT관리 PC 하단 잘림 수정(경량PJT 3.8.1·메인 PJT), 발주처·시�
 **상세**: `3_0_edoc_home_approve.md`(열람 제한 규칙 대응), `7_85_log_edoc_view_rules_prod.md`, `8_80_log_2026-10-01g_session.md`, 백업 `backup/v_edocrules_20261001c/`, 규칙 백업 `backup/rules/20261001_{before,after}_edocrules.rules`
 
 ---
+
+## 2026-10-01 세션(h) — 홈페이지 채용 폼: 제출 후 이력서 인쇄 수정
+
+**내용**: 제출 후 "이력서 인쇄"가 접수 안내 화면만 출력하던 문제(숨겨진 폼 안의 미리보기가 인쇄에서 빠짐)를 인쇄 전용 영역으로 수정. 테섭 사본 시험 → 본섭(홈페이지) 반영.
+
+**상세**: `7_86_log_homepage_recruit_print_fix.md`, 변경 전 파일 `backup/homepage/recruit_20261001_before_print_fix.html`
+
+---
