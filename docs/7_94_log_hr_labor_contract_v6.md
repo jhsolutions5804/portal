@@ -1,4 +1,4 @@
-# 7.93. 개발 로그 — 근로계약서 양식 v6 (법정 요건 정비 P1 3개 조항)
+# 7.94. 개발 로그 — 근로계약서 양식 v6 (법정 요건 정비 P1 3개 조항)
 
 > 작성: 춘식이(Claude) · 2026-10-01 · hr build 20261001p · **ver 2.25.4 (PATCH 제안, 최종 번호는 대표님 확인 후 확정)**
 > 상태: **테섭(portal-test) 반영 완료 · 본섭 대기** · 관련: `2_9_hr_saved_doc_freeze.md`, `2_13_hr_legal_labor_contract_r2.md`, `2_17_hr_legal_policy_r2.md`, `2_18_hr_legal_code_audit_r1.md`
