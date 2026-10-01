@@ -15,7 +15,7 @@
 ## 구현
 - `outlook-sync/functions/lib/core.js`: 참석자 파싱·대상 결정·이벤트 변환·동기화(생성/수정/삭제/건너뜀).
 - `outlook-sync/functions/index.js`: 트리거 2개(`syncFabSchedule`, `syncPjtSchedule`), Graph 호출(토큰 캐시, 429/5xx 재시도), 오류 기록(`outlook_sync_errors`), 매핑 저장(`outlook_sync`), 일괄 반영 함수(`outlookBackfill`, 관리자 전용).
-- 규칙: 모든 일정 공용 캘린더 1곳, 할 일 제외, 시간 없음=종일(종료는 다음날 0시), 완료=✔ 접두, 공용 알림 없음(개인 복사 옵션 시 15분 전 알림), Outlook에서 삭제됐으면 재생성.
+- 규칙: 모든 일정 공용 캘린더 1곳, 할 일 제외(→ 2026-10-01 개정: 할 일도 종일 일정으로 반영, 상세 `7_87_log_outlook_todo_allday.md`), 시간 없음=종일(종료는 다음날 0시), 완료=✔ 접두, 공용 알림 없음(개인 복사 옵션 시 15분 전 알림), Outlook에서 삭제됐으면 재생성.
 
 ## 검증
 - 단위 테스트 15건(참석자 파싱, 대상 결정, PJT 접두·범주, 종일/시간·자정·월말 경계, 건너뜀, 삭제, 404 재생성, HTML 이스케이프 등) + 트리거 통합 테스트(실제 firebase-functions 라이브러리 + 가짜 Firestore/Graph: 공용 생성·참석자 지정 수정(PATCH)·경량PJT·삭제·403 기록만·500 재시도).
