@@ -1812,3 +1812,13 @@ PJT관리 PC 하단 잘림 수정(경량PJT 3.8.1·메인 PJT), 발주처·시�
 **상세**: `7_93_log_mobile_hr_full_jumin.md`, `8_86_log_2026-10-01m_session.md`, 백업 `backup/v_mhr_fulljumin_20261001/`
 
 ---
+
+---
+
+## 2026-10-01 세션(n) — 근로계약서 양식 v6 (제8·12·18조 법정 요건 정비, 테섭 반영)
+
+**내용**: 근로계약서 P1 3개 조항(퇴직금 불지급·월급 3배 손해배상·급여 임의 공제)을 새 양식 버전 v6로 정비. 기존 저장 서류(v0~v5)는 동결 그대로. hr 2.25.4 + sign.html 동기화, **테섭(portal-test) 반영·본섭 대기**.
+
+**상세**: `7_93_log_hr_labor_contract_v6.md`, `2_9_hr_saved_doc_freeze.md`(v6 행 추가), `2_13_hr_legal_labor_contract_r2.md`
+
+---
