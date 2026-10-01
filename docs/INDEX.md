@@ -1672,3 +1672,13 @@ PJT관리 PC 하단 잘림 수정(경량PJT 3.8.1·메인 PJT), 발주처·시�
 **상세**: `2_12_hr_calendar.md`, `7_79_log_hr_calendar.md`, `8_74_log_2026-10-01a_session.md`, 규칙 백업 `backup/rules/20261001_*`
 
 ---
+
+## 2026-10-01 세션(b) — 연명부 검진 결과 링크 행 높이 수정 (본섭 반영)
+
+**지시**: 대표님 “검진결과 올리고 나니까 row가 넓어져… 본섭에서 테스트해야겠네”.
+
+**내용**: 목록의 `📄 결과` 링크를 만료일 줄 옆으로 옮겨 PDF 첨부 시에도 행 높이 고정(연명부 2.2.2).
+
+**상세**: `4_5_pjt_roster.md`, `7_80_log_roster_health_link_height.md`, `8_75_log_2026-10-01b_session.md`, 백업 `backup/v2.2.2/pjt_roster/`
+
+---
