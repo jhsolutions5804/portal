@@ -20,3 +20,10 @@
 ## 알려진 사항
 - 다른 모듈(PJT·경량PJT·전자결재·인사 근로시간)의 공휴일 데이터에 오류·누락이 있음(2026 노동절·부처님오신날, 2027 설날 날짜, 2027 각종 대체공휴일). 별도 정비 대상.
 - 근로자 명부·계약서·급여명세서 컬렉션은 규칙상 별도 보호 없이 포괄 규칙(승인 계정 전체)에 해당 — 별도 보강 제안 중.
+
+## Outlook 반영 완료 (2026-10-01, 한국 시간 오후)
+- Exchange: `PJT-Calendar-Sync` 그룹에 hr-calendar@jhsol.kr 추가 → `Test-ApplicationAccessPolicy` 허용됨. Graph 접근은 정책 반영 지연으로 약 2시간 뒤 403→200.
+- 서버 함수: `outlook-sync:syncHrCalendar`(asia-northeast3, Node 24, 2nd gen) 배포. 소스 `outlook-sync/functions/hr-sync.js` + `index.js` 마지막 줄 export. 대표님 PC `C:\Users\종화\outlook-sync`.
+  - 배포 명령(codebase 이름 필요): `firebase deploy --only functions:outlook-sync:syncHrCalendar --project p4ph2-fab-506a7`
+- 실서버 시험(임시 일정 `hr_calendar_events/zz_outlook_e2e`): 생성 → Outlook 이벤트 `[면접] [시험] …` 10:00~11:00(범주 면접, 바쁨 표시 없음) / 수정(제목·시간) → 같은 이벤트 갱신(중복 없음) / 삭제 → Outlook 이벤트·매핑 문서 삭제. `outlook_sync_errors` 인사 캘린더 오류 0건. 시험 데이터 전부 정리.
+- 한계: 포털 → Outlook 한 방향. Outlook에서 고친 내용은 다음 포털 수정 때 덮어쓴다. 접근 전에 만든 일정은 소급 반영되지 않는다(본섭 인사 일정 0건이어서 해당 없음).
