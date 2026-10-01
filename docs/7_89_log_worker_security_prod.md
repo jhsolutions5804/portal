@@ -12,7 +12,7 @@
 2. **민감 항목 복사** — `scripts/worker_private_tools.py copy`: workers 10명 → worker_private 10건(원본 유지, 값 일치 확인).
 3. **근로자 문서 ID 이전** — `scripts/migrate_worker_ids.py --env prod --apply`: 근로자 9명의 옛 ID를 임의 ID(`w_`+16자리)로. 경로·필드 값에 옛 ID가 든 문서 새로 만들어 값 검증 255건(실패 0) 후 옛 문서 226건 삭제, 옛 ID 잔존 0건. 대상 컬렉션: worker_attendance_log·payslips·labor_contracts·annual_contracts·workers·worker_private·gihoek_expenses·severance(문서 이동), overtime·edoc_overtime·sign_links·doc_send_log·portal_users·salary_offers(필드 값). 옛→새 매핑은 `portal_secrets/worker_id_migration`(관리자 전용).
 4. **코드** — hr 2.25.1(읽을 때 workers+worker_private 합침·저장 시 분리, 등록 시 임의 ID, 같은 이름·주민번호 중복 등록 차단), 모바일 인사(`m/hr.html`), 전자결재 내 정보 PC·모바일, 포털 홈(신규 근로자 문서에 민감 항목 빈 값을 넣지 않음). 백업 `backup/v2.25.1/hr/`.
-5. **(대기) workers 민감 항목 원본 삭제** — 대표님 본섭 확인 후 `worker_private_tools.py scrub --env prod --apply`(worker_private 에 같은 값이 있는 것만 삭제). 이 단계가 끝나야 직접 요청으로도 민감 항목이 안 읽힌다. **삭제 전까지 workers 문서에 원본이 남아 있다.**
+5. **workers 민감 항목 원본 삭제(완료)** — 대표님이 본섭에서 인사·기획·일반 직원 화면 확인 후("문제 없는 것 같네") `worker_private_tools.py scrub --env prod --apply` 실행: 삭제 전 worker_private 와 값 불일치 0건 확인, workers 10명에서 민감 항목 삭제, 이후 점검 — workers 에 민감 항목 남은 문서 0건, 일반 직원 토큰으로 직접 읽은 근로자 명부 응답에 민감 항목 0개, 본인 worker_private 200, 관리자 worker_private 목록 200(10건). 값은 worker_private 에만 존재.
 
 ## 검증
 - 에뮬레이터: 기획 209건·worker_private 17건·workers 쓰기 18건·인사 캘린더 62건·채용 26건 통과, 변경 전/후 차분에서 의도한 컬렉션(worker_private·gihoek_*·workers 쓰기) 외 판정 변화 0·관리자 판정 변화 0.
@@ -20,7 +20,7 @@
 - 규칙 생성 스크립트가 `master_worker_private` 때문에 `worker_private` 규칙을 이미 있다고 오판해 본섭용에서 누락하던 것을 회귀 시험으로 잡아 수정.
 
 ## 롤백
-- 규칙: `before_worker_security.rules` 재게시. ID: `migrate_worker_ids.py --env prod --rollback`(매핑 문서 사용). 코드: 직전 커밋(28d5e53). 민감 항목은 scrub 전까지 workers 에 원본이 있으므로 코드·규칙 롤백만으로 복구 가능, scrub 후에는 worker_private 값을 workers 로 되돌리는 작업이 필요.
+- 규칙: `before_worker_security.rules` 재게시. ID: `migrate_worker_ids.py --env prod --rollback`(매핑 문서 사용). 코드: 직전 커밋(28d5e53). scrub(원본 삭제)까지 끝난 뒤에는 코드·규칙만 되돌리면 민감 항목이 안 보이므로, 롤백이 필요하면 worker_private 값을 workers 로 복사하는 작업이 함께 필요하다.
 
 ## 알려진 사항·후속
 - 본섭 `worker_attendance_log` 는 일반 직원이 서로의 근태 기록을 읽고 쓸 수 있음(ID 노출은 해소됨). 본인 기록만 접근하게 하는 규칙은 별도 과제.
