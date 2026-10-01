@@ -1764,3 +1764,11 @@ PJT관리 PC 하단 잘림 수정(경량PJT 3.8.1·메인 PJT), 발주처·시�
 **상세**: `7_89_log_worker_security_prod.md`, `8_83_log_2026-10-01j_session.md`, 규칙 백업 `backup/rules/20261001_*_worker_security.rules`, 백업 `backup/v2.25.1/hr/`
 
 ---
+
+## 2026-10-01 세션(k) — 공휴일 일원화(테섭) · 채용 지원자 삭제 버튼(본섭 반영)
+
+**내용**: 공휴일 9곳을 `holidays.js` 한 파일로 일원화(테섭 반영·본섭 대기). 채용 지원자 목록에 삭제 버튼 추가(hr 2.25.2, 본섭 반영).
+
+**상세**: `7_90_log_hr_applicant_delete.md`, `8_84_log_2026-10-01k_session.md`, 백업 `backup/v2.25.2/hr/`, 테섭 `backup/v_holidays_shared_20261001/`
+
+---
