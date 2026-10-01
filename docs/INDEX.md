@@ -1748,3 +1748,11 @@ PJT관리 PC 하단 잘림 수정(경량PJT 3.8.1·메인 PJT), 발주처·시�
 **상세**: `7_87_log_outlook_todo_allday.md`, `7_65_log_outlook_sync_design.md`(개정 표시), `8_81_log_2026-10-01h_session.md`
 
 ---
+
+## 2026-10-01 세션(i) — 포털 홈 캘린더 날짜 칸 너비 고정 (본섭 반영)
+
+**내용**: 공휴일 이름 때문에 칸이 늘어나던 캘린더를 7열 동일 너비로 고정(포털 build 20261001f).
+
+**상세**: `0_6_portal_home_widgets.md`(7절 추가), `7_88_log_home_calendar_width.md`, `8_82_log_2026-10-01i_session.md`, 백업 `backup/v_home_calwidth_20261001f/`
+
+---
