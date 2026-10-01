@@ -1698,3 +1698,13 @@ PJT관리 PC 하단 잘림 수정(경량PJT 3.8.1·메인 PJT), 발주처·시�
 **상세**: `7_82_log_hr_data_lock_recruit_rules.md`, 규칙 백업 `backup/rules/20261001_after_hrdata_lock_recruit.rules`
 
 ---
+
+---
+
+## 2026-10-01 세션(e) — 퇴직원서 출력 · 퇴사 일정 반영 · 작업탭 먹통 수정 (hr 2.24.0, 포털 build 20261001b 본섭 반영)
+
+**내용**: 승인된 퇴직원서를 인사 캘린더 `퇴사` 일정으로 자동 반영, 퇴직원서·휴직원서 출력, 하위 화면에서 인사 홈을 다녀오면 원서 탭이 무반응이던 문제 수정. 본섭 규칙(일정 구분 `resign` 허용)은 대표님 콘솔 게시 대기.
+
+**상세**: `2_12_hr_calendar.md`, `7_83_log_hr_resign_print_calendar_tabfix.md`, `8_77_log_2026-10-01d2_session.md`, 백업 `backup/v2.24.0/hr/`, 규칙 백업 `backup/rules/20261001_*_resign.rules`
+
+---

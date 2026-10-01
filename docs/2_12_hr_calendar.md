@@ -1,6 +1,6 @@
-# 2.12. 인사 — 인사 캘린더 (hr 2.19.0 ~ 2.23.0)
+# 2.12. 인사 — 인사 캘린더 (hr 2.19.0 ~ 2.24.0)
 
-> 최종 개정: 2026-10-01 (hr 2.23.0)
+> 최종 개정: 2026-10-01 (hr 2.24.0)
 
 ## 목적
 면접·연봉제안서 회신·연봉협상·인사평가 일정을 한곳에서 관리한다. 공용 PJT 일정 캘린더와 분리하며, **지정 담당자 4명(김종화·김민서·김영희·송지훈)만** 조회·등록·수정·삭제할 수 있다.
@@ -11,7 +11,7 @@
 - 명단 변경: 설정 문서 `hr_calendar_access/config`의 `emails`만 고치면 된다(코드 수정 불필요). Outlook 사서함 폴더 권한은 Exchange에서 별도 조정.
 
 ## 데이터
-- `hr_calendar_events/{id}`: `type`(interview·offerreply·salarynego·eval·etc), `title`, `person`, `date`, `time`, `endTime`, `note`, `createdAt/By`, `updatedAt/By`, 자동 등록 건은 `source`(applicant·offer)·`srcId`.
+- `hr_calendar_events/{id}`: `type`(interview·offerreply·salarynego·eval·resign·etc), `title`, `person`, `date`, `time`, `endTime`, `note`, `createdAt/By`, `updatedAt/By`, 자동 등록 건은 `source`(applicant·offer)·`srcId`.
 - 자동 등록 일정 ID(고정, 중복 방지): 면접 `interview_<지원자ID>`, 제안서 회신 `offerreply_<지원자/근로자ID 또는 성명>_<제안일>`.
 
 ## 화면
@@ -31,3 +31,12 @@
 ## 검증
 - 화면 테스트(jsdom) 60건 + 자동 등록 20건 + 지원자 목록 4건.
 - 규칙: 에뮬레이터 62건(허용·차단·형식) + 변경 전/후 차분 493건(인사 캘린더 외 판정 변화 0건).
+
+## 퇴사 일정 자동 반영 (hr 2.24.0)
+- 구분 `resign`(퇴사, 빨간색) 추가. 전자결재 퇴직원서(`edoc_resign`, 구분=퇴직)가 **승인·게시·완료** 상태이고 퇴직 예정일이 있으면 그 날짜에 `○○○ 퇴사` 일정을 자동 등록한다.
+- 일정 ID는 `resign_<원서ID>` 고정 → 같은 원서는 중복 등록 안 됨, 퇴직일이 바뀌면 같은 일정이 갱신, 반려·삭제 등으로 승인이 풀리면 해당 자동 일정을 삭제(`auto:true` 건만. 수동 등록 일정은 불변). 휴직 원서는 대상 아님.
+- 반영 시점: 인사 캘린더를 불러올 때(1분 간격 제한)와 휴직/퇴직 원서 목록을 불러올 때. `edoc_resign` 읽기 권한이 없으면 조용히 건너뜀.
+- **Firestore 규칙 필수**: `validHrEvent()`의 `type` 허용 목록에 `resign`이 있어야 저장된다(없으면 오류 표시 없이 저장 거부됨). 본섭 규칙 백업 `backup/rules/20261001_before_resign.rules` → `20261001_after_resign.rules`.
+
+## 휴직/퇴직 원서 출력 (hr 2.24.0)
+- 원서 상세 창에 `🖨 퇴직원서 출력`(휴직 건은 `휴직원서 출력`) 버튼. A4 서식: 소속·직급·성명·사번·입사일(근로자 명부에 있으면)·퇴직 예정일(휴직은 기간·복직 예정일)·사유·제출 문구·결재 현황(승인일 포함)·`제이에이치솔루션 대표 귀하`.
