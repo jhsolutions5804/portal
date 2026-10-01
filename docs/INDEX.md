@@ -1756,3 +1756,11 @@ PJT관리 PC 하단 잘림 수정(경량PJT 3.8.1·메인 PJT), 발주처·시�
 **상세**: `0_6_portal_home_widgets.md`(7절 추가), `7_88_log_home_calendar_width.md`, `8_82_log_2026-10-01i_session.md`, 백업 `backup/v_home_calwidth_20261001f/`
 
 ---
+
+## 2026-10-01 세션(j) — 근로자 명부 보안 강화 (민감 정보 분리·임의 ID·기획 관리자 전용·명부 쓰기 잠금, 본섭 반영)
+
+**내용**: 일반 직원이 개발자 도구로 근로자 명부의 민감 항목을 읽고 다른 직원 계좌를 바꿀 수 있던 문제 — 민감 항목을 worker_private(관리자·본인 전용)로 분리하고, 근로자 문서 ID(이름_주민번호)를 임의 ID로 이전, 기획(gihoek_*) 관리자 전용, workers 쓰기 관리자 전용. 대표님 확인 후 workers 원본 삭제만 남음.
+
+**상세**: `7_89_log_worker_security_prod.md`, `8_83_log_2026-10-01j_session.md`, 규칙 백업 `backup/rules/20261001_*_worker_security.rules`, 백업 `backup/v2.25.1/hr/`
+
+---
