@@ -1682,3 +1682,11 @@ PJT관리 PC 하단 잘림 수정(경량PJT 3.8.1·메인 PJT), 발주처·시�
 **상세**: `4_5_pjt_roster.md`, `7_80_log_roster_health_link_height.md`, `8_75_log_2026-10-01b_session.md`, 백업 `backup/v2.2.2/pjt_roster/`
 
 ---
+
+## 2026-10-01 세션(c) — 연명부 테섭 정합 · 연봉 제안서 저장/출력 분리
+
+**내용**: 연명부 2.2.2 테섭 정합. 연봉 제안서 출력은 미리보기 전용으로 바꾸고 💾 저장·열어서 수정 추가, 캘린더 회신기한은 저장 시 제안서 1건당 1일정(hr 2.23.1, **portal-test 적용·본섭 대기**).
+
+**상세**: `2_10_hr_offer.md`, `7_81_log_hr_offer_save_split.md`, `8_76_log_2026-10-01c_session.md`, 백업 portal-test `backup/v2.23.1/hr/`
+
+---
