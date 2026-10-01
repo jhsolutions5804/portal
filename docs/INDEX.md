@@ -1772,3 +1772,11 @@ PJT관리 PC 하단 잘림 수정(경량PJT 3.8.1·메인 PJT), 발주처·시�
 **상세**: `7_90_log_hr_applicant_delete.md`, `8_84_log_2026-10-01k_session.md`, 백업 `backup/v2.25.2/hr/`, 테섭 `backup/v_holidays_shared_20261001/`
 
 ---
+
+## 2026-10-01 세션(j, 이어서) — 근태 기록 본인·관리자 한정 규칙 (본섭 규칙 게시)
+
+**내용**: 일반 직원이 서로의 근태 기록을 읽고 쓸 수 있던 것을 관리자·본인(workers.portalUid 기준)만 가능하게 규칙 게시. 월 조회·출퇴근 저장 방식은 그대로 동작, 코드·데이터 변경 없음. 인사에서 계정 연동이 안 된 직원은 출퇴근 저장 불가.
+
+**상세**: `7_90_log_attendance_own_only_rule.md`, 규칙 백업 `backup/rules/20261001_*_attendance_own_only.rules`
+
+---
