@@ -1690,3 +1690,11 @@ PJT관리 PC 하단 잘림 수정(경량PJT 3.8.1·메인 PJT), 발주처·시�
 **상세**: `2_10_hr_offer.md`, `7_81_log_hr_offer_save_split.md`, `8_76_log_2026-10-01c_session.md`, 백업 portal-test `backup/v2.23.1/hr/`
 
 ---
+
+## 2026-10-01 세션(d) — 인사 데이터 규칙 잠금 + 채용 폼 저장 복구 (본섭 규칙 게시)
+
+**내용**: 인사 컬렉션 15개를 관리자 전용으로 잠그고(본섭 규칙 게시), 홈페이지 채용 폼이 비로그인으로 지원서를 저장할 수 있게 검증 규칙 추가. 에뮬레이터·실서버 검증, 시험 문서 정리 완료.
+
+**상세**: `7_82_log_hr_data_lock_recruit_rules.md`, 규칙 백업 `backup/rules/20261001_after_hrdata_lock_recruit.rules`
+
+---
