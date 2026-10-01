@@ -1729,6 +1729,6 @@ PJT관리 PC 하단 잘림 수정(경량PJT 3.8.1·메인 PJT), 발주처·시�
 
 **내용**: 본섭에 없던 전자결재 열람 제한(작성자·결재선·관리자·게시완료만)을 넣기 전에, 포털 홈 결재함과 PJT·SUP 연차 구독을 규칙 호환 조회로 바꿈. 규칙 변경안은 에뮬레이터 14개 시나리오 통과, 본섭 규칙 게시는 대표님 콘솔 작업 대기.
 
-**상세**: `3_0_edoc_home_approve.md`(열람 제한 규칙 대응), `7_85_log_edoc_view_rules_prod.md`, `8_79_log_2026-10-01g_session.md`, 백업 `backup/v_edocrules_20261001c/`, 규칙 백업 `backup/rules/20261001_{before,after}_edocrules.rules`
+**상세**: `3_0_edoc_home_approve.md`(열람 제한 규칙 대응), `7_85_log_edoc_view_rules_prod.md`, `8_80_log_2026-10-01g_session.md`, 백업 `backup/v_edocrules_20261001c/`, 규칙 백업 `backup/rules/20261001_{before,after}_edocrules.rules`
 
 ---
