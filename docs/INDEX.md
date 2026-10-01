@@ -1777,6 +1777,6 @@ PJT관리 PC 하단 잘림 수정(경량PJT 3.8.1·메인 PJT), 발주처·시�
 
 **내용**: 일반 직원이 서로의 근태 기록을 읽고 쓸 수 있던 것을 관리자·본인(workers.portalUid 기준)만 가능하게 규칙 게시. 월 조회·출퇴근 저장 방식은 그대로 동작, 코드·데이터 변경 없음. 인사에서 계정 연동이 안 된 직원은 출퇴근 저장 불가.
 
-**상세**: `7_90_log_attendance_own_only_rule.md`, 규칙 백업 `backup/rules/20261001_*_attendance_own_only.rules`
+**상세**: `7_91_log_attendance_own_only_rule.md`, 규칙 백업 `backup/rules/20261001_*_attendance_own_only.rules`
 
 ---
