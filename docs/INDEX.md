@@ -1804,3 +1804,11 @@ PJT관리 PC 하단 잘림 수정(경량PJT 3.8.1·메인 PJT), 발주처·시�
 **상세**: `2_13_hr_legal_labor_contract_r2.md`, `2_14_hr_legal_annual_salary_r2.md`, `2_15_hr_legal_work_rules_r2.md`, `2_16_hr_legal_review_r2.md`, `2_17_hr_legal_policy_r2.md`, `2_18_hr_legal_code_audit_r1.md`
 
 ---
+
+## 2026-10-01 세션(m) — 모바일 인사 주민번호 "전체 보기" (본섭 반영)
+
+**내용**: 모바일 인사 근로자 상세에 주민번호 전체 보기 버튼(10초·화면 이동·앱 전환 시 자동 숨김).
+
+**상세**: `7_93_log_mobile_hr_full_jumin.md`, `8_86_log_2026-10-01m_session.md`, 백업 `backup/v_mhr_fulljumin_20261001/`
+
+---
