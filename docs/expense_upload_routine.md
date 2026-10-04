@@ -29,6 +29,11 @@ pip install cryptography
 - "이대로 등록해" 하면 다음 단계로
 
 ### STEP 3. 스크립트 다운로드 & 실행 (터미널)
+
+> ⚠ 2026-10-04 보안 조치: 스크립트에 들어 있던 서비스 계정 키는 폐기되었고, 지금은 **키 파일(JSON)의 경로를 환경변수 `FIREBASE_SA_KEY_FILE` 로 지정**해 실행한다.
+> - Windows PowerShell: `$env:FIREBASE_SA_KEY_FILE="C:\경로\키.json"` · macOS/Linux: `export FIREBASE_SA_KEY_FILE=/경로/키.json`
+> - 키 파일은 저장소·메신저·공유 폴더에 올리지 말고 개인 PC에만 보관한다. 이 저장소는 공개 저장소다.
+
 ```
 curl -o upload.py https://raw.githubusercontent.com/jhsolutions5804/portal/main/scripts/upload_expenses.py
 python upload.py

@@ -1,0 +1,8 @@
+# 서비스 계정 키·비밀 파일은 저장소에 올리지 않는다 (이 저장소는 공개 저장소)
+*-firebase-adminsdk-*.json
+serviceAccount*.json
+service-account*.json
+*.pem
+*.p12
+.env
+.env.*

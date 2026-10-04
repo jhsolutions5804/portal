@@ -2,10 +2,17 @@ import json, time, base64, urllib.request, urllib.parse
 from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import padding
 
-SA = {
-  "client_email": "firebase-adminsdk-fbsvc@p4ph2-fab-506a7.iam.gserviceaccount.com",
-  "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQDLn4Srhr8IrWMI\ncxhen8Np7Mg0bDeFfA3jKDak2PqPfcDaLu53P4gvU4DP4bzccxIrsO/l300KmFvh\nFw+ZyGkTXlm8if2cXgqMeIu2pDbDRELW4ejEJllXuCJctmCvOP8uRh2eU+B89pXf\nEJ01E4kB21hUbg01znyD7e9TvW7ScKAaPQuLs5gtB94kAEDnLx4/pRJOQNQpYqIj\nMtQ4TH+IIBBfotzUyvYdYvej6U6jf3jSvldEfF/5DzSil1hX7pG5af0HBA1FFKk8\nrNxOiFJHmK9c+7RHbFbXUHAqQElNN6k/qiPzwakz/Ep3Ni1XxfcpHc4ny9NuwyM/\nRmY865jNAgMBAAECggEADmBFyqJpzGAJdOhDWTLoZgscm27kgJ0gkeAd84eKMSVM\nv1q+5VZr9ANuPb8PSXUqXEFSvqUEWHInUn4BUPcwS/jGVyRa7nZJQl+kZZG0eBbS\nrT8n4uleN249ptQNgXGBuq+imbIMUGZMcIJIxx2I98OXueZHMnxQmDPtSLlAIMVI\nbbQRDMqyQrIa8zsOJFEWhHkFat26lDgk710C5W2Bmrk8kIgFQGUsFQIft2RYsm5Z\nVyaLGlmeqE3+w4xmqqYLzZV97UBvq7s8TjKnEBMS8vGfoSeHQFsP/jBbGaK9Ql/i\nN7t+XVuUuegwHTfu9VYZJFJxAs8wSCy05XD0phsHVQKBgQD9lq2q2WlgevsuxTMD\nByLiJtTtuenaTvdXr/OV3DOorKO1reyf9LBHCZf9Dq39oQp5QXxDGVuqakRNUF4h\nCQaGrZg59vmw7jfaR0S4m0Jx9rPE3e/oJ71mpGEVbCYEpQ50+VU3Kouax/bppevN\n+DM9Lgkso1ed/oY1/g8Qus7AAwKBgQDNjzTuV6142XpO6oDQXJO9pIpTZIdc5GSy\nxQYhntre7CXquWziuVoB5Hn+pgw6VnEHAkxpNm4OeR+bKRspTsGe9PPtEgMd+dzA\nRdrt7+d8gRuojuqUFWAFpu/yc2tiTltMTt4+A85QEZC/LwM2Md6b+FZXa4upmx4M\n1qnpgXdy7wKBgDvn7prfxW8PXmtMFqLueqUmO0L1mnMCGJhUbpzGakW8kugGcFHR\nQhtl/su/PgcelhTTDYHkaa02cXA6PiJbuXjzZXS8DXxoqjUchPV/aBD4ELu/Gj+j\ns7CdwHmJFOof++xSQnlHybcE6iWEFtKPgbtANtaet8IRMK9sly6Ckvj1AoGAdqiP\nDnKQUa2Am+NkXmLCaft8We0y8l1o/4UaJ/gyMfKxZJCLGUmTenowLd4eOuLBNiGO\niEGCQFqM8x1Eb5Dl1eNil1wJbplYY6kvWqBcyRMiKyfso3S/TCP0aMlVmJbQvvjb\n84Jw6ulo2+PAf91DulcdSDNtmIdRTmnwBTnWAQMCgYEAhVh+Dodv+yTqyxpX0WQn\n698tIzH0Xk0TROgb+77ARAcGE2yGaudVaBFctpUacVG/IQrhKohBClnduay8FX4e\ndWleYgoFjOYGbDHyTz2IgkqnTFLPFFilK0RBmSS9IUZLLtOAuo6zeCmJCnqxOE0M\nnLiUWpAkqvl0I9dqu/2bX6o=\n-----END PRIVATE KEY-----\n"
-}
+import os, sys
+
+def load_sa():
+    """서비스 계정 키(JSON)는 저장소에 두지 않는다 — 키 파일 경로를 환경변수 FIREBASE_SA_KEY_FILE 로 지정한다."""
+    p = os.environ.get('FIREBASE_SA_KEY_FILE')
+    if not p or not os.path.isfile(p):
+        sys.exit('환경변수 FIREBASE_SA_KEY_FILE 에 서비스 계정 키(JSON) 파일 경로를 지정하세요. (키 파일은 저장소·메신저에 올리지 말고 개인 PC에만 보관)')
+    d = json.load(open(p, encoding='utf-8'))
+    return {"client_email": d["client_email"], "private_key": d["private_key"]}
+
+SA = load_sa()
 
 def b64url(data):
     if isinstance(data, str): data = data.encode()
