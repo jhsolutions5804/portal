@@ -1864,3 +1864,10 @@ PJT관리 PC 하단 잘림 수정(경량PJT 3.8.1·메인 PJT), 발주처·시�
 **상세**: `4_0_pjt_home.md`(개정), `7_99_log_pjt_home_ended_removal.md`, `8_91_log_2026-10-07_session.md`, 백업 `backup/v_pjthome_ended_20261007/`
 
 ---
+## 2026-10-07 세션(추가) — 자동 로그아웃 1시간 (본섭 직접 반영)
+
+**내용**: 무동작 자동 로그아웃 기준을 30분에서 1시간으로 연장(PC·모바일 공통).
+
+**상세**: `0_2a_portal_rule_r2.md`(개정), `7_100_log_auto_logout_1h.md`, `8_91_log_2026-10-07_session.md`, 백업 `backup/v_logout1h_20261007/`
+
+---

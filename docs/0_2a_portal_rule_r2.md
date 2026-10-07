@@ -1,6 +1,6 @@
 # 0.2a. 포털 기본 Rule — 디자인·레이아웃·배포
 
-> 최초 작성: 2026-06-26 · 최종 수정: 2026-06-27 · 작성: 춘식이(Claude)
+> 최초 작성: 2026-06-26 · 최종 수정: 2026-10-07 (자동 로그아웃 30분→1시간) · 작성: 춘식이(Claude)
 > 연속 문서: 0.2b (HTML 주의사항·공통 로직)
 
 ---
@@ -49,13 +49,13 @@ font-family: -apple-system, 'Apple SD Gothic Neo', 'Pretendard', sans-serif;
 ## 자동 로그아웃
 
 ```js
-const AUTO_LOGOUT_MS = 30 * 60 * 1000;
+const AUTO_LOGOUT_MS = 60 * 60 * 1000;
 let _autoLogoutTimer = null;
 function resetAutoLogout(){
   if(!me) return;
   clearTimeout(_autoLogoutTimer);
   _autoLogoutTimer = setTimeout(()=>{
-    toast('⏰ 30분 동안 활동이 없어 자동 로그아웃됩니다.');
+    toast('⏰ 1시간 동안 활동이 없어 자동 로그아웃됩니다.');
     setTimeout(()=>doLogout(), 2000);
   }, AUTO_LOGOUT_MS);
 }
