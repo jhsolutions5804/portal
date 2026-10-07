@@ -1,7 +1,7 @@
 # 4.0. PJT 관리 — 홈
 
 > 포털 메뉴: `pjt`(P4 Ph2 FAB), `p4ph4`(P4 Ph4 SUP), `reg_*`(경량 PJT, 동적), `pjt_manday`(월간 공수), `pjt_ended`(종료 PJT)
-> 최초 작성: 2026-07-01 · 최종 개정: 2026-09-19 (4.5.1 · 모바일 통합 일정 1.1.0 반영) · 작성: 춘식이(Claude)
+> 최초 작성: 2026-07-01 · 최종 개정: 2026-10-07 (PJT 홈 종료 카드 잔존 제거 반영) · 작성: 춘식이(Claude)
 
 ---
 
@@ -35,7 +35,8 @@ PJT 관리는 진행 중인 현장 프로젝트별 워크스페이스를 제공�
 - **동기화**: `syncPjtSubtabsFromSettings()`가 로그인 시·PJT홈 진입 시 `PJT_FIXED_BASE` 각 항목의 `pjt_settings` 상태를 확인 → 종료면 `PJT_SUBTABS`에서 제거, 활성인데 목록에 없으면 원본에서 복원(월간공수 앞에 삽입)
 - **종료 진입점**: 카드 ⚙️ 설정 모달의 "종료" 버튼 — `pjt_home`/`pjt_manday`/`pjt_ended`를 제외한 모든 PJT에 노출(`canEnd` 조건)
 - **종료 PJT 전용 뷰**: 사이드바 `🗄️ 종료 PJT`(항상 최하단) 클릭 → `showPjtEndedView()` → FAB/SUP(`pjt_settings` ended) + 경량 PJT(`pjt_registry` ended) 전체를 한 화면에 모아 표시. 재개 가능(`reopenFixedPjt`/`reopenPjt`), 경량 PJT는 완전삭제(`deletePjtPermanently`, 관리자 전용·이중확인)도 가능
-- **기존 PJT 홈의 "종료된 프로젝트" 섹션은 이 전용 뷰로 완전히 이전**(중복 제거). 데이터(품목·근태·공수·일정·공사일보)는 종료/재개와 무관하게 항상 보존됨
+- **기존 PJT 홈의 "종료된 프로젝트" 섹션은 이 전용 뷰로 완전히 이전**(중복 제거).
+  - 2026-10-07: PC `renderPjtRegistry()`가 홈 상단에 종료 경량PJT 카드를 계속 그리던 잔존 코드를 제거(함수는 홈 섹션을 비우기만 함). 종료·재개·완전삭제는 종료 PJT 메뉴에서만. 데이터(품목·근태·공수·일정·공사일보)는 종료/재개와 무관하게 항상 보존됨
 
 ---
 

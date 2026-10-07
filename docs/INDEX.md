@@ -1856,3 +1856,11 @@ PJT관리 PC 하단 잘림 수정(경량PJT 3.8.1·메인 PJT), 발주처·시�
 **상세**: `0_7_portal_time24.md`, `2_19_hr_job_posting.md`(입력 방식 추가), `7_98_log_hr_job_options_time24.md`, `8_90_log_2026-10-01p_session.md`, 백업 `backup/v2.27.0/hr/`·`backup/20261001_time24/`
 
 ---
+
+## 2026-10-07 세션 — PJT 홈 종료 프로젝트 카드 제거 (본섭 직접 반영)
+
+**내용**: PC PJT 홈 상단에 남아 있던 종료된 프로젝트 카드 렌더 제거. 종료 프로젝트는 사이드바 '종료 PJT' 메뉴에서만 표시.
+
+**상세**: `4_0_pjt_home.md`(개정), `7_99_log_pjt_home_ended_removal.md`, `8_91_log_2026-10-07_session.md`, 백업 `backup/v_pjthome_ended_20261007/`
+
+---
