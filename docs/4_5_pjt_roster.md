@@ -1,7 +1,7 @@
 # 4.5. PJT — 근로자 연명부 (pjt_roster)
 
 > `portal/pjt_roster/index.html` · 사이드바 PJT > `👷 근로자 연명부` (키 `pjt_roster`, **관리자 전용**)
-> 최초 작성: 2026-09-30 · 최종 수정: 2026-10-07(v2.6.2, 본섭) · 작성: 춘식이(Claude)
+> 최초 작성: 2026-09-30 · 최종 수정: 2026-10-07(v2.7.0 실무자 권한 분리, 본섭) · 작성: 춘식이(Claude)
 
 > 적용 환경: **portal-test · 본섭 배포 완료(v1.5.0)** — 본섭 반영 내역·순서(규칙 게시 → 금액 이전 → 코드 → 옛 필드 제거)는 `7_56_log_prod_roster_batch.md` 참조. **월간 공수 PC 메뉴 폐지(⑥)와 모바일 월간 공수 팀 단가 수정은 테섭에만 적용**(`7_65_log_manday_removal.md`).
 
@@ -128,3 +128,15 @@
 - 삼성전자 탭(상생협력포탈 + 사내화 4종)은 변경 없음. 삼성 사내화의 `화학물질안전원 온라인 안전교육`(e4)도 그대로 유지.
 - 시험: jsdom + Firebase 목으로 탭 전환·입력 유지·저장 필드·불완전 입력 차단·PDF 업로드/교체/삭제/정리·모바일 다운로드·기존 기능 회귀 모두 통과(`roster_test.js`·`roster_pdf_test_prod.js`·`roster_acct_test_prod.js`·`m_test2.js`).
 - 테섭에는 연명부 실무자 권한 분리(`master_worker_info`)·조회/수정 모드가 먼저 들어가 있어 구조가 다르다 — **본섭에는 아직 미반영**(규칙 게시·데이터 이전 후 반영). 상세: `7_101_log_roster_sk_chem_20261007.md`
+
+
+## 2.7.0 — 실무자 권한 분리 (2026-10-07, 본섭)
+
+> 대표님 결정(2026-10-06): 은행·계좌번호·일당(단가)과 통장사본만 관리자 전용, 나머지는 **실무자(PJT 권한 `perms.pjt`가 있는 승인 계정, GUEST 사번 제외)** 가 등록·조회·수정한다.
+
+- **문서 구조**: `master_worker_info`(실무자 — 주민번호·전화·주소·검진·자격·교육·포털/교육시스템 계정·비고·파일 정보·퇴사 등), `master_worker_private`(관리자 전용 — `bank`·`account`·`dailyRate`·팀 단가 `teamRate`), `master_worker_photos`(실무자 — 문서 번호가 `__bank`로 끝나는 통장사본만 관리자). 같은 항목이 양쪽에 있으면 info가 우선(이전 기간 호환).
+- **화면**: 이름을 누르면 조회 모드, 상단 `✏️ 수정`으로 수정 모드(새 등록은 바로 수정 모드, 저장하면 조회 모드로 복귀). 퇴사 처리는 상세의 `퇴사일` 입력/삭제로 하고(`master_workers.resigned` 사용), 근로자 삭제와 은행·계좌·일당 구역은 관리자만. 실무자는 `master_worker_private`를 읽지도 않는다.
+- **메뉴**: 포털 홈 PJT 하위 메뉴와 모바일 PJT 메뉴의 `근로자 연명부`를 관리자 또는 PJT 권한자에게 노출. 모바일 연명부 단독 화면(`m/pjt_roster.html`)은 info + (관리자만) private를 합쳐 읽는다.
+- **본섭 반영 순서**: ① 보안규칙 게시(Firestore `rules_roster_open_prod_20261007.rules`·Storage `storage_rules_roster_open_prod_20261007.rules`, 에뮬레이터 35/35·묶음 27/27) → ② 데이터 복사 `master_worker_private → master_worker_info`(3개 문서, 원본 유지, `roster_migrate.js plan→copy→verify`) → ③ 코드 반영 → ④ 원본 정리(`clean`, 화면 확인 후 대표님 승인 시에만).
+- 시험: jsdom + Firebase 목으로 실무자/권한 없음/GUEST 접근, 실무자 읽기·저장이 info로만 이뤄지고 private는 읽지도 쓰지도 않음, 퇴사일 반영, 삭제 차단, 조회 모드, SK·화학물질안전원·수료증 PDF·계정 기능 회귀 모두 통과.
+- 상세: `7_103_log_roster_open_20261007.md`
