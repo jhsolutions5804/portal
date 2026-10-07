@@ -2,7 +2,7 @@
 
 > 앱: `portal/pjt/index.html` · 워커 컬렉션: `pjt_workers_fab`
 > Firestore: `user_schedules`, `daily_reports_{날짜}`, `daily_report_docs`, `pjt_workers_fab`, `edoc_leave`
-> 최초 작성: 2026-07-01 · 최종 개정: 2026-09-30 (v4.10.10 공수표 월 중 퇴사자 집계 수정) / 이전: 2026-08-29 (업무일지 출퇴근시간 입력 추가) -22 (근태 출역 인원수 카운트 버그 수정, v5.3.5 / daily-report 2.4.2) · 작성: 춘식이(Claude)
+> 최초 작성: 2026-07-01 · 최종 개정: 2026-10-07 (설정 탭 관리자 전용) / 이전: 2026-09-30 (v4.10.10 공수표 월 중 퇴사자 집계 수정) / 이전: 2026-08-29 (업무일지 출퇴근시간 입력 추가) -22 (근태 출역 인원수 카운트 버그 수정, v5.3.5 / daily-report 2.4.2) · 작성: 춘식이(Claude)
 
 ---
 
@@ -163,3 +163,9 @@ user_schedules/{auto-id}: { sdate, edate?, stime?, tag, text, reg, ..., savedAt 
 
 - 공수표 대상자는 **월 1일 기준 재직자**(월 중 퇴사자 포함), 공수·인원수는 **일자별 재직 여부**로 계산 (퇴사일 당일부터 제외).
 - 상세: `7_54_log_pjt_manday_resign_fix.md`
+
+
+## 설정 탭 관리자 전용 (2026-10-07, 본섭 · 20261007a)
+
+- 일반 계정에게는 설정 탭 버튼·화면을 숨긴다(접근 검증 후 `body.is-admin` 부여, CSS `body:not(.is-admin) …settings…{display:none}`) + `switchTab('settings')`도 관리자가 아니면 홈으로 돌린다. 프로젝트 정보(`pjt_settings/p4ph2`) 수정은 관리자만.
+- 규칙 변경 3건(`gihoek_projects` 일반 계정 6항목 수정 허용 제거 · `pjt_settings` 쓰기 관리자 전용 · `pjt_registry` 생성·삭제·정보 수정 관리자 전용, 일반 직원은 `progress`·`manday`만 수정)은 대표님이 Firebase 콘솔에서 게시한다(코드가 먼저 나가도 현재 규칙에서 정상 동작 — 규칙 게시는 나중).
