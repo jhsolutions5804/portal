@@ -139,4 +139,5 @@
 - **메뉴**: 포털 홈 PJT 하위 메뉴와 모바일 PJT 메뉴의 `근로자 연명부`를 관리자 또는 PJT 권한자에게 노출. 모바일 연명부 단독 화면(`m/pjt_roster.html`)은 info + (관리자만) private를 합쳐 읽는다.
 - **본섭 반영 순서**: ① 보안규칙 게시(Firestore `rules_roster_open_prod_20261007.rules`·Storage `storage_rules_roster_open_prod_20261007.rules`, 에뮬레이터 35/35·묶음 27/27) → ② 데이터 복사 `master_worker_private → master_worker_info`(3개 문서, 원본 유지, `roster_migrate.js plan→copy→verify`) → ③ 코드 반영 → ④ 원본 정리(`clean`, 화면 확인 후 대표님 승인 시에만).
 - 시험: jsdom + Firebase 목으로 실무자/권한 없음/GUEST 접근, 실무자 읽기·저장이 info로만 이뤄지고 private는 읽지도 쓰지도 않음, 퇴사일 반영, 삭제 차단, 조회 모드, SK·화학물질안전원·수료증 PDF·계정 기능 회귀 모두 통과.
+- 원본 정리(clean) 완료(2026-10-07): `master_worker_private`에는 은행·계좌·일당·팀 단가만 남고 나머지는 `master_worker_info`가 유일한 위치. 정리 전 백업·롤백: `portal_secrets/roster_backup_20261007__*`, `scripts/roster_rollback.js`.
 - 상세: `7_103_log_roster_open_20261007.md`
