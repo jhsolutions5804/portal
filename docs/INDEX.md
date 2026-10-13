@@ -1894,3 +1894,9 @@ PJT관리 PC 하단 잘림 수정(경량PJT 3.8.1·메인 PJT), 발주처·시�
 - 규칙: `rules_roster_open_prod_20261007.rules`·`storage_rules_roster_open_prod_20261007.rules`(대표님 게시, 에뮬레이터 35/35), 데이터 복사 3문서 검증 통과, 원본 정리는 화면 확인 후 승인.
 
 **상세**: `4_5_pjt_roster.md` 2.7.0 절, `4_0_pjt_home.md`, `7_103_log_roster_open_20261007.md`, `8_91_log_2026-10-07_session.md`, 백업 `backup/v_roster_open_20261007/`
+
+## 2026-10-13 세션 — 정산서 특이사항 · 마이너스(네고) 단가 (gihoek 20261013a)
+
+- 정산서 작성에 `특이사항` 입력란(견적서 특기사항과 같은 방식, 상세·인쇄/PDF 표시)과 직접 입력 단가·금액의 마이너스 입력(네고·할인) 허용. 합계 0 이하 발행 차단은 유지.
+
+**상세**: `1_4_gihoek_settle.md`(개정), `7_104_log_settle_notes_negprice_20261013.md`, `8_92_log_2026-10-13_session.md`, 백업 `backup/v_settle_notes_20261013/`

@@ -1,4 +1,4 @@
-<!DOCTYPE html><!-- gihoek module build: 20260930e · ver 5.11.0 · 팀 단가를 팀장 본인도 조회할 수 있는 별도 문서 team_rates에도 함께 저장(팀장 ‘내 팀 공수표’용, 관리자 전용 문서 master_worker_private와 동시 저장) · 직전: ver 5.10.1 · 프로젝트 정보 수정 화면 발주처·시공사·협력사 한 줄 배치 / 직전: ver 5.10.0 · 프로젝트 기본정보 통일(PJT 코드·내용·현장명·발주처·시공사·협력사) — 기획↔PJT관리 양방향 반영 / 직전: ver 5.9.0 · 정산 탭에 '팀별 노무비' 보기 신설(월간 공수의 팀별 합계 이전 — 팀 공수 × 팀 단가, 프로젝트별 소계, 팀 단가는 관리자 전용 문서 master_worker_private에 저장) · 이전: 20260930a ver 5.8.0 · 견적 목록: 견적상태 필터(진행중/종결/폐기) 추가·현장상태 필터 명칭 분리, 상세→목록 복귀 시 필터·페이지·스크롤 유지(브라우저 뒤로가기 포함) · 이전: 20260925d ver 5.7.4 · 프로젝트 목록 생성일순 정렬 강건화(createdAt 없는 옛 데이터는 문서ID 타임스탬프로 폴백) · 이전: 20260925c ver 5.7.3 -->
+<!DOCTYPE html><!-- gihoek 20261013a: 정산서 특이사항 입력란(견적서 특기사항과 같은 방식, 발행·상세·인쇄/PDF 표시) + 직접 입력 단가·금액에 마이너스(네고·할인) 입력 허용 --><!-- gihoek module build: 20260930e · ver 5.11.0 · 팀 단가를 팀장 본인도 조회할 수 있는 별도 문서 team_rates에도 함께 저장(팀장 ‘내 팀 공수표’용, 관리자 전용 문서 master_worker_private와 동시 저장) · 직전: ver 5.10.1 · 프로젝트 정보 수정 화면 발주처·시공사·협력사 한 줄 배치 / 직전: ver 5.10.0 · 프로젝트 기본정보 통일(PJT 코드·내용·현장명·발주처·시공사·협력사) — 기획↔PJT관리 양방향 반영 / 직전: ver 5.9.0 · 정산 탭에 '팀별 노무비' 보기 신설(월간 공수의 팀별 합계 이전 — 팀 공수 × 팀 단가, 프로젝트별 소계, 팀 단가는 관리자 전용 문서 master_worker_private에 저장) · 이전: 20260930a ver 5.8.0 · 견적 목록: 견적상태 필터(진행중/종결/폐기) 추가·현장상태 필터 명칭 분리, 상세→목록 복귀 시 필터·페이지·스크롤 유지(브라우저 뒤로가기 포함) · 이전: 20260925d ver 5.7.4 · 프로젝트 목록 생성일순 정렬 강건화(createdAt 없는 옛 데이터는 문서ID 타임스탬프로 폴백) · 이전: 20260925c ver 5.7.3 -->
 <html lang="ko">
 <head>
 <meta charset="utf-8">
@@ -194,6 +194,8 @@ const won=n=>(Math.round(n)||0).toLocaleString('ko-KR');
 const num=v=>{ const n=parseFloat(String(v).replace(/[^0-9.\-]/g,'')); return isNaN(n)?0:n; };
 // 금액 입력창 실시간 콤마 포맷 (1000단위마다 ,)
 window.fmtMoney=function(el){ const raw=el.value.replace(/[^0-9]/g,''); el.value = raw ? Number(raw).toLocaleString('ko-KR') : ''; };
+// 마이너스(할인·네고) 입력을 허용하는 금액 서식 — 정산서 '직접 입력'의 단가·금액 칸 전용. 맨 앞의 - 또는 −(유니코드 마이너스)만 부호로 인정, '-'만 입력한 상태는 그대로 둠.
+window.fmtMoneyNeg=function(el){ const v=String(el.value||'').replace(/[−–]/g,'-'); const neg=/^\s*-/.test(v); const raw=v.replace(/[^0-9]/g,''); el.value=(neg?'-':'')+(raw?Number(raw).toLocaleString('ko-KR'):''); };
 const itemAmt=it=> (it.amount!=null ? it.amount : (it.qty||0)*(it.price||0));
 const estSupply=e=>(e.items||[]).reduce((s,i)=>s+itemAmt(i),0);
 const estTotal =e=>{ const s=estSupply(e); return s+Math.round(s*0.1); };
@@ -1302,7 +1304,7 @@ window.newSettle=function(pjtId){
     senderContact:'', recipientContact:'',
     estIds:[], estZone:{}, deposit:{}, prog:{}, eqs:{}, billOverride:{}, qtyInput:{}, qtyAmt:{}, mandayInput:null, mandayAuto:null, mandayRate:TEAM_RATE,
     pjtIds:[pjtId||projects[0].id], mandayBreakdown:{}, mandayOverride:{}, mandayRateOverride:{},
-    supplyOverride:null, vatOverride:null,
+    supplyOverride:null, vatOverride:null, notes:'',
     manualItems:[{name:'',spec:'',qty:1,price:0,amount:0},{name:'',spec:'',qty:1,price:0,amount:0}] };
   tabSilent('settle'); drawSettleForm();
 };
@@ -1343,12 +1345,15 @@ function drawSettleForm(){ const d=settleDraft; d.pjtIds=(d.pjtIds&&d.pjtIds.len
   </div>
   ${d.method==='progress'&&excludedForProgress.length?`<div class="note-amber" style="margin-top:0">⚠️ ${excludedForProgress.map(pid=>{const p=projects.find(x=>x.id===pid);return p?p.code:pid;}).join(', ')}은(는) 섹터·장비 자동추적 연동이 없어 "공정 연동(자동)" 방식에서 제외됩니다. 이 프로젝트 견적은 "수량 정산" 또는 "직접 입력" 방식을 이용해주세요.</div>`:''}
   ${d.method==='manual'? setManualCard() : d.method==='manday'? setMandayCard() : d.method==='qty'? setQtyCard(pjtEsts) : setProgressCard(pjtEsts)}
+  <div class="card"><div class="field" style="margin-bottom:0"><label>특이사항 <span class="small muted" style="font-weight:500">(선택사항 — 정산서 하단에 표시됩니다)</span></label><textarea class="inp" id="set-notes" rows="3" placeholder="예: 협의 단가 적용 · 네고 내역 · 지급 조건 등을 입력하세요" oninput="setS_notes(this.value)" style="resize:vertical;font-family:inherit">${(d.notes||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</textarea></div></div>
   <div class="card" id="set-tot"></div>
   <button class="btn pri full" id="set-save" onclick="publishSettle()">정산서 발행</button>
   <div style="height:30px"></div>`;
   renderSetTot();
 }
 window.setS=function(k,v){ settleDraft[k]=v; drawSettleForm(); };
+// 특이사항은 입력 중에 화면을 다시 그리지 않는다(포커스 유지)
+window.setS_notes=function(v){ settleDraft.notes=v; };
 window.setS2=function(k,v){ settleDraft[k]=v; };
 window.toggleSettlePjt=function(pid){ const d=settleDraft; d.pjtIds=d.pjtIds||[d.pjtId];
   const i=d.pjtIds.indexOf(pid);
@@ -1582,6 +1587,7 @@ window.fetchManday=async function(){ const d=settleDraft; toast('공수 불러�
 
 /* 직접 입력 */
 function setManualCard(){ return `<div class="card"><div class="sec-h"><h2>직접 입력</h2></div>
+  <div class="small muted" style="margin:-4px 0 8px">네고·할인 줄은 단가나 금액 앞에 <b>-</b>를 붙여 입력하세요 (예: -500,000). 합계는 모든 줄의 합이며 0보다 커야 발행됩니다.</div>
   <div class="scroll"><table class="items"><colgroup><col class="c-no"><col><col><col class="c-qty"><col class="c-price"><col class="c-amt"><col class="c-del"></colgroup>
     <thead><tr><th>#</th><th>품명</th><th>규격</th><th>수량</th><th>단가</th><th>금액</th><th></th></tr></thead><tbody id="sm-rows"></tbody></table></div>
   <button class="btn gray sm" style="margin-top:10px" onclick="addSm()">+ 품목 추가</button></div>`; }
@@ -1590,8 +1596,8 @@ function drawSmRows(){ $('sm-rows').innerHTML=settleDraft.manualItems.map((it,i)
   <td><input class="ti" value="${(it.name||'').replace(/"/g,'&quot;')}" placeholder="품명" oninput="smSet(${i},'name',this.value)"></td>
   <td><input class="ti" value="${(it.spec||'').replace(/"/g,'&quot;')}" placeholder="규격" oninput="smSet(${i},'spec',this.value)"></td>
   <td><input class="ti num" id="sq-${i}" type="number" value="${it.qty}" oninput="smQty(${i},this.value)"></td>
-  <td><input class="ti num" id="sp-${i}" type="text" inputmode="numeric" value="${Number(it.price||0).toLocaleString('ko-KR')}" oninput="fmtMoney(this);smPrice(${i},this.value)"></td>
-  <td><input class="ti num" id="sa-${i}" type="text" inputmode="numeric" value="${Number(Math.round(itemAmt(it))).toLocaleString('ko-KR')}" oninput="fmtMoney(this);smAmt(${i},this.value)"></td>
+  <td><input class="ti num" id="sp-${i}" type="text" inputmode="text" placeholder="할인은 -" value="${Number(it.price||0).toLocaleString('ko-KR')}" oninput="fmtMoneyNeg(this);smPrice(${i},this.value)"></td>
+  <td><input class="ti num" id="sa-${i}" type="text" inputmode="text" placeholder="할인은 -" value="${Number(Math.round(itemAmt(it))).toLocaleString('ko-KR')}" oninput="fmtMoneyNeg(this);smAmt(${i},this.value)"></td>
   <td><button class="del" onclick="delSm(${i})">×</button></td></tr>`).join(''); renderSetTot(); }
 window.smSet=function(i,k,v){ settleDraft.manualItems[i][k]=v; };
 window.smQty=function(i,v){ const it=settleDraft.manualItems[i]; it.qty=num(v); it.amount=Math.round(it.qty*it.price); if($('sa-'+i))$('sa-'+i).value=it.amount.toLocaleString('ko-KR'); renderSetTot(); };
@@ -1672,7 +1678,7 @@ window.publishSettle=async function(){ const d=settleDraft; const sup=effSupply(
       acctMonth:effAcctMonth,
       senderId:d.senderId||'', sender:{...snap(compById(d.senderId)), ...ctSnap(d.senderId,d.senderContact)}, recipientId:d.recipientId||'', recipient:{...snap(compById(d.recipientId)), ...ctSnap(d.recipientId,d.recipientContact)},
       estIds:d.estIds||[], perEst, perItem, mandayUsed, lines:settleLines(),
-      supply:sup, vat, total:sup+vat, amount:sup, status:'active',
+      supply:sup, vat, total:sup+vat, amount:sup, status:'active', notes:(d.notes||'').trim(),
       author:(me&&me.name)||'', authorUid:(me&&me.uid)||'', createdAt:serverTimestamp() });
     toast((d.docType==='invoice'?'대금청구서':'지급예정서')+' '+no+' 발행'); renderSettle(); }
   catch(e){ $('set-save').disabled=false; toast('발행 실패: '+(e.code||e.message)); }
@@ -1702,6 +1708,7 @@ window.openSettle=function(id, fromPjtId){ viewSetId=id; if(fromPjtId!==undefine
       <div class="totbox"><div class="totrow"><span class="muted">공급가액</span><span>${won(s.supply)} 원</span></div>
         <div class="totrow"><span class="muted">부가세 (10%)</span><span>${won(s.vat)} 원</span></div>
         <div class="totrow big"><span>${s.docType==='invoice'?'청구금액':'지급금액'} 합계</span><span>${won(s.total)} 원</span></div></div>
+      ${s.notes?`<div class="field" style="margin-top:12px"><label>특이사항</label><div class="small" style="white-space:pre-wrap;padding:10px 12px;background:#f6f9fd;border:1px solid var(--line);border-radius:8px">${s.notes.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div></div>`:''}
     </div>`;
   window.scrollTo(0,0);
 };
@@ -1794,6 +1801,7 @@ function settleDocHTML(s){ const title=s.docType==='invoice'?'대 금 청 구 �
   <tfoot><tr><td colspan="3" style="text-align:right">공급가액</td><td style="text-align:right">${won(s.supply)}</td></tr>
     <tr><td colspan="3" style="text-align:right">부가세 (10%)</td><td style="text-align:right">${won(s.vat)}</td></tr>
     <tr><td colspan="3" style="text-align:right;font-size:14px">${s.docType==='invoice'?'청구금액 합계':'지급금액 합계'}</td><td style="text-align:right;font-size:14px">${won(s.total)}</td></tr></tfoot></table>
+  ${s.notes?`<div style="margin-top:14px;border:1px solid #cfd8e6;border-radius:6px;padding:10px 12px"><div style="font-size:10px;color:#1D5BA6;font-weight:700;margin-bottom:4px;letter-spacing:1px">특이사항</div><div style="font-size:11.5px;white-space:pre-wrap">${s.notes.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div></div>`:''}
   <div class="stamp">위와 같이 ${s.docType==='invoice'?'청구':'지급 예정 통보'}합니다.<br><br>${sd.company||''}　${sd.ceo?'대표 '+sd.ceo+' (인)':''} ${sd.contact?'<br><span style="font-size:11px;color:#555">담당: '+sd.contact+(sd.contactTel?' &nbsp;'+sd.contactTel:'')+(sd.contactEmail?' &nbsp;'+sd.contactEmail:'')+'</span>':''}</div>`;
 }
 const SET_DOC_CSS=`*{box-sizing:border-box;font-family:'Malgun Gothic',sans-serif}body{margin:0;color:#1a2330;font-size:12px}
