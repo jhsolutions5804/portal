@@ -312,7 +312,7 @@ function renderSettle(){
     const v=!setActive(s),isInv=s.docType==='invoice';
     return `<div class="icard ${v?'void':''}" onclick="showDetail('settle','${s.id}')"><div class="ibody">
       <div class="ititle"><span class="kind ${isInv?'inv':'pay'}">${isInv?'대금청구서':'지급예정서'}</span> <span class="pill">${esc(s.no||'')}</span>${v?' <span class="tag void">폐기</span>':''}${s.status==='done'?' <span class="tag done">✓ 완결</span>':''}</div>
-      <div class="imeta"><span class="pill">${esc(projName(s.pjtId))}</span> 기준월 ${esc(s.baseMonth||'-')} · 발행 ${esc(s.issueDate||'-')}${s.recipient?.company?' · '+esc(s.recipient.company):''}</div>
+      <div class="imeta"><span class="pill">${esc(projName(s.pjtId,'해당 없음'))}</span> 기준월 ${esc(s.baseMonth||'-')} · 발행 ${esc(s.issueDate||'-')}${s.recipient?.company?' · '+esc(s.recipient.company):''}</div>
     </div><div class="iamt">${won(s.total||0)}</div></div>`;
   }).join('');
   $app().innerHTML=topBar('기획')+`
@@ -424,7 +424,7 @@ function renderSettleDetail(){
   const inv=s.docType==='invoice';
   const supply=s.supply||0,vat=s.vat||0,total=s.total||s.amount||0;
   $app().innerHTML=topBar('정산')+`
-    <div class="hello"><div class="name" style="font-size:20px"><span class="kind ${inv?'inv':'pay'}">${inv?'대금청구서':'지급예정서'}</span></div><div class="sub"><span class="pill">${esc(projName(s.pjtId))}</span> ${esc(s.no||'')}${s.status==='done'?' · 완결':''}</div></div>
+    <div class="hello"><div class="name" style="font-size:20px"><span class="kind ${inv?'inv':'pay'}">${inv?'대금청구서':'지급예정서'}</span></div><div class="sub"><span class="pill">${esc(projName(s.pjtId,'해당 없음'))}</span> ${esc(s.no||'')}${s.status==='done'?' · 완결':''}</div></div>
     <div class="dcard">
       <div class="drow"><span class="dk">기준월</span><span class="dv">${esc(s.baseMonth||'-')}</span></div>
       <div class="drow"><span class="dk">발행일</span><span class="dv">${esc(s.issueDate||'-')}</span></div>

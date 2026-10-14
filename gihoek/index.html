@@ -1,4 +1,4 @@
-<!DOCTYPE html><!-- gihoek 20261013b: 견적서 프로젝트 선택에 '해당 없음' 추가(프로젝트에 속하지 않는 견적 — 목록·필터·상세에서 '해당 없음'으로 표시, 정산·프로젝트 상세에는 연결되지 않음) --><!-- gihoek 20261013a: 정산서 특이사항 입력란(견적서 특기사항과 같은 방식, 발행·상세·인쇄/PDF 표시) + 직접 입력 단가·금액에 마이너스(네고·할인) 입력 허용 --><!-- gihoek module build: 20260930e · ver 5.11.0 · 팀 단가를 팀장 본인도 조회할 수 있는 별도 문서 team_rates에도 함께 저장(팀장 ‘내 팀 공수표’용, 관리자 전용 문서 master_worker_private와 동시 저장) · 직전: ver 5.10.1 · 프로젝트 정보 수정 화면 발주처·시공사·협력사 한 줄 배치 / 직전: ver 5.10.0 · 프로젝트 기본정보 통일(PJT 코드·내용·현장명·발주처·시공사·협력사) — 기획↔PJT관리 양방향 반영 / 직전: ver 5.9.0 · 정산 탭에 '팀별 노무비' 보기 신설(월간 공수의 팀별 합계 이전 — 팀 공수 × 팀 단가, 프로젝트별 소계, 팀 단가는 관리자 전용 문서 master_worker_private에 저장) · 이전: 20260930a ver 5.8.0 · 견적 목록: 견적상태 필터(진행중/종결/폐기) 추가·현장상태 필터 명칭 분리, 상세→목록 복귀 시 필터·페이지·스크롤 유지(브라우저 뒤로가기 포함) · 이전: 20260925d ver 5.7.4 · 프로젝트 목록 생성일순 정렬 강건화(createdAt 없는 옛 데이터는 문서ID 타임스탬프로 폴백) · 이전: 20260925c ver 5.7.3 -->
+<!DOCTYPE html><!-- gihoek 20261013c: 정산서 프로젝트 선택 안 함 허용(프로젝트 없는 정산서 — 직접 입력·수량정산(프로젝트 없는 견적), 목록·필터·상세·인쇄에 '해당 없음') · gihoek 20261013b: 견적서 프로젝트 선택에 '해당 없음' 추가(프로젝트에 속하지 않는 견적 — 목록·필터·상세에서 '해당 없음'으로 표시, 정산·프로젝트 상세에는 연결되지 않음) --><!-- gihoek 20261013a: 정산서 특이사항 입력란(견적서 특기사항과 같은 방식, 발행·상세·인쇄/PDF 표시) + 직접 입력 단가·금액에 마이너스(네고·할인) 입력 허용 --><!-- gihoek module build: 20260930e · ver 5.11.0 · 팀 단가를 팀장 본인도 조회할 수 있는 별도 문서 team_rates에도 함께 저장(팀장 ‘내 팀 공수표’용, 관리자 전용 문서 master_worker_private와 동시 저장) · 직전: ver 5.10.1 · 프로젝트 정보 수정 화면 발주처·시공사·협력사 한 줄 배치 / 직전: ver 5.10.0 · 프로젝트 기본정보 통일(PJT 코드·내용·현장명·발주처·시공사·협력사) — 기획↔PJT관리 양방향 반영 / 직전: ver 5.9.0 · 정산 탭에 '팀별 노무비' 보기 신설(월간 공수의 팀별 합계 이전 — 팀 공수 × 팀 단가, 프로젝트별 소계, 팀 단가는 관리자 전용 문서 master_worker_private에 저장) · 이전: 20260930a ver 5.8.0 · 견적 목록: 견적상태 필터(진행중/종결/폐기) 추가·현장상태 필터 명칭 분리, 상세→목록 복귀 시 필터·페이지·스크롤 유지(브라우저 뒤로가기 포함) · 이전: 20260925d ver 5.7.4 · 프로젝트 목록 생성일순 정렬 강건화(createdAt 없는 옛 데이터는 문서ID 타임스탬프로 폴백) · 이전: 20260925c ver 5.7.3 -->
 <html lang="ko">
 <head>
 <meta charset="utf-8">
@@ -1120,7 +1120,8 @@ if(window.settleView==='team'){ drawTeamLabor(); return; }
   const months=[...new Set(settlements.map(s=>s.issueDate&&s.issueDate.length>=7?s.issueDate.slice(0,7):null).filter(Boolean))].sort((a,b)=>b.localeCompare(a));
   const filtered=settlements.filter(s=>{
     if(f.docType && s.docType!==f.docType) return false;
-    if(f.pjtId && !(s.pjtId===f.pjtId || (s.pjtIds&&s.pjtIds.includes(f.pjtId)))) return false;
+    if(f.pjtId==='__none'){ if(s.pjtId || (s.pjtIds&&s.pjtIds.length)) return false; }
+    else if(f.pjtId && !(s.pjtId===f.pjtId || (s.pjtIds&&s.pjtIds.includes(f.pjtId)))) return false;
     if(f.client && (s.recipient&&s.recipient.company)!==f.client) return false;
     if(f.status && (f.status==='done'?s.status!=='done':s.status==='done')) return false;
     if(f.month && !(s.issueDate||'').startsWith(f.month)) return false;
@@ -1145,7 +1146,7 @@ if(window.settleView==='team'){ drawTeamLabor(); return; }
       </select>
       <select style="${FILTER_SEL_STYLE}" onchange="setSettleFilter('pjtId',this.value)">
         <option value="" ${!f.pjtId?'selected':''}>현장명 전체</option>
-        ${projects.map(p=>`<option value="${p.id}" ${f.pjtId===p.id?'selected':''}>${p.code}</option>`).join('')}
+        ${projects.map(p=>`<option value="${p.id}" ${f.pjtId===p.id?'selected':''}>${p.code}</option>`).join('')}<option value="__none" ${f.pjtId==='__none'?'selected':''}>해당 없음</option>
       </select>
       <select style="${FILTER_SEL_STYLE}" onchange="setSettleFilter('client',this.value)">
         <option value="" ${!f.client?'selected':''}>거래처 전체</option>
@@ -1164,7 +1165,7 @@ if(window.settleView==='team'){ drawTeamLabor(); return; }
     </div>`;
 
   const listHtml = pageItems.length? pageItems.map(s=>{ const p=projects.find(x=>x.id===s.pjtId); const v=!setActive(s);
-      const pjtBadge=(s.pjtIds&&s.pjtIds.length>1)? s.pjtIds.map(pid=>{const pp=projects.find(x=>x.id===pid);return pp?pp.code:pid;}).join('+') : (p?p.code:'-');
+      const pjtBadge=(s.pjtIds&&s.pjtIds.length>1)? s.pjtIds.map(pid=>{const pp=projects.find(x=>x.id===pid);return pp?pp.code:pid;}).join('+') : (p?p.code:(s.pjtId?'-':'해당 없음'));
       return `<div class="litem ${v?'void':''}" onclick="openSettle('${s.id}', null)"><div class="d"><div class="ti">${s.docType==='invoice'?'대금청구서':'지급예정서'} <span class="pill">${s.no}</span>${v?'<span class="void-tag">폐기</span>':''}${s.status==='done'?'<span class="void-tag" style="background:#E1F5EE;color:#085041">✓ 완결</span>':''}</div><div class="mt"><span class="pill">${pjtBadge}</span> &nbsp;기준월 ${s.baseMonth} · 발행 ${s.issueDate}${s.recipient?.company?' · '+s.recipient.company:''}</div></div><div class="amt">${won(s.total)}</div></div>`;
     }).join('') : `<div class="empty">${isFiltered?'조건에 맞는 정산서가 없습니다.':'발행된 정산서가 없습니다.'}</div>`;
 
@@ -1296,14 +1297,13 @@ window.resetSettleFilter=function(){ window.settleFilter={docType:'',pjtId:'',cl
 window.setSettlePage=function(p){ settlePage=p; renderSettle(); const el=document.querySelector('#v-settle .sec-h'); if(el) el.scrollIntoView({block:'start'}); };
 
 window.newSettle=function(pjtId){
-  if(!projects.length){ toast('먼저 프로젝트를 등록하세요.'); tab('pjt'); return; }
   const sup=supplierList();
-  settleDraft={ docType:'invoice', pjtId:pjtId||projects[0].id, method:'progress',
+  settleDraft={ docType:'invoice', pjtId:pjtId||(projects[0]?projects[0].id:''), method:(projects.length?'progress':'manual'),
     baseMonth:new Date().toISOString().slice(0,7), issueDate:new Date().toISOString().slice(0,10), payDate:'',
     senderId:(sup.find(c=>c.company==='제이에이치솔루션')?.id)||sup[0]?.id||'', recipientId:'',
     senderContact:'', recipientContact:'',
     estIds:[], estZone:{}, deposit:{}, prog:{}, eqs:{}, billOverride:{}, qtyInput:{}, qtyAmt:{}, mandayInput:null, mandayAuto:null, mandayRate:TEAM_RATE,
-    pjtIds:[pjtId||projects[0].id], mandayBreakdown:{}, mandayOverride:{}, mandayRateOverride:{},
+    pjtIds:[pjtId||(projects[0]?projects[0].id:'')].filter(Boolean), mandayBreakdown:{}, mandayOverride:{}, mandayRateOverride:{},
     supplyOverride:null, vatOverride:null, notes:'',
     manualItems:[{name:'',spec:'',qty:1,price:0,amount:0},{name:'',spec:'',qty:1,price:0,amount:0}] };
   tabSilent('settle'); drawSettleForm();
@@ -1311,8 +1311,9 @@ window.newSettle=function(pjtId){
 
 function setOptCompanies(list,sel){ return list.map(c=>`<option value="${c.id}" ${c.id===sel?'selected':''}>${c.company}${c.ceo?' ('+c.ceo+')':''}</option>`).join(''); }
 
-function drawSettleForm(){ const d=settleDraft; d.pjtIds=(d.pjtIds&&d.pjtIds.length)?d.pjtIds:[d.pjtId]; if(d.pjtIds.indexOf(d.pjtId)<0) d.pjtId=d.pjtIds[0];
-  const pjtEstsAll=estimates.filter(e=>d.pjtIds.includes(e.pjtId) && isActive(e));
+function drawSettleForm(){ const d=settleDraft; d.pjtIds=Array.isArray(d.pjtIds)?d.pjtIds.filter(Boolean):(d.pjtId?[d.pjtId]:[]); if(!d.pjtIds.length) d.pjtId=''; else if(d.pjtIds.indexOf(d.pjtId)<0) d.pjtId=d.pjtIds[0];
+  const noPjt=!d.pjtIds.length; if(noPjt && (d.method==='progress'||d.method==='manday')) d.method='manual';   // 프로젝트 없이 발행하는 정산서: 공정·공수 연동은 프로젝트가 있어야 한다
+  const pjtEstsAll=estimates.filter(e=>(noPjt ? !e.pjtId : d.pjtIds.includes(e.pjtId)) && isActive(e));   // 프로젝트를 고르지 않으면 '해당 없음' 견적만
   // '공정 연동(자동)' 방식은 FAB/SUP처럼 실제 섹터·장비 자동추적 데이터가 있는 프로젝트에서만 정확합니다.
   // 연동PJT가 설정 안 된(경량PJT 등) 프로젝트의 견적을 여기 섞으면, FAB의 섹터/장비 번호가 엉뚱하게 매칭되어 물량이 틀어집니다.
   const zoneTrackablePjtIds=d.pjtIds.filter(pid=>{ const key=getLinkPjt(projects.find(p=>p.id===pid)); return key==='p4ph2'||key==='p4ph4'; });
@@ -1327,11 +1328,12 @@ function drawSettleForm(){ const d=settleDraft; d.pjtIds=(d.pjtIds&&d.pjtIds.len
     <div class="row2">
       <div class="field"><label>프로젝트 (다중 선택 가능)</label>
         <div style="display:flex;flex-wrap:wrap;gap:6px">${projects.map(p=>`<label style="display:flex;align-items:center;gap:5px;font-size:12px;font-weight:600;border:1.5px solid ${(d.pjtIds||[d.pjtId]).includes(p.id)?'var(--blue)':'var(--line)'};background:${(d.pjtIds||[d.pjtId]).includes(p.id)?'#EEF4FC':'#fff'};border-radius:8px;padding:5px 10px;cursor:pointer">
-          <input type="checkbox" ${(d.pjtIds||[d.pjtId]).includes(p.id)?'checked':''} onchange="toggleSettlePjt('${p.id}')" style="accent-color:var(--blue)"> ${p.code}</label>`).join('')}</div></div>
+          <input type="checkbox" ${(d.pjtIds||[d.pjtId]).includes(p.id)?'checked':''} onchange="toggleSettlePjt('${p.id}')" style="accent-color:var(--blue)"> ${p.code}</label>`).join('')}</div>
+        <div class="small muted" style="margin-top:4px">${noPjt?'프로젝트 없이 발행합니다 — 공정·공수 연동은 쓸 수 없고, 프로젝트 없는 견적(해당 없음)만 정산 견적으로 고를 수 있습니다.':'선택하지 않아도 발행할 수 있습니다(프로젝트 없는 정산서).'}</div></div>
       <div class="field"><label>정산 방식</label><select class="sel" onchange="setS('method',this.value)">
-        <option value="progress" ${d.method==='progress'?'selected':''}>공정 연동 (반입·설치 자동)</option>
+        <option value="progress" ${d.method==='progress'?'selected':''} ${noPjt?'disabled':''}>공정 연동 (반입·설치 자동)</option>
         <option value="qty" ${d.method==='qty'?'selected':''}>수량 정산 (견적 품목별)</option>
-        <option value="manday" ${d.method==='manday'?'selected':''}>공수 연동</option>
+        <option value="manday" ${d.method==='manday'?'selected':''} ${noPjt?'disabled':''}>공수 연동</option>
         <option value="manual" ${d.method==='manual'?'selected':''}>직접 입력</option></select></div></div>
     <div class="row2">
       <div class="field"><label>기준월</label><input class="inp" type="month" value="${d.baseMonth}" onchange="setS('baseMonth',this.value)"></div>
@@ -1355,12 +1357,13 @@ window.setS=function(k,v){ settleDraft[k]=v; drawSettleForm(); };
 // 특이사항은 입력 중에 화면을 다시 그리지 않는다(포커스 유지)
 window.setS_notes=function(v){ settleDraft.notes=v; };
 window.setS2=function(k,v){ settleDraft[k]=v; };
-window.toggleSettlePjt=function(pid){ const d=settleDraft; d.pjtIds=d.pjtIds||[d.pjtId];
+window.toggleSettlePjt=function(pid){ const d=settleDraft; d.pjtIds=Array.isArray(d.pjtIds)?d.pjtIds.filter(Boolean):(d.pjtId?[d.pjtId]:[]);
   const i=d.pjtIds.indexOf(pid);
-  if(i<0){ d.pjtIds.push(pid); } else { if(d.pjtIds.length<=1){ toast('최소 1개 프로젝트는 선택되어야 합니다.'); return; } d.pjtIds.splice(i,1); }
-  d.pjtId=d.pjtIds[0];
+  if(i<0){ d.pjtIds.push(pid); } else { d.pjtIds.splice(i,1); }   // 모두 해제하면 프로젝트 없는 정산서
+  d.pjtId=d.pjtIds[0]||'';
+  if(!d.pjtIds.length && (d.method==='progress'||d.method==='manday')){ d.method='manual'; toast('프로젝트를 선택하지 않아 정산 방식을 "직접 입력"으로 바꿨습니다.'); }
   // 프로젝트 구성이 바뀌면 선택된 견적/공수 오버라이드는 새로 골라야 하므로 초기화
-  d.estIds=(d.estIds||[]).filter(id=>{ const e=estimates.find(x=>x.id===id); return e && d.pjtIds.includes(e.pjtId); });
+  d.estIds=(d.estIds||[]).filter(id=>{ const e=estimates.find(x=>x.id===id); return e && (d.pjtIds.length ? d.pjtIds.includes(e.pjtId) : !e.pjtId); });
   drawSettleForm(); };
 
 /* 공정 연동 (자동) */
@@ -1654,7 +1657,7 @@ window.publishSettle=async function(){ const d=settleDraft; const sup=effSupply(
   const perEst={}; const perItem={}; let mandayUsed=0;
   if(d.method==='progress') d.estIds.forEach(eid=>perEst[eid]=calcSetRow(eid).thisBill);
   if(d.method==='qty') d.estIds.forEach(eid=>{ const e=estimates.find(x=>x.id===eid); if(!e) return; perItem[eid]={}; let es=0; (e.items||[]).forEach((it,idx)=>{ const q=qVal(eid,idx); const amt=qAmt(eid,idx,it); if(q>0||amt>0){ perItem[eid][idx]={qty:q,amount:amt}; es+=amt; } }); perEst[eid]=es; });
-  const pjtIdsFinal=(d.pjtIds&&d.pjtIds.length)?d.pjtIds:[d.pjtId];
+  const pjtIdsFinal=Array.isArray(d.pjtIds)?d.pjtIds.filter(Boolean):(d.pjtId?[d.pjtId]:[]);   // 비어 있으면 프로젝트 없는 정산서
   if(d.method==='manday'){
     mandayUsed=pjtIdsFinal.length>1 ? pjtIdsFinal.reduce((s,pid)=>s+mdForPjt(pid),0) : (d.mandayInput!=null?d.mandayInput:(d.mandayAuto||0)); }
   // 여러 프로젝트를 묶어 발행하는 정산서: 프로젝트별 금액 분배를 저장해서, 각 프로젝트 상세 화면의 청구/지급 누계에 각자의 몫만 정확히 반영되도록 함.
@@ -1665,7 +1668,7 @@ window.publishSettle=async function(){ const d=settleDraft; const sup=effSupply(
     pjtIdsFinal.forEach(pid=>{ perPjtAmount[pid]=0; });
     Object.keys(perEst).forEach(eid=>{ const e=estimates.find(x=>x.id===eid); if(!e) return; perPjtAmount[e.pjtId]=(perPjtAmount[e.pjtId]||0)+(perEst[eid]||0); });
   } else {
-    perPjtAmount[d.pjtId]=sup; // 단일 프로젝트는 전체 공급가가 그대로 그 프로젝트 몫
+    if(d.pjtId) perPjtAmount[d.pjtId]=sup; // 단일 프로젝트는 전체 공급가가 그대로 그 프로젝트 몫(프로젝트 없는 정산서는 비워 둠)
   }
   const vat=effVat();
   // 급여와 동일 규칙: 지급예정서(payment)이고 지급예정일이 비어 있으면 기준월의 익월 말일(주말→금요일)로 자동
@@ -1688,7 +1691,7 @@ let setOrigin=null; // 정산 상세에 어디서 들어왔는지: 프로젝트i
 window.openSettle=function(id, fromPjtId){ viewSetId=id; if(fromPjtId!==undefined) setOrigin=fromPjtId;
   const s=settlements.find(x=>x.id===id); if(!s){ renderSettle(); return; }
   const p=projects.find(x=>x.id===s.pjtId);
-  const pjtBadgeDetail=(s.pjtIds&&s.pjtIds.length>1)? s.pjtIds.map(pid=>{const pp=projects.find(x=>x.id===pid);return pp?pp.code:pid;}).join(' + ') : (p?p.code:'-');
+  const pjtBadgeDetail=(s.pjtIds&&s.pjtIds.length>1)? s.pjtIds.map(pid=>{const pp=projects.find(x=>x.id===pid);return pp?pp.code:pid;}).join(' + ') : (p?p.code:(s.pjtId?'-':'해당 없음'));
   tabSilent('settle');
   const party=(label,o)=>`<div class="party"><div class="pl">${label}</div><div class="pc">${o?.company||'-'}</div><div class="pd">${o?.ceo?'대표 '+o.ceo:''}${o?.bizno?' · '+o.bizno:''}</div>${o?.contact?`<div class="pd">담당: ${o.contact}</div>`:''}</div>`;
   const canLink=(s.docType==='invoice' && (s.method==='manual'||s.method==='qty'));
@@ -1771,7 +1774,7 @@ window.doneSettlePayment=async function(id){
 };
 window.doneSettle=async function(id){
   const s=settlements.find(x=>x.id===id); if(!s) return;
-  const bal=pjtBilled(s.pjtId)-pjtPaid(s.pjtId);
+  const bal=s.pjtId?(pjtBilled(s.pjtId)-pjtPaid(s.pjtId)):0;
   const msg=bal>0?('이 청구 정산을 완결 처리할까요?\n\n현재 프로젝트 미수금: '+won(bal)+'\n(미수금이 남아 있어도 수동 완결 가능)\n\n완결 시 수금 처리되어 회계 매출로 인식됩니다.'):'이 청구 정산을 완결 처리할까요?\n\n미수금 0 — 완결 권장 상태입니다.\n완결 시 수금 처리되어 회계 매출로 인식됩니다.';
   if(!confirm(msg)) return;
   try{ await setDoc(doc(db,'gihoek_settlements',id),{status:'done',doneAt:serverTimestamp()},{merge:true}); toast('완결 처리했습니다.'); openSettle(id); }catch(e){ toast('실패: '+(e.code||e.message)); }
@@ -1789,7 +1792,7 @@ window.deleteSettle=async function(id){ if(!confirm('폐기된 정산서를 완�
 
 function settleDocHTML(s){ const title=s.docType==='invoice'?'대 금 청 구 서':'지 급 예 정 서';
   const dateLabel=s.docType==='invoice'?'지급요청일':'지급예정일'; const sd=s.sender||{}, rc=s.recipient||{}; const p=projects.find(x=>x.id===s.pjtId);
-  const pjtLabel=(s.pjtIds&&s.pjtIds.length>1)? s.pjtIds.map(pid=>{const pp=projects.find(x=>x.id===pid);return pp?pp.code:pid;}).join(' + ') : (p?p.code:'-');
+  const pjtLabel=(s.pjtIds&&s.pjtIds.length>1)? s.pjtIds.map(pid=>{const pp=projects.find(x=>x.id===pid);return pp?pp.code:pid;}).join(' + ') : (p?p.code:(s.pjtId?'-':'해당 없음'));
   const rows=(s.lines||[]).map((it,i)=>`<tr><td style="text-align:center">${i+1}</td><td>${it.name}</td><td>${it.spec||''}</td><td style="text-align:right">${won(it.amount)}</td></tr>`).join('');
   return `<h1>${title}</h1>
   <div class="meta"><span>발행번호: ${s.no}</span><span>발행일: ${s.issueDate}</span></div>
