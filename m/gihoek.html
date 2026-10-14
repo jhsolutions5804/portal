@@ -190,7 +190,7 @@ const acctMonthOf=s=>s.acctMonth||(s.payDate||s.issueDate||s.baseMonth||'').slic
 const paymentAsExpense=()=>settlements.filter(s=>s.docType==='payment'&&s.status==='done'&&acctMonthOf(s)===curMonth&&setActive(s)).map(s=>({date:s.payDate||s.issueDate||'',cat:'용역비',vendor:s.recipient?.company||'-',pjt:s.pjtId||'',total:s.total||0,note:'정산서 '+(s.no||'')}));
 const accMonthExp=()=>{const manual=expenses.filter(e=>(e.date||'').slice(0,7)===curMonth);return [...manual,...paymentAsExpense()].sort((a,b)=>(a.date||'').localeCompare(b.date||''));};
 const monthBill=(pid,month)=>settlements.filter(s=>s.pjtId===pid&&s.docType==='invoice'&&s.status==='done'&&s.baseMonth===month).reduce((a,s)=>a+(s.amount||0),0);
-const projName=pid=>{const p=projects.find(x=>x.id===pid);return p?p.code:'-';};
+const projName=(pid,none)=>{const p=projects.find(x=>x.id===pid);return p?p.code:(pid?'-':(none||'-'));};   // 프로젝트를 고르지 않은 견적은 '해당 없음'
 
 const esc=v=>String(v==null?'':v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 const $app=()=>document.getElementById('app');
@@ -292,7 +292,7 @@ function renderEst(){
     const v=!isActive(e);
     return `<div class="icard ${v?'void':''}" onclick="showDetail('est','${e.id}')"><div class="ibody">
       <div class="ititle">${esc(e.title||'(제목없음)')} ${estTag(e)}</div>
-      <div class="imeta"><span class="pill">${esc(projName(e.pjtId))}</span> ${esc(e.no||'')} · ${esc(e.date||'')}${e.client?.company?' · '+esc(e.client.company):''}</div>
+      <div class="imeta"><span class="pill">${esc(projName(e.pjtId,'해당 없음'))}</span> ${esc(e.no||'')} · ${esc(e.date||'')}${e.client?.company?' · '+esc(e.client.company):''}</div>
     </div><div class="iamt">${won(estTotal(e))}</div></div>`;
   }).join('');
   $app().innerHTML=topBar('기획')+`
@@ -405,7 +405,7 @@ function renderEstDetail(){
   const supply=estSupply(e),vat=Math.round(supply*0.1),total=supply+vat;
   const rows=items.length?items.map(i=>`<div class="lrow"><div class="ld"><div class="lc">${esc(i.name||'(품목)')}</div><div class="lm">${i.spec?esc(i.spec)+' · ':''}${i.qty||0} × ${won(i.price||0)}</div></div><div class="la">${won(itemAmt(i))}</div></div>`).join(''):'<div class="empty">품목 없음</div>';
   $app().innerHTML=topBar('견적')+`
-    <div class="hello"><div class="name" style="font-size:20px">${esc(e.title||'')} ${estTag(e)}</div><div class="sub"><span class="pill">${esc(projName(e.pjtId))}</span> ${esc(e.no||'')} · ${esc(e.date||'')}</div></div>
+    <div class="hello"><div class="name" style="font-size:20px">${esc(e.title||'')} ${estTag(e)}</div><div class="sub"><span class="pill">${esc(projName(e.pjtId,'해당 없음'))}</span> ${esc(e.no||'')} · ${esc(e.date||'')}</div></div>
     <div class="dcard">
       ${e.client?.company?`<div class="drow"><span class="dk">거래처</span><span class="dv">${esc(e.client.company)}</span></div>`:''}
       ${e.issuer?.company?`<div class="drow"><span class="dk">발행처</span><span class="dv">${esc(e.issuer.company)}</span></div>`:''}

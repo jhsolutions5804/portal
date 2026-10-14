@@ -1,4 +1,4 @@
-<!DOCTYPE html><!-- gihoek 20261013a: 정산서 특이사항 입력란(견적서 특기사항과 같은 방식, 발행·상세·인쇄/PDF 표시) + 직접 입력 단가·금액에 마이너스(네고·할인) 입력 허용 --><!-- gihoek module build: 20260930e · ver 5.11.0 · 팀 단가를 팀장 본인도 조회할 수 있는 별도 문서 team_rates에도 함께 저장(팀장 ‘내 팀 공수표’용, 관리자 전용 문서 master_worker_private와 동시 저장) · 직전: ver 5.10.1 · 프로젝트 정보 수정 화면 발주처·시공사·협력사 한 줄 배치 / 직전: ver 5.10.0 · 프로젝트 기본정보 통일(PJT 코드·내용·현장명·발주처·시공사·협력사) — 기획↔PJT관리 양방향 반영 / 직전: ver 5.9.0 · 정산 탭에 '팀별 노무비' 보기 신설(월간 공수의 팀별 합계 이전 — 팀 공수 × 팀 단가, 프로젝트별 소계, 팀 단가는 관리자 전용 문서 master_worker_private에 저장) · 이전: 20260930a ver 5.8.0 · 견적 목록: 견적상태 필터(진행중/종결/폐기) 추가·현장상태 필터 명칭 분리, 상세→목록 복귀 시 필터·페이지·스크롤 유지(브라우저 뒤로가기 포함) · 이전: 20260925d ver 5.7.4 · 프로젝트 목록 생성일순 정렬 강건화(createdAt 없는 옛 데이터는 문서ID 타임스탬프로 폴백) · 이전: 20260925c ver 5.7.3 -->
+<!DOCTYPE html><!-- gihoek 20261013b: 견적서 프로젝트 선택에 '해당 없음' 추가(프로젝트에 속하지 않는 견적 — 목록·필터·상세에서 '해당 없음'으로 표시, 정산·프로젝트 상세에는 연결되지 않음) --><!-- gihoek 20261013a: 정산서 특이사항 입력란(견적서 특기사항과 같은 방식, 발행·상세·인쇄/PDF 표시) + 직접 입력 단가·금액에 마이너스(네고·할인) 입력 허용 --><!-- gihoek module build: 20260930e · ver 5.11.0 · 팀 단가를 팀장 본인도 조회할 수 있는 별도 문서 team_rates에도 함께 저장(팀장 ‘내 팀 공수표’용, 관리자 전용 문서 master_worker_private와 동시 저장) · 직전: ver 5.10.1 · 프로젝트 정보 수정 화면 발주처·시공사·협력사 한 줄 배치 / 직전: ver 5.10.0 · 프로젝트 기본정보 통일(PJT 코드·내용·현장명·발주처·시공사·협력사) — 기획↔PJT관리 양방향 반영 / 직전: ver 5.9.0 · 정산 탭에 '팀별 노무비' 보기 신설(월간 공수의 팀별 합계 이전 — 팀 공수 × 팀 단가, 프로젝트별 소계, 팀 단가는 관리자 전용 문서 master_worker_private에 저장) · 이전: 20260930a ver 5.8.0 · 견적 목록: 견적상태 필터(진행중/종결/폐기) 추가·현장상태 필터 명칭 분리, 상세→목록 복귀 시 필터·페이지·스크롤 유지(브라우저 뒤로가기 포함) · 이전: 20260925d ver 5.7.4 · 프로젝트 목록 생성일순 정렬 강건화(createdAt 없는 옛 데이터는 문서ID 타임스탬프로 폴백) · 이전: 20260925c ver 5.7.3 -->
 <html lang="ko">
 <head>
 <meta charset="utf-8">
@@ -607,7 +607,7 @@ function estFilterOptions(){
   estimates.forEach(e=>{
     const p = projects.find(x=>x.id===e.pjtId);
     if (p) pjtMap.set(p.id, p.code || p.name || '(이름없음)');
-    else if (e.pjtId) pjtMap.set(e.pjtId, '삭제된 PJT');
+    else pjtMap.set(e.pjtId||'__none', e.pjtId ? '삭제된 PJT' : '해당 없음');   // 프로젝트를 고르지 않은 견적은 '해당 없음'
     if (e.client?.company) clientSet.add(e.client.company);
     if (e.date && e.date.length>=7) monthSet.add(e.date.slice(0,7));
   });
@@ -620,7 +620,7 @@ function estFilterOptions(){
 
 function estFilteredList(){
   return estimates.filter(e=>{
-    if (estFilterPjt && e.pjtId !== estFilterPjt) return false;
+    if (estFilterPjt && (estFilterPjt==='__none' ? !!e.pjtId : e.pjtId !== estFilterPjt)) return false;
     if (estFilterClient && e.client?.company !== estFilterClient) return false;
     if (estFilterMonth && !(e.date||'').startsWith(estFilterMonth)) return false;
     if (estFilterStatus) { // 견적 자체 상태: 진행중(유효) / 종결 / 폐기
@@ -670,7 +670,7 @@ function renderEstList(){
 
   const listHtml = pageItems.length ? pageItems.map(e=>{ const p=projects.find(x=>x.id===e.pjtId); const v=!isActive(e);
     const pjtStatusTag = p ? `<span class="badge ${p.status==='done'?'done':'run'}" style="font-size:10px;padding:1px 7px;margin-left:6px;">${p.status==='done'?'종결':'진행중'}</span>` : '';
-    return `<div class="litem ${v?'void':''}" onclick="openEst('${e.id}', null)"><div class="d"><div class="ti">${e.title}${e.status==='void'?'<span class="void-tag">폐기</span>':e.status==='closed'?'<span class="void-tag" style="background:#E6F1FB;color:#1D5BA6">종결</span>':((e.rev||1)>1?'<span class="rev-tag">개정 r'+e.rev+'</span>':'')}</div><div class="mt"><span class="pill">${p?p.code:'삭제된 PJT'}</span>${pjtStatusTag} &nbsp;${e.no} · ${e.date}${e.client?.company?' · '+e.client.company:''}</div></div><div class="amt">${won(estTotal(e))}</div></div>`;
+    return `<div class="litem ${v?'void':''}" onclick="openEst('${e.id}', null)"><div class="d"><div class="ti">${e.title}${e.status==='void'?'<span class="void-tag">폐기</span>':e.status==='closed'?'<span class="void-tag" style="background:#E6F1FB;color:#1D5BA6">종결</span>':((e.rev||1)>1?'<span class="rev-tag">개정 r'+e.rev+'</span>':'')}</div><div class="mt"><span class="pill">${p?p.code:(e.pjtId?'삭제된 PJT':'해당 없음')}</span>${pjtStatusTag} &nbsp;${e.no} · ${e.date}${e.client?.company?' · '+e.client.company:''}</div></div><div class="amt">${won(estTotal(e))}</div></div>`;
   }).join('') : `<div class="empty">${isFiltered?'조건에 맞는 견적이 없습니다.':'작성된 견적이 없습니다.'}</div>`;
 
   const pagerHtml = totalPages>1 ? `
@@ -724,7 +724,7 @@ window.renderEst=renderEst;
 window.newEst=function(pjtId){
   if(!projects.length){ toast('먼저 프로젝트를 등록하세요.'); tab('pjt'); return; }
   const sup=supplierList(), cli=clientList();
-  estDraft={ editId:null, no:null, pjtId:pjtId||projects[0].id, title:'', date:new Date().toISOString().slice(0,10),
+  estDraft={ editId:null, no:null, pjtId:pjtId||(projects[0]?projects[0].id:''), title:'', date:new Date().toISOString().slice(0,10),
     clientId: cli[0]?.id||'', issuerId: (sup.find(c=>c.company==='제이에이치솔루션')?.id) || sup[0]?.id || '',
     issuerContact:'', clientContact:'', notes:'',
     authorDept:(me&&me.rank)||'', authorName:(me&&me.name)||'', authorEmail:(me&&me.email)||'',
@@ -778,7 +778,7 @@ function drawEstForm(){ const d=estDraft;
   <div class="card">
     ${d.editId?`<div class="void-banner" style="background:#fff3e0;color:#9a5a00;border-color:#f3e0c4">📝 개정 발행: 저장하면 원본 <b>${d.srcNo}</b>은 폐기 처리되고, 개정본이 새로 발행됩니다.</div>`:''}
     <div class="row2">
-      <div class="field"><label>프로젝트</label><select class="sel" onchange="setDraft('pjtId',this.value)">${projects.map(p=>`<option value="${p.id}" ${p.id===d.pjtId?'selected':''}>${p.code}</option>`).join('')}</select></div>
+      <div class="field"><label>프로젝트</label><select class="sel" onchange="setDraft('pjtId',this.value)">${projects.map(p=>`<option value="${p.id}" ${p.id===d.pjtId?'selected':''}>${p.code}</option>`).join('')}<option value="" ${!d.pjtId?'selected':''}>해당 없음</option></select></div>
       <div class="field"><label>작성일</label><input class="inp" type="date" value="${d.date}" onchange="setDraft('date',this.value)"></div>
     </div>
     <div class="row2">
@@ -891,7 +891,7 @@ window.openEst=function(id, fromPjtId){ const fromList=!!document.getElementById
       ${e.status==='void'?`<div class="void-banner">🚫 폐기된 견적입니다.${e.replacedBy?' 개정본: <b>'+e.replacedBy+'</b>':''} 집계에는 반영되지 않습니다.</div>`:''}${e.status==='closed'?`<div class="void-banner" style="background:#E6F1FB;color:#1D5BA6">🔒 종결된 견적입니다. 정산이 완료되어 유효 견적 집계에서 제외됩니다.</div>`:''}
       <div style="display:flex; justify-content:space-between; align-items:flex-start">
         <div><div style="font-size:16px;font-weight:800">${e.title}${(e.rev||1)>1?'<span class="rev-tag">개정 r'+e.rev+'</span>':''}</div>
-        <div class="small muted" style="margin-top:3px"><span class="pill">${p?p.code:'-'}</span> &nbsp;${e.no} · ${e.date}${(e.authorName||e.authorDept)?' · 작성자 '+[e.authorDept,e.authorName].filter(Boolean).join(' '):''}</div></div>
+        <div class="small muted" style="margin-top:3px"><span class="pill">${p?p.code:(e.pjtId?'-':'해당 없음')}</span> &nbsp;${e.no} · ${e.date}${(e.authorName||e.authorDept)?' · 작성자 '+[e.authorDept,e.authorName].filter(Boolean).join(' '):''}</div></div>
         <div style="display:flex;gap:6px">${isActive(e)?`<button class="btn line sm" onclick="editEst('${e.id}')">✏️ 수정(개정 발행)</button>`:''}<button class="btn line sm" onclick="printEst('${e.id}')">🖨 인쇄/PDF</button>${(e.status!=='void'&&e.status!=='closed')?`<button class="btn line sm" style="color:#5C6F8A;border-color:#9AAABF" onclick="closeEst('${e.id}')">🔒 종결</button>`:''}${(e.status==='closed')?`<button class="btn line sm" style="color:#1D5BA6" onclick="reopenEst('${e.id}')">종결 취소</button>`:''}<button class="btn gray sm" onclick="delEst('${e.id}')">삭제</button></div>
       </div>
       <div class="partybox">${partyHtml('발행처',e.issuer)}${partyHtml('수신처',e.client)}</div>
