@@ -1,4 +1,4 @@
-<!DOCTYPE html><!-- holiday-shared: 20261001 공휴일 목록을 공용 파일(holidays.js) 한 곳으로 일원화 --><!-- holiday-data: 20261001 공휴일 정비(2025~2027): 누락·오류 보정 --><!-- HR module build: 20261001r · ver 2.27.0 · 공고 관리 입력을 구인 공고식 선택지(경력·학력·고용형태·근무일시)로 변경 + 시간 입력 24시간 통일(공용 time24.js, 면접 일시는 날짜+24시간 두 칸) · 이전: HR module build: 20261001q · ver 2.26.0 · 공고 관리 신설(공고 등록·수정·마감·삭제, job_postings 컬렉션, 사람인 공고 양식 항목·새 공고 기본 문구 자동 채움) + 홈페이지 채용 소개·채용 공고·지원 폼 바로가기 · 이전: HR module build: 20261001p · ver 2.25.4 · 근로시간 현황 카드 하단에 이번 달 초과근로 시간·연장근로수당 집계 표시(급여명세서와 같은 계산식: 평일 소정 초과분×시급×1.5, 포괄임금제는 고정 연장수당) · 이전: HR module build: 20261001o · ver 2.25.3 · 지난 제안서에 🗑 삭제 버튼 추가(확인창 후 제안서와 회신기한 일정 함께 삭제) · 이전: HR module build: 20261001n · ver 2.25.2 · 채용 지원자 목록에 🗑 삭제 버튼 추가(확인창 후 지원자 문서와 면접 일정 함께 삭제) · 이전: HR module build: 20261001m · ver 2.25.1 · 근로자 민감 정보(주민번호·계좌·주소·서명) worker_private 분리 + 근로자 문서 ID를 주민번호 없는 임의 값으로 생성(중복 등록 차단) · 이전: build: 20261001k · ver 2.25.0 · 근로자 민감 정보 분리: 주민번호·계좌·주소·서명을 worker_private 문서로 이동(읽기는 합쳐서, 쓰기는 나눠서) · 이전: build: 20261001j · ver 2.24.3 · 공휴일 데이터 정비(2025~2027): 노동절·제헌절·부처님오신날·토요일 공휴일·대체공휴일 누락 보충, 2027 설날 연휴 오류 정정 · 이전: build: 20261001i · ver 2.24.2 · 인사 변동 화면 수정(직급·부서 목록 변수가 명부 상세 함수 안에서만 정의돼 ‘불러오는 중’에서 멈추던 오류 — 2.14.0부터) + 호봉 산정 수정(입사한 해는 1호봉, 다음 해 1/1부터 1~3분기 입사=2호봉·4분기 입사=1호봉) · 이전: build: 20261001g · ver 2.24.0 · 퇴직원서 출력(휴직원서 포함)·승인된 퇴직원서 퇴직일을 인사 캘린더 '퇴사' 일정으로 자동 반영 / 직전: ver 2.23.1 · 연봉 제안서: 출력은 미리보기 전용(저장·캘린더 등록 안 함), 💾 저장 버튼 신설(같은 건 덮어쓰기·캘린더 회신기한 1건 연동), 지난 제안서에서 열어서 수정 / 직전: ver 2.23.0 · 인사 캘린더 자동 등록 — 채용 지원자 면접일 입력 시 면접 일정, 연봉 제안서 출력·발송 시 회신 기한 일정 자동 등록(ID 고정으로 중복 방지) / 직전: ver 2.22.0 · 인사 캘린더에 연차 표시(전자결재 게시 연차를 회사 일정에서 읽기 전용으로 표시, 기간 연차는 주말·공휴일 제외, 날짜 선택 시 사용자 목록, ‘연차 표시’ 토글) / 직전: ver 2.21.0 · 인사 캘린더 — 날짜 클릭은 선택만(하단에 그날 일정 목록·‘이 날짜에 등록’ 버튼), 공휴일 표시(2025~2027, 노동절·제헌절·대체공휴일 반영) / 직전: ver 2.20.0 · 인사 홈 2단 개편(왼쪽 인사 캘린더·오른쪽 업무 메뉴 세로 배열) / 직전: ver 2.19.0 · 인사 캘린더 신설(면접·연봉제안서 회신·연봉협상·인사평가·기타, 지정 4명 한정) / 직전: ver 2.18.0 · 문서 메일 수신 주소: 명부 이메일이 없으면 포털 로그인 계정(@jhsol.kr)으로 자동 대체 / 직전: ver 2.17.1 · 급여명세서 PC 조회 화면에 메일 발송·링크/QR·발송 이력 추가 / 직전: ver 2.17.0 · 급여명세서 열람 링크(저장 당시 양식·180일)·메일 발송 이력·링크/QR / 직전: ver 2.16.0 · 저장 계약서 메일 재전송 + 발송 이력(doc_send_log) / 직전: ver 2.15.0 · 저장된 근로계약서·연봉계약서 근로자 본인 열람 링크(문자 인증, 180일, 저장 당시 양식으로 표시) / 직전: ver 2.14.0 · 인사 변동 메뉴 신설(직급·부서 변경 저장+호봉 초기화+이력, 연봉 조정은 근로계약서 작성으로 연결, 변동 현황 조회) · 이전: 20260925e ver 2.13.1 · 근로시간 캘린더 — 반차 쓰고 그날 일부 근무한 경우, 근무시간만 보이고 반차 여부가 안 보이던 문제 수정(🌴 표시 병기) · 이전: 20260925d ver 2.13.0 -->
+<!DOCTYPE html><!-- HR module build: 20261019a · ver 2.28.0 · 급여명세서: 모든 금액 칸에 마이너스(-) 입력 허용, 지급·공제 항목 직접 추가/수정/삭제(비과세 지정 가능), 미리보기·저장 양식·저장값에 반영(옛 저장본은 그대로) --><!-- holiday-shared: 20261001 공휴일 목록을 공용 파일(holidays.js) 한 곳으로 일원화 --><!-- holiday-data: 20261001 공휴일 정비(2025~2027): 누락·오류 보정 --><!-- HR module build: 20261001r · ver 2.27.0 · 공고 관리 입력을 구인 공고식 선택지(경력·학력·고용형태·근무일시)로 변경 + 시간 입력 24시간 통일(공용 time24.js, 면접 일시는 날짜+24시간 두 칸) · 이전: HR module build: 20261001q · ver 2.26.0 · 공고 관리 신설(공고 등록·수정·마감·삭제, job_postings 컬렉션, 사람인 공고 양식 항목·새 공고 기본 문구 자동 채움) + 홈페이지 채용 소개·채용 공고·지원 폼 바로가기 · 이전: HR module build: 20261001p · ver 2.25.4 · 근로시간 현황 카드 하단에 이번 달 초과근로 시간·연장근로수당 집계 표시(급여명세서와 같은 계산식: 평일 소정 초과분×시급×1.5, 포괄임금제는 고정 연장수당) · 이전: HR module build: 20261001o · ver 2.25.3 · 지난 제안서에 🗑 삭제 버튼 추가(확인창 후 제안서와 회신기한 일정 함께 삭제) · 이전: HR module build: 20261001n · ver 2.25.2 · 채용 지원자 목록에 🗑 삭제 버튼 추가(확인창 후 지원자 문서와 면접 일정 함께 삭제) · 이전: HR module build: 20261001m · ver 2.25.1 · 근로자 민감 정보(주민번호·계좌·주소·서명) worker_private 분리 + 근로자 문서 ID를 주민번호 없는 임의 값으로 생성(중복 등록 차단) · 이전: build: 20261001k · ver 2.25.0 · 근로자 민감 정보 분리: 주민번호·계좌·주소·서명을 worker_private 문서로 이동(읽기는 합쳐서, 쓰기는 나눠서) · 이전: build: 20261001j · ver 2.24.3 · 공휴일 데이터 정비(2025~2027): 노동절·제헌절·부처님오신날·토요일 공휴일·대체공휴일 누락 보충, 2027 설날 연휴 오류 정정 · 이전: build: 20261001i · ver 2.24.2 · 인사 변동 화면 수정(직급·부서 목록 변수가 명부 상세 함수 안에서만 정의돼 ‘불러오는 중’에서 멈추던 오류 — 2.14.0부터) + 호봉 산정 수정(입사한 해는 1호봉, 다음 해 1/1부터 1~3분기 입사=2호봉·4분기 입사=1호봉) · 이전: build: 20261001g · ver 2.24.0 · 퇴직원서 출력(휴직원서 포함)·승인된 퇴직원서 퇴직일을 인사 캘린더 '퇴사' 일정으로 자동 반영 / 직전: ver 2.23.1 · 연봉 제안서: 출력은 미리보기 전용(저장·캘린더 등록 안 함), 💾 저장 버튼 신설(같은 건 덮어쓰기·캘린더 회신기한 1건 연동), 지난 제안서에서 열어서 수정 / 직전: ver 2.23.0 · 인사 캘린더 자동 등록 — 채용 지원자 면접일 입력 시 면접 일정, 연봉 제안서 출력·발송 시 회신 기한 일정 자동 등록(ID 고정으로 중복 방지) / 직전: ver 2.22.0 · 인사 캘린더에 연차 표시(전자결재 게시 연차를 회사 일정에서 읽기 전용으로 표시, 기간 연차는 주말·공휴일 제외, 날짜 선택 시 사용자 목록, ‘연차 표시’ 토글) / 직전: ver 2.21.0 · 인사 캘린더 — 날짜 클릭은 선택만(하단에 그날 일정 목록·‘이 날짜에 등록’ 버튼), 공휴일 표시(2025~2027, 노동절·제헌절·대체공휴일 반영) / 직전: ver 2.20.0 · 인사 홈 2단 개편(왼쪽 인사 캘린더·오른쪽 업무 메뉴 세로 배열) / 직전: ver 2.19.0 · 인사 캘린더 신설(면접·연봉제안서 회신·연봉협상·인사평가·기타, 지정 4명 한정) / 직전: ver 2.18.0 · 문서 메일 수신 주소: 명부 이메일이 없으면 포털 로그인 계정(@jhsol.kr)으로 자동 대체 / 직전: ver 2.17.1 · 급여명세서 PC 조회 화면에 메일 발송·링크/QR·발송 이력 추가 / 직전: ver 2.17.0 · 급여명세서 열람 링크(저장 당시 양식·180일)·메일 발송 이력·링크/QR / 직전: ver 2.16.0 · 저장 계약서 메일 재전송 + 발송 이력(doc_send_log) / 직전: ver 2.15.0 · 저장된 근로계약서·연봉계약서 근로자 본인 열람 링크(문자 인증, 180일, 저장 당시 양식으로 표시) / 직전: ver 2.14.0 · 인사 변동 메뉴 신설(직급·부서 변경 저장+호봉 초기화+이력, 연봉 조정은 근로계약서 작성으로 연결, 변동 현황 조회) · 이전: 20260925e ver 2.13.1 · 근로시간 캘린더 — 반차 쓰고 그날 일부 근무한 경우, 근무시간만 보이고 반차 여부가 안 보이던 문제 수정(🌴 표시 병기) · 이전: 20260925d ver 2.13.0 -->
 <html lang="ko">
 <head><script src="../time24.js?v=20261001"></script><script src="../holidays.js?v=20261001"></script>
 <meta charset="UTF-8">
@@ -26,6 +26,8 @@
   const auth = getAuth(app);
   // 금액 입력창 실시간 콤마 포맷(1000단위마다 ,) 및 파싱 헬퍼
   window.fmtMoney = function(el){ const raw=el.value.replace(/[^0-9]/g,''); el.value = raw ? Number(raw).toLocaleString('ko-KR') : ''; };
+  // 급여명세서 금액 칸 전용: 맨 앞의 - 또는 −(유니코드 마이너스)를 부호로 인정(삭감·환급·조정). '-'만 입력한 중간 상태는 그대로 둔다.
+  window.fmtMoneyNeg = function(el){ const v=String(el.value||'').replace(/[−–]/g,'-'); const neg=/^\s*-/.test(v); const raw=v.replace(/[^0-9]/g,''); el.value=(neg?'-':'')+(raw?Number(raw).toLocaleString('ko-KR'):''); };
   window.numClean = function(v){ const n=parseFloat(String(v).replace(/[^0-9.\-]/g,'')); return isNaN(n)?0:n; };
 
   // 정산서 일반 script에서 접근할 수 있도록 window에 노출
@@ -1587,6 +1589,8 @@ let ps = {
   specialBonus: '', // 특별성과급
   extraPay: '',    // 특근수당
   dormitory: '',   // 기숙사 공제
+  customPay: [],     // 직접 추가한 지급 항목 [{name, amount, taxFree}] — 음수 가능, taxFree 면 지급계·4대보험 산정 제외(실지급액에만 더함)
+  customDeduct: [],  // 직접 추가한 공제 항목 [{name, amount}] — 음수는 환급·조정
 };
 
 // ── 급여명세서 디버그: 초과근로 연동 상태 확인 ──
@@ -1744,7 +1748,12 @@ function psCalcAll() {
   const extraPay    = Number(ps.extraPay||0);
   const techAllowance = Number(ps.techAllowance||0); // 기술수당(자격수당) — 일반 임금항목이라 지급계·4대보험 산정에 포함
   const travelAllowance = Number(ps.travelAllowance||0); // 실비변상적 금품(비과세) — 4대보험 산정 기준(totalPay)에서 제외
-  const totalPay    = sal.total + bonus + specialBonus + extraPay + techAllowance;
+  // 직접 추가 항목: 과세 지급은 지급계(4대보험·소득세 산정 기준)에 포함, 비과세 지급은 여비교통비처럼 실지급액에만 더함, 공제는 공제계에 포함
+  const customPay = psNormCustom(ps.customPay), customDeduct = psNormCustom(ps.customDeduct);
+  const customPayTaxable = customPay.filter(x=>!x.taxFree).reduce((s,x)=>s+x.amount,0);
+  const customPayTaxFree = customPay.filter(x=>x.taxFree).reduce((s,x)=>s+x.amount,0);
+  const customDeductTotal = customDeduct.reduce((s,x)=>s+x.amount,0);
+  const totalPay    = sal.total + bonus + specialBonus + extraPay + techAllowance + customPayTaxable;
 
   // 공제 (자동계산 후 직접 수정값 있으면 오버라이드)
   const _pension   = Math.round(totalPay * 0.045);
@@ -1760,16 +1769,19 @@ function psCalcAll() {
   const incomeTax  = ps._incomeTax !== undefined ? Number(ps._incomeTax) : _incomeTax;
   const localTax   = ps._localTax  !== undefined ? Number(ps._localTax)  : _localTax;
   const dormitory  = Number(ps.dormitory||0);
-  const totalDeduct = pension + health + ltcare + employ + dormitory + incomeTax + localTax;
-  const netPay      = totalPay - totalDeduct + travelAllowance;
+  const totalDeduct = pension + health + ltcare + employ + dormitory + incomeTax + localTax + customDeductTotal;
+  const netPay      = totalPay - totalDeduct + travelAllowance + customPayTaxFree;
 
   return { sal, bonus, specialBonus, extraPay, techAllowance, travelAllowance, totalPay,
             pension, health, ltcare, employ, dormitory, incomeTax, localTax,
-            totalDeduct, netPay };
+            totalDeduct, netPay, customPay, customDeduct, customPayTaxable, customPayTaxFree, customDeductTotal };
 }
 
-const psWon = v => v ? '₩'+Math.round(v).toLocaleString() : '-';
-const psWonR = v => '₩'+Math.round(v||0).toLocaleString();
+const psWon = v => v ? (v<0?'-':'')+'₩'+Math.abs(Math.round(v)).toLocaleString() : '-';
+const psWonR = v => { const n=Math.round(v||0); return (n<0?'-':'')+'₩'+Math.abs(n).toLocaleString(); };   // 음수는 -₩1,000
+// 공제 금액 표기: 공제는 -₩…, 환급·조정으로 음수면 +₩…
+const psDedWon = v => ((Number(v)||0)<0?'+':'-')+psWonR(Math.abs(Number(v)||0));
+const psEscH = s => String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
 
 const PS_PC_BP = 900;
 
@@ -1822,7 +1834,7 @@ window.renderPayslipPC = () => {
   if (!el) return;
   ps.view = 'pc';
   ps.workerData = null; ps.annualData = null;
-  ps.bonus=''; ps.specialBonus=''; ps.extraPay=''; ps.dormitory=''; ps.bankAccount='';
+  ps.bonus=''; ps.specialBonus=''; ps.extraPay=''; ps.dormitory=''; ps.bankAccount=''; ps.customPay=[]; ps.customDeduct=[];
   ps._pension=undefined; ps._health=undefined; ps._ltcare=undefined; ps._employ=undefined; ps._incomeTax=undefined; ps._localTax=undefined;
   ps._basic=undefined; ps._fixedOt=undefined; ps._fixedNight=undefined; ps._weekly=undefined; ps._holidayPay=undefined;
 
@@ -1892,7 +1904,7 @@ window.renderPayslipPC = () => {
 window.psPcMonthChange = (month) => {
   ps.month = month;
   ps.payDate = window.calcPayDateGlobal(month);
-  ps.annualData = null; ps.bonus=''; ps.specialBonus=''; ps.extraPay='';
+  ps.annualData = null; ps.bonus=''; ps.specialBonus=''; ps.extraPay=''; ps.customPay=[]; ps.customDeduct=[];
   const pd = document.getElementById('ps-pc-paydate');
   if (pd) pd.value = ps.payDate;
   // 선택된 근로자 있으면 재연동
@@ -1960,8 +1972,8 @@ window.renderPayslipPCRight = () => {
   const c = psCalcAll();
   const won = v => Number(v||0).toLocaleString()+'원';
   const inp = (id, val, ph='0') =>
-    `<input type="text" inputmode="numeric" id="${id}" value="${val?Number(val).toLocaleString('ko-KR'):''}" placeholder="${ph}"
-      oninput="fmtMoney(this)" onchange="ps.${id.replace('ps-','')}=numClean(this.value);renderPayslipPCRight()"
+    `<input type="text" inputmode="text" id="${id}" value="${val?Number(val).toLocaleString('ko-KR'):''}" placeholder="${ph}"
+      oninput="fmtMoneyNeg(this)" onchange="ps.${id.replace('ps-','')}=numClean(this.value);renderPayslipPCRight()"
       style="width:100%;padding:6px 10px;border:1px solid #DDE3EE;border-radius:7px;font-size:13px;box-sizing:border-box;">`;
 
   panel.innerHTML = `
@@ -1972,8 +1984,8 @@ window.renderPayslipPCRight = () => {
           ${[['기본근로수당','basic'],['연장근로수당','fixedOt'],['야간근로수당','fixedNight'],['주휴수당','weekly'],['휴일근로수당','holidayPay']]
             .map(([l,k])=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;border-bottom:1px solid #F0F4F9;">
               <span style="color:#5C6F8A;min-width:64px;">${l}</span>
-              <input type="text" inputmode="numeric" value="${Number(c.sal[k]||0).toLocaleString('ko-KR')}"
-                oninput="fmtMoney(this)" onchange="ps['_${k}']=this.value===''?undefined:numClean(this.value);renderPayslipPCRight()"
+              <input type="text" inputmode="text" value="${Number(c.sal[k]||0).toLocaleString('ko-KR')}"
+                oninput="fmtMoneyNeg(this)" onchange="ps['_${k}']=this.value===''?undefined:numClean(this.value);renderPayslipPCRight()"
                 style="width:120px;text-align:right;padding:3px 8px;border:1px solid #DDE3EE;border-radius:6px;font-size:12px;font-weight:600;color:#1A2540;box-sizing:border-box;"></div>`).join('')}
           <div style="font-size:10px;color:#9AAABF;line-height:1.6;background:#F7F9FC;border-radius:6px;padding:6px 8px;">
             실근무 ${(c.sal.attHours||0).toFixed(1)}h + 유급휴가 ${(c.sal.leaveHours||0).toFixed(1)}h = 인정 ${(c.sal.actualHours||0).toFixed(1)}h (기준 ${c.sal.standardHours||209}h)
@@ -2009,6 +2021,11 @@ window.renderPayslipPCRight = () => {
               <span style="font-weight:700;color:#1D5BA6;">${won2(ps.travelAllowance||0)}원</span>
             </div>
           </div>
+          <div>
+            <div style="color:#5C6F8A;margin-bottom:3px;">추가 지급 항목 <span style="font-size:9px;color:#9AAABF;">(직접 추가·수정, 금액에 - 가능, 비과세 체크 시 지급계 미포함)</span></div>
+            <div id="ps-custom-pay-list">${psRenderCustomItems('pay')}</div>
+            <button onclick="psCustomAdd('pay')" style="width:100%;padding:6px;background:#F0F4F9;border:none;border-radius:7px;color:#5C6F8A;font-size:11px;font-weight:600;cursor:pointer;margin-bottom:5px;">+ 지급 항목 추가</button>
+          </div>
           <div style="display:flex;justify-content:space-between;padding:7px 0;border-top:2px solid #DDE3EE;margin-top:4px;">
             <span style="font-weight:700;color:#1A2540;">지급계</span>
             <span style="font-weight:700;color:#1D5BA6;">${won(c.totalPay)}</span>
@@ -2021,15 +2038,20 @@ window.renderPayslipPCRight = () => {
           ${[['국민연금','pension','_pension'],['건강보험','health','_health'],['장기요양','ltcare','_ltcare'],['고용보험','employ','_employ'],['소득세','incomeTax','_incomeTax'],['지방소득세','localTax','_localTax']]
             .map(([l,k,pk])=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;border-bottom:1px solid #F0F4F9;">
               <span style="color:#5C6F8A;font-size:12px;min-width:64px;">${l}</span>
-              <input type="text" inputmode="numeric" value="${Number(c[k]||0).toLocaleString('ko-KR')}"
-                oninput="fmtMoney(this)" onchange="ps['${pk}']=this.value===''?undefined:numClean(this.value);renderPayslipPCRight()"
+              <input type="text" inputmode="text" value="${Number(c[k]||0).toLocaleString('ko-KR')}"
+                oninput="fmtMoneyNeg(this)" onchange="ps['${pk}']=this.value===''?undefined:numClean(this.value);renderPayslipPCRight()"
                 style="width:120px;text-align:right;padding:3px 8px;border:1px solid #DDE3EE;border-radius:6px;font-size:12px;font-weight:600;color:#1A2540;box-sizing:border-box;">
             </div>`).join('')}
           <div style="margin-top:4px;">
             <div style="color:#5C6F8A;margin-bottom:3px;">기숙사</div>
-            <input type="text" inputmode="numeric" id="ps-dormitory" value="${ps.dormitory?Number(ps.dormitory).toLocaleString('ko-KR'):''}" placeholder="0"
-              oninput="fmtMoney(this)" onchange="ps.dormitory=numClean(this.value);renderPayslipPCRight()"
+            <input type="text" inputmode="text" id="ps-dormitory" value="${ps.dormitory?Number(ps.dormitory).toLocaleString('ko-KR'):''}" placeholder="0"
+              oninput="fmtMoneyNeg(this)" onchange="ps.dormitory=numClean(this.value);renderPayslipPCRight()"
               style="width:100%;padding:6px 10px;border:1px solid #DDE3EE;border-radius:7px;font-size:13px;box-sizing:border-box;">
+          </div>
+          <div>
+            <div style="color:#5C6F8A;margin-bottom:3px;">추가 공제 항목 <span style="font-size:9px;color:#9AAABF;">(직접 추가·수정, 금액에 - 를 넣으면 환급·조정)</span></div>
+            <div id="ps-custom-ded-list">${psRenderCustomItems('ded')}</div>
+            <button onclick="psCustomAdd('ded')" style="width:100%;padding:6px;background:#F0F4F9;border:none;border-radius:7px;color:#5C6F8A;font-size:11px;font-weight:600;cursor:pointer;margin-bottom:5px;">+ 공제 항목 추가</button>
           </div>
           <div style="display:flex;justify-content:space-between;padding:7px 0;border-top:2px solid #DDE3EE;margin-top:4px;">
             <span style="font-weight:700;color:#1A2540;">공제계</span>
@@ -2149,7 +2171,7 @@ window.renderPayslipWrite = async () => {
   const el = document.getElementById('tab-payslip');
   ps.view = 'write';
   ps.workerData = null; ps.annualData = null;
-  ps.bonus=''; ps.specialBonus=''; ps.extraPay=''; ps.dormitory=''; ps.bankAccount='';
+  ps.bonus=''; ps.specialBonus=''; ps.extraPay=''; ps.dormitory=''; ps.bankAccount=''; ps.customPay=[]; ps.customDeduct=[];
   ps._pension=undefined; ps._health=undefined; ps._ltcare=undefined; ps._employ=undefined; ps._incomeTax=undefined; ps._localTax=undefined;
   ps._basic=undefined; ps._fixedOt=undefined; ps._fixedNight=undefined; ps._weekly=undefined; ps._holidayPay=undefined;
 
@@ -2302,24 +2324,24 @@ function renderPayslipWriteForm(el, workers, months, calcPayDate) {
         ` : `<div style="text-align:center;padding:16px;font-size:12px;color:${C2.mute};">⚠️ 연봉계약서를 먼저 등록해야 지급내역이 자동 연동됩니다.</div>`}
       </div>
       ${field2('상여금', `
-        <input type="text" inputmode="numeric" value="${ps.bonus?Number(ps.bonus).toLocaleString('ko-KR'):''}" placeholder="0"
-          oninput="fmtMoney(this);ps.bonus=numClean(this.value);window.psRefresh();" ${inp2Style}>
+        <input type="text" inputmode="text" value="${ps.bonus?Number(ps.bonus).toLocaleString('ko-KR'):''}" placeholder="0"
+          oninput="fmtMoneyNeg(this);ps.bonus=numClean(this.value);window.psRefresh();" ${inp2Style}>
         <div style="display:flex;align-items:center;gap:6px;margin-top:4px;">
           <div style="font-size:10px;color:#9AAABF;flex:1;">⏱ 초과근로 탭 해당 월 누계 수당 자동 연동 · 직접 수정 가능</div>
           <button onclick="psDebugOT()" style="font-size:10px;padding:2px 8px;background:#F0F4F9;border:1px solid #DDE4EF;border-radius:6px;color:#5C6F8A;cursor:pointer;white-space:nowrap;">🔍 연동 확인</button>
         </div>
         <div id="ps-ot-debug" style="display:none;margin-top:6px;font-size:11px;background:#F8FAFD;border-radius:6px;padding:8px 10px;color:#5C6F8A;"></div>
       `)}
-      ${field2('특별성과급', `<input type="text" inputmode="numeric" value="${ps.specialBonus?Number(ps.specialBonus).toLocaleString('ko-KR'):''}" placeholder="0"
-        oninput="fmtMoney(this)" onchange="ps.specialBonus=numClean(this.value);window.psRefresh();" ${inp2Style}>`)}
+      ${field2('특별성과급', `<input type="text" inputmode="text" value="${ps.specialBonus?Number(ps.specialBonus).toLocaleString('ko-KR'):''}" placeholder="0"
+        oninput="fmtMoneyNeg(this)" onchange="ps.specialBonus=numClean(this.value);window.psRefresh();" ${inp2Style}>`)}
       ${field2('특근수당', `
-        <input type="text" inputmode="numeric" value="${ps.extraPay?Number(ps.extraPay).toLocaleString('ko-KR'):''}" placeholder="0"
-          oninput="fmtMoney(this)" onchange="ps.extraPay=numClean(this.value);window.psRefresh();" ${inp2Style}>
+        <input type="text" inputmode="text" value="${ps.extraPay?Number(ps.extraPay).toLocaleString('ko-KR'):''}" placeholder="0"
+          oninput="fmtMoneyNeg(this)" onchange="ps.extraPay=numClean(this.value);window.psRefresh();" ${inp2Style}>
 
       `)}
       ${field2('기술수당', `
-        <input type="text" inputmode="numeric" value="${ps.techAllowance?Number(ps.techAllowance).toLocaleString('ko-KR'):''}" placeholder="0"
-          oninput="fmtMoney(this)" onchange="ps.techAllowance=numClean(this.value);window.psRefresh();" ${inp2Style}>
+        <input type="text" inputmode="text" value="${ps.techAllowance?Number(ps.techAllowance).toLocaleString('ko-KR'):''}" placeholder="0"
+          oninput="fmtMoneyNeg(this)" onchange="ps.techAllowance=numClean(this.value);window.psRefresh();" ${inp2Style}>
         <div style="font-size:10px;color:#9AAABF;margin-top:4px;">🎓 보유 자격증 ${(ps.workerData?.certifications||[]).filter(c=>c&&c.trim()).length}개 × ${won2(_techAllowanceConfig.perCert)}원 (상한 없음) — 명부에서 자격증 목록 관리</div>
       `)}
       ${field2('여비교통비', `
@@ -2334,6 +2356,11 @@ function renderPayslipWriteForm(el, workers, months, calcPayDate) {
           <span style="font-weight:700;color:#1D5BA6;">${won2(ps.travelAllowance||0)}원</span>
         </div>
         <div style="font-size:10px;color:#9AAABF;margin-top:4px;">🚗 실비변상적 성격의 현장수당(비과세) — 지급계엔 안 잡히고 실지급액에만 별도로 더해집니다</div>
+      `)}
+      ${field2('추가 지급 항목', `
+        <div style="font-size:10px;color:#9AAABF;margin-bottom:6px;">직접 추가·수정 · 금액에 - 가능 · 비과세 체크 시 지급계 미포함(실지급액에만 더함)</div>
+        <div id="ps-custom-pay-list-mobile">${psRenderCustomItems('pay', true)}</div>
+        <button onclick="psCustomAdd('pay')" style="width:100%;padding:8px;background:#F0F4F9;border:none;border-radius:8px;color:#5C6F8A;font-size:12px;font-weight:600;cursor:pointer;margin:2px 0 4px;">+ 지급 항목 추가</button>
       `)}
       <div style="display:flex;justify-content:space-between;padding:10px 12px;background:#E8F0FB;border-radius:8px;font-size:14px;font-weight:700;margin-top:4px;">
         <span style="color:${C2.blue};">지급계</span>
@@ -2358,9 +2385,14 @@ function renderPayslipWriteForm(el, workers, months, calcPayDate) {
       </div>
       <div style="margin-bottom:10px;">
         <div style="font-size:11px;font-weight:700;color:${C2.sub};margin-bottom:5px;">기숙사 공제</div>
-        <input type="text" inputmode="numeric" id="ps-dormitory-input" value="${ps.dormitory?Number(ps.dormitory).toLocaleString('ko-KR'):''}" placeholder="0"
-          oninput="fmtMoney(this)" onchange="ps.dormitory=numClean(this.value);window.psRefresh();"
+        <input type="text" inputmode="text" id="ps-dormitory-input" value="${ps.dormitory?Number(ps.dormitory).toLocaleString('ko-KR'):''}" placeholder="0"
+          oninput="fmtMoneyNeg(this)" onchange="ps.dormitory=numClean(this.value);window.psRefresh();"
           style="width:100%;border:1px solid #DDE4EF;border-radius:8px;padding:9px 12px;font-size:13px;color:#1A2540;background:#FAFCFF;box-sizing:border-box;">
+      </div>
+      <div style="margin-bottom:10px;">
+        <div style="font-size:11px;font-weight:700;color:${C2.sub};margin-bottom:5px;">추가 공제 항목 <span style="font-weight:400;color:${C2.mute};">· 직접 추가·수정, 금액에 - 를 넣으면 환급·조정</span></div>
+        <div id="ps-custom-ded-list-mobile">${psRenderCustomItems('ded', true)}</div>
+        <button onclick="psCustomAdd('ded')" style="width:100%;padding:8px;background:#F0F4F9;border:none;border-radius:8px;color:#5C6F8A;font-size:12px;font-weight:600;cursor:pointer;">+ 공제 항목 추가</button>
       </div>
       <div style="display:flex;justify-content:space-between;padding:10px 12px;background:#FEE2E2;border-radius:8px;font-size:14px;font-weight:700;">
         <span style="color:#DC2626;">공제계</span>
@@ -2413,7 +2445,7 @@ window.psPreview = () => {
   const deductRow = (l, v, note='') => `
     <tr>
       <td style="padding:8px 10px;border:1px solid #E4EAF2;font-size:10pt;white-space:nowrap;">${l}</td>
-      <td style="padding:8px 10px;border:1px solid #E4EAF2;text-align:right;font-size:10pt;font-weight:700;color:#DC2626;white-space:nowrap;">-${psWonR(v)}</td>
+      <td style="padding:8px 10px;border:1px solid #E4EAF2;text-align:right;font-size:10pt;font-weight:700;color:#DC2626;white-space:nowrap;">${(Number(v)||0)<0?'+':'-'}${psWonR(Math.abs(Number(v)||0))}</td>
       <td style="padding:8px 10px;border:1px solid #E4EAF2;font-size:8.5pt;color:#8A96A8;">${note}</td>
     </tr>`;
 
@@ -2495,7 +2527,7 @@ window.psPreview = () => {
               if(it.type==='longtrip') return `${it.tripCount||1}회×${psWonR(it.perTrip||0)}(왕복KTX)`;
               if(it.type) return `${it.days||1}일×${psWonR(PS_TRAVEL_PER_DAY[it.type]||0)}(${PS_TRAVEL_TYPE_LABEL[it.type].replace(/[^가-힣]/g,'').slice(0,4)})`;
               return null;
-            }).filter(Boolean).join(' + ') || '비과세, 지급계 미포함')+' · 비과세, 지급계 미포함':'해당없음')}
+            }).filter(Boolean).join(' + ') || '비과세, 지급계 미포함')+' · 비과세, 지급계 미포함':'해당없음')}${psCustomPayRowsHtml(c, payRow)}
             <tr style="background:#E8F0FB;">
               <td style="padding:9px 10px;border:1px solid #DDE4EF;font-weight:800;color:#1D5BA6;white-space:nowrap;">지급계</td>
               <td style="padding:9px 10px;border:1px solid #DDE4EF;text-align:right;font-weight:800;color:#1D5BA6;white-space:nowrap;">${psWonR(c.totalPay)}</td>
@@ -2518,10 +2550,10 @@ window.psPreview = () => {
             ${deductRow('고용보험', c.employ, '월 보수액 × 0.9%')}
             ${deductRow('소득세', c.incomeTax, '간이세액표')}
             ${deductRow('지방소득세', c.localTax, '소득세 × 10%')}
-            ${c.dormitory?deductRow('기숙사', c.dormitory, '직접 입력'):''}
+            ${c.dormitory?deductRow('기숙사', c.dormitory, '직접 입력'):''}${psCustomDeductRowsHtml(c, deductRow)}
             <tr style="background:#FEE2E2;">
               <td style="padding:9px 10px;border:1px solid #DDE4EF;font-weight:800;color:#DC2626;white-space:nowrap;">공제계</td>
-              <td style="padding:9px 10px;border:1px solid #DDE4EF;text-align:right;font-weight:800;color:#DC2626;white-space:nowrap;">-${psWonR(c.totalDeduct)}</td>
+              <td style="padding:9px 10px;border:1px solid #DDE4EF;text-align:right;font-weight:800;color:#DC2626;white-space:nowrap;">${psDedWon(c.totalDeduct)}</td>
               <td style="padding:9px 10px;border:1px solid #DDE4EF;"></td>
             </tr>
           </tbody>
@@ -2572,6 +2604,52 @@ const PS_TRAVEL_TYPE_LABEL = {
 function psTravelRefreshPanel(){
   if (document.getElementById('ps-pc-right')) renderPayslipPCRight();
   else if (window.psRefresh) window.psRefresh();
+}
+
+// ── 지급·공제 항목 직접 추가/수정/삭제 (대표님 요청 2026-10-19) ──
+// customPay: [{name, amount, taxFree}] — 과세(기본)는 지급계·4대보험·소득세 산정에 포함, 비과세는 여비교통비처럼 실지급액에만 더함
+// customDeduct: [{name, amount}] — 공제계에 포함, 음수(-)는 환급·조정. 이름과 금액이 모두 비어 있는 줄은 저장·계산에서 무시한다.
+function psNormCustom(list){
+  return (Array.isArray(list) ? list : []).map(x=>({ name:String((x&&x.name)||'').trim().slice(0,40), amount:Math.round(Number(x&&x.amount)||0), taxFree:!!(x&&x.taxFree) })).filter(x=>x.name||x.amount);
+}
+window.psCustomAdd = function(kind){
+  const k = kind==='ded' ? 'customDeduct' : 'customPay';
+  ps[k] = Array.isArray(ps[k]) ? ps[k] : []; ps[k].push({ name:'', amount:0, taxFree:false });
+  psTravelRefreshPanel();
+};
+window.psCustomDel = function(kind, i){
+  const k = kind==='ded' ? 'customDeduct' : 'customPay'; if (!Array.isArray(ps[k])) return;
+  ps[k].splice(i,1); psTravelRefreshPanel();
+};
+window.psCustomSet = function(kind, i, field, value){
+  const k = kind==='ded' ? 'customDeduct' : 'customPay'; const it = (ps[k]||[])[i]; if (!it) return;
+  if (field==='name') it.name = String(value||'').slice(0,40);
+  else if (field==='amount') it.amount = Math.round(numClean(value));
+  else if (field==='taxFree') it.taxFree = !!value;
+  psTravelRefreshPanel();
+};
+function psRenderCustomItems(kind, mobile){
+  const k = kind==='ded' ? 'customDeduct' : 'customPay';
+  ps[k] = Array.isArray(ps[k]) ? ps[k] : [];
+  const word = kind==='ded' ? '공제' : '지급';
+  if (!ps[k].length) return `<div style="font-size:${mobile?'12px':'11px'};color:#9AAABF;padding:4px 2px;">추가한 ${word} 항목이 없습니다. 아래 버튼으로 직접 추가하세요.</div>`;
+  const fs = mobile ? {inp:'13px',small:'11px',pad:'10px'} : {inp:'12px',small:'10px',pad:'7px'};
+  const inpStyle = `padding:5px 8px;border:1px solid #DDE3EE;border-radius:6px;font-size:${fs.inp};box-sizing:border-box;font-family:inherit;`;
+  return ps[k].map((it,i)=>`<div style="border:1px solid #E4EAF2;border-radius:8px;padding:${fs.pad};margin-bottom:6px;background:#FAFCFE;">
+      <div style="display:flex;gap:6px;align-items:center;">
+        <input type="text" value="${psEscH(it.name)}" placeholder="항목명" maxlength="40" onchange="psCustomSet('${kind}',${i},'name',this.value)" style="flex:1;min-width:0;${inpStyle}">
+        <input type="text" inputmode="text" value="${it.amount?Number(it.amount).toLocaleString('ko-KR'):''}" placeholder="금액(-가능)" oninput="fmtMoneyNeg(this)" onchange="psCustomSet('${kind}',${i},'amount',this.value)" style="width:${mobile?'120px':'100px'};text-align:right;${inpStyle}">
+        <button onclick="psCustomDel('${kind}',${i})" style="background:#FEE2E2;border:none;border-radius:6px;color:#DC2626;padding:5px 9px;font-size:${fs.small};cursor:pointer;flex-shrink:0;">삭제</button>
+      </div>
+      ${kind==='ded' ? '' : `<label style="display:flex;align-items:center;gap:5px;margin-top:5px;font-size:${fs.small};color:#5C6F8A;cursor:pointer;"><input type="checkbox" ${it.taxFree?'checked':''} onchange="psCustomSet('pay',${i},'taxFree',this.checked)"> 비과세 (지급계·4대보험 산정 제외, 실지급액에만 더함)</label>`}
+    </div>`).join('');
+}
+// 양식(미리보기·저장 양식)에 넣을 직접 추가 항목 행
+function psCustomPayRowsHtml(c, payRow){
+  return (c.customPay||[]).map(x=>payRow(psEscH(x.name)||'(항목명 없음)', psWonR(x.amount), x.taxFree ? '직접 추가 · 비과세, 지급계 미포함' : '직접 추가')).join('');
+}
+function psCustomDeductRowsHtml(c, deductRow){
+  return (c.customDeduct||[]).map(x=>deductRow(psEscH(x.name)||'(항목명 없음)', x.amount, x.amount<0 ? '직접 추가 · 환급·조정' : '직접 추가')).join('');
 }
 
 // 근로시간 탭에서 체크해 둔 출장 기록(이동유형 포함)을 이번 달 여비교통비로 한번에 채워 넣는다.
@@ -2676,6 +2754,7 @@ window.psSave = async () => {
       hourly: ps.annualData?.hourly||0, empType: ps.workerData?.empType||'field',
       ...c.sal,
       bonus: c.bonus, specialBonus: c.specialBonus, extraPay: c.extraPay, techAllowance: c.techAllowance, travelAllowance: c.travelAllowance, travelItems: ps.travelItems||[],
+      customPay: c.customPay, customDeduct: c.customDeduct,
       grossPay: c.totalPay,
       pension: c.pension, health: c.health, ltcare: c.ltcare, employ: c.employ,
       dormitory: c.dormitory, incomeTax: c.incomeTax, localTax: c.localTax,
@@ -2796,6 +2875,7 @@ window.psSave = async () => {
       hourly: ps.annualData?.hourly||0, empType: ps.workerData?.empType||'field',
       ...c.sal,
       bonus: c.bonus, specialBonus: c.specialBonus, extraPay: c.extraPay, techAllowance: c.techAllowance, travelAllowance: c.travelAllowance, travelItems: ps.travelItems||[],
+      customPay: c.customPay, customDeduct: c.customDeduct,
       grossPay: c.totalPay,
       pension: c.pension, health: c.health, ltcare: c.ltcare, employ: c.employ,
       dormitory: c.dormitory, incomeTax: c.incomeTax, localTax: c.localTax,
@@ -5765,7 +5845,8 @@ function __psSavedC(d) {
   };
   return { sal, bonus:N(d.bonus), specialBonus:N(d.specialBonus), extraPay:N(d.extraPay), techAllowance:N(d.techAllowance), travelAllowance:N(d.travelAllowance),
     totalPay:N(d.grossPay), pension:N(d.pension), health:N(d.health), ltcare:N(d.ltcare), employ:N(d.employ), dormitory:N(d.dormitory),
-    incomeTax:N(d.incomeTax), localTax:N(d.localTax), totalDeduct:N(d.totalDeduct), netPay:N(d.netPay) };
+    incomeTax:N(d.incomeTax), localTax:N(d.localTax), totalDeduct:N(d.totalDeduct), netPay:N(d.netPay),
+    customPay:psNormCustom(d.customPay), customDeduct:psNormCustom(d.customDeduct) };   // 직접 추가 항목(없던 옛 저장본은 빈 목록)
 }
 
 function __calcAnnualSalary_v0(hourly, empType) {
@@ -7314,7 +7395,7 @@ function __psHtml_v5(d0) {
   const deductRow = (l, v, note='') => `
     <tr>
       <td style="padding:8px 10px;border:1px solid #E4EAF2;font-size:10pt;white-space:nowrap;">${l}</td>
-      <td style="padding:8px 10px;border:1px solid #E4EAF2;text-align:right;font-size:10pt;font-weight:700;color:#DC2626;white-space:nowrap;">-${psWonR(v)}</td>
+      <td style="padding:8px 10px;border:1px solid #E4EAF2;text-align:right;font-size:10pt;font-weight:700;color:#DC2626;white-space:nowrap;">${(Number(v)||0)<0?'+':'-'}${psWonR(Math.abs(Number(v)||0))}</td>
       <td style="padding:8px 10px;border:1px solid #E4EAF2;font-size:8.5pt;color:#8A96A8;">${note}</td>
     </tr>`;
 
@@ -7395,7 +7476,7 @@ function __psHtml_v5(d0) {
               if(it.type==='longtrip') return `${it.tripCount||1}회×${psWonR(it.perTrip||0)}(왕복KTX)`;
               if(it.type) return `${it.days||1}일×${psWonR(PS_TRAVEL_PER_DAY[it.type]||0)}(${PS_TRAVEL_TYPE_LABEL[it.type].replace(/[^가-힣]/g,'').slice(0,4)})`;
               return null;
-            }).filter(Boolean).join(' + ') || '비과세, 지급계 미포함')+' · 비과세, 지급계 미포함':'해당없음')}
+            }).filter(Boolean).join(' + ') || '비과세, 지급계 미포함')+' · 비과세, 지급계 미포함':'해당없음')}${psCustomPayRowsHtml(c, payRow)}
             <tr style="background:#E8F0FB;">
               <td style="padding:9px 10px;border:1px solid #DDE4EF;font-weight:800;color:#1D5BA6;white-space:nowrap;">지급계</td>
               <td style="padding:9px 10px;border:1px solid #DDE4EF;text-align:right;font-weight:800;color:#1D5BA6;white-space:nowrap;">${psWonR(c.totalPay)}</td>
@@ -7418,10 +7499,10 @@ function __psHtml_v5(d0) {
             ${deductRow('고용보험', c.employ, '월 보수액 × 0.9%')}
             ${deductRow('소득세', c.incomeTax, '간이세액표')}
             ${deductRow('지방소득세', c.localTax, '소득세 × 10%')}
-            ${c.dormitory?deductRow('기숙사', c.dormitory, '직접 입력'):''}
+            ${c.dormitory?deductRow('기숙사', c.dormitory, '직접 입력'):''}${psCustomDeductRowsHtml(c, deductRow)}
             <tr style="background:#FEE2E2;">
               <td style="padding:9px 10px;border:1px solid #DDE4EF;font-weight:800;color:#DC2626;white-space:nowrap;">공제계</td>
-              <td style="padding:9px 10px;border:1px solid #DDE4EF;text-align:right;font-weight:800;color:#DC2626;white-space:nowrap;">-${psWonR(c.totalDeduct)}</td>
+              <td style="padding:9px 10px;border:1px solid #DDE4EF;text-align:right;font-weight:800;color:#DC2626;white-space:nowrap;">${psDedWon(c.totalDeduct)}</td>
               <td style="padding:9px 10px;border:1px solid #DDE4EF;"></td>
             </tr>
           </tbody>
