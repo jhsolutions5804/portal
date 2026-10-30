@@ -3527,6 +3527,8 @@ function openModule(m, tab, overrideUrl){
   if((m.key==='plan'||m.key==='hr') && !(me&&me.admin)){ toast('기획/인사는 관리자만 접근할 수 있습니다.'); return; }
  // 2026-10-30 P5(영업기획 전환): 기획 메뉴는 새 플랫폼 화면으로 연다(같은 데이터). 되돌리려면 아래 한 줄을 지운다.
  if(m.key==='plan' && !overrideUrl){ location.href='app/#/plan'; return; }
+ // 2026-10-30 P6(인사총무 전환): 인사 메뉴도 새 플랫폼 화면으로 연다(같은 데이터). 되돌리려면 아래 한 줄을 지운다.
+ if(m.key==='hr' && !overrideUrl){ location.href='app/#/hr'; return; }
   const actualUrl=overrideUrl||m.url;
   if(tab==='pjt_home'||m.key==='pjt'&&tab===null){
     showPjtHome(); return;
