@@ -1,0 +1,42 @@
+/* 옛 모듈 어댑터: 플랫폼 본문 안에 옛 페이지(iframe)를 꽉 채워 넣는다.
+   옛 페이지가 자기 스크롤을 가지므로, 어댑터가 열려 있는 동안 틀(.jh-app[data-legacy])은 화면 높이에 맞추고
+   본문(.jh-main--legacy)이 남은 높이를 채운다 — 상단바 높이를 숫자로 빼지 않아 기기마다 어긋나지 않는다. */
+.jh-app[data-legacy] { box-sizing: border-box; height: 100vh; height: 100dvh; min-height: 0; overflow: hidden; }
+.jh-app[data-legacy] .jh-body { min-height: 0; }
+.jh-keep { display: flex; flex: 1 1 auto; flex-direction: column; min-height: 0; padding: 0; }
+.jh-keep[hidden], .jh-legacy[hidden] { display: none; }
+.jh-legacy { display: flex; flex: 1 1 auto; flex-direction: column; min-height: 0; }
+.jh-legacy__nav { display: flex; flex: 0 0 auto; gap: var(--sp-2); padding: var(--sp-2) var(--sp-4); overflow-x: auto; background: var(--c-surface); border-bottom: var(--u-1) solid var(--c-line); }
+.jh-legacy__chip { display: inline-flex; flex: 0 0 auto; align-items: center; min-height: var(--u-44); padding: 0 var(--sp-4); border: var(--u-1) solid var(--c-line); border-radius: var(--radius); background: var(--c-surface); color: var(--c-ink-2); font-size: var(--fs-sm); font-weight: 700; white-space: nowrap; text-decoration: none; }
+.jh-legacy__chip[aria-current="page"] { background: var(--c-primary); border-color: var(--c-primary); color: var(--c-primary-ink); }
+.jh-legacy__frame { display: block; flex: 1 1 auto; width: 100%; min-height: 0; border: 0; background: var(--c-surface); }
+@media (max-width: 899px) {
+  .jh-app[data-legacy] { padding-bottom: calc(var(--u-56) + var(--u-1) + env(safe-area-inset-bottom, 0px)); }   /* 하단 막대(고정) 높이만큼 비움 */
+  .jh-legacy__nav--wide { display: none; }   /* 기획은 폰에서 자체 탭이 보이므로 플랫폼 칩은 PC에서만 */
+}
+/* 폰 PJT 바로가기(출역·공수 체크 / 일정 확인): 폰의 PJT 홈에서만 보인다 */
+.jh-legacy__quick { display: none; flex: 0 0 auto; gap: var(--sp-2); padding: var(--sp-2) var(--sp-3); background: var(--c-surface); border-bottom: var(--u-1) solid var(--c-line); }
+.jh-legacy__quick .jh-btn { flex: 1 1 0; min-width: 0; min-height: var(--u-56); font-weight: 800; text-decoration: none; }
+@media (max-width: 899px) { .jh-legacy__quick[data-show="true"] { display: flex; } }
+/* 자동 로그아웃 예고 창(.jh-idle): 일반 대화창 위에 한 겹 더 — 옛 모듈 화면(iframe)보다 항상 위 */
+.jh-idle { z-index: var(--z-toast); }
+
+.jh-legacy__frame[hidden], .jh-legacy__native[hidden] { display: none; }
+.jh-legacy__native { flex: 1 1 auto; min-height: 0; overflow: auto; padding: var(--sp-4); }
+
+/* 두 단계 메뉴(인사 / 총무): 위 줄은 큰 갈래, 아래 줄은 단계별(채용·입사·재직·변동·퇴사) 메뉴 */
+.jh-legacy__nav--groups { flex-direction: column; flex-wrap: nowrap; overflow: visible; gap: var(--sp-2); }
+.jh-legacy__row { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2); }
+.jh-legacy__chip--group { padding: 0 var(--sp-6); font-size: var(--fs-md); }
+.jh-legacy__row--sub { padding-top: var(--sp-2); border-top: var(--u-1) solid var(--c-line); }
+.jh-legacy__chip--sub { min-height: var(--u-36, 2.25rem); padding: 0 var(--sp-3); font-weight: 600; }
+.jh-legacy__grp { margin-left: var(--sp-3); padding-left: var(--sp-3); border-left: var(--u-1) solid var(--c-line-strong); color: var(--c-ink-3); font-size: var(--fs-xs); font-weight: 700; white-space: nowrap; }
+.jh-legacy__hint { margin-left: var(--sp-3); color: var(--c-ink-3); font-size: var(--fs-xs); }
+
+/* 인사총무: 메뉴를 왼쪽 사이드바로(넓은 화면). 화면(iframe·새 화면 영역)은 사이드바 오른쪽을 채운다 */
+.jh-legacy[data-side] { flex-direction: row; }
+.jh-legacy[data-side] > .jh-sidenav { align-self: stretch; }
+.jh-legacy[data-side] > .jh-legacy__frame, .jh-legacy[data-side] > .jh-legacy__native { flex: 1 1 0; min-width: 0; }
+@media (max-width: 899px) { .jh-legacy[data-side] { flex-direction: column; } .jh-legacy[data-side] > .jh-legacy__frame, .jh-legacy[data-side] > .jh-legacy__native { flex: 1 1 auto; min-height: 0; } }
+
+.jh-legacy__subnav { display: flex; flex: 0 0 auto; gap: var(--sp-2); padding: var(--sp-2) var(--sp-4); overflow-x: auto; background: var(--c-surface); border-bottom: var(--u-1) solid var(--c-line); }

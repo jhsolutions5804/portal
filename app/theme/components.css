@@ -1,0 +1,138 @@
+.jh-btn { display: inline-flex; align-items: center; justify-content: center; gap: var(--sp-2); min-height: var(--u-40); padding: 0 var(--sp-4); border-radius: var(--radius-sm); border: var(--u-1) solid var(--c-line-strong); background: var(--c-surface); font-size: var(--fs-sm); font-weight: 600; }
+.jh-btn[data-variant="primary"] { background: var(--c-primary); border-color: var(--c-primary); color: var(--c-primary-ink); }
+.jh-btn[data-variant="danger"] { background: var(--c-danger); border-color: var(--c-danger); color: var(--c-on-danger); }
+.jh-btn[data-variant="ghost"] { background: transparent; border-color: transparent; color: var(--c-ink-2); }
+.jh-btn:disabled { opacity: .55; cursor: default; }
+.jh-card { background: var(--c-surface); border: var(--u-1) solid var(--c-line); border-radius: var(--radius); box-shadow: var(--shadow-1); }
+.jh-field { display: block; margin-bottom: var(--sp-3); }
+.jh-field__label { display: block; font-size: var(--fs-xs); color: var(--c-ink-2); margin-bottom: var(--sp-1); font-weight: 600; }
+.jh-input, .jh-select { width: 100%; min-height: var(--u-40); padding: 0 var(--sp-3); border: var(--u-1) solid var(--c-line-strong); border-radius: var(--radius-sm); background: var(--c-surface); font-size: var(--fs-sm); }
+.jh-input:focus, .jh-select:focus { outline: var(--u-2) solid var(--c-primary-weak); border-color: var(--c-primary); }
+.jh-badge { display: inline-block; padding: var(--u-2) var(--u-10); border-radius: var(--u-999); font-size: var(--fs-xs); font-weight: 700; white-space: nowrap; background: var(--st-draft-bg); color: var(--st-draft-fg); }
+.jh-badge[data-status="pending"] { background: var(--st-pending-bg); color: var(--st-pending-fg); }
+.jh-badge[data-status="reviewing"] { background: var(--st-reviewing-bg); color: var(--st-reviewing-fg); }
+.jh-badge[data-status="approved"] { background: var(--st-approved-bg); color: var(--st-approved-fg); }
+.jh-badge[data-status="rejected"] { background: var(--st-rejected-bg); color: var(--st-rejected-fg); }
+.jh-badge[data-status="posted"] { background: var(--st-posted-bg); color: var(--st-posted-fg); }
+/* 의미 색(data-tone): 이력의 기한 칩·상태 칩 등. 위험 = 지남·오늘 마감(빨강), 주의 = 내일 마감·대외비·보류(주황), 정보 = 회신됨, 강조 = 처리 중·완료. 칩(.jh-chip)이 쓰는 색 토큰을 그대로 재사용 */
+.jh-badge[data-tone="danger"] { background: var(--c-danger); color: var(--c-on-danger); }
+.jh-badge[data-tone="warn"] { background: var(--c-warn-bg); color: var(--c-warn-ink); }
+.jh-badge[data-tone="info"] { background: var(--c-primary-weak); color: var(--c-primary-strong); }
+.jh-badge[data-tone="accent"] { background: var(--c-primary-weak); color: var(--c-primary-strong); }
+.jh-badge[data-tone="ok"] { background: var(--c-surface); color: var(--c-success); border: var(--u-1) solid var(--c-success); }
+.jh-chip { display: inline-block; padding: var(--u-2) var(--u-8); border-radius: var(--u-6); font-size: var(--fs-xs); font-weight: 600; background: var(--c-bg); color: var(--c-ink-2); border: var(--u-1) solid var(--c-line); white-space: nowrap; }
+.jh-chip[data-tone="accent"] { background: var(--c-primary-weak); color: var(--c-primary-strong); border-color: transparent; }
+.jh-chip[data-tone="warn"] { background: var(--c-warn-bg); color: var(--c-warn-ink); border-color: transparent; }
+.jh-empty { padding: var(--sp-6) var(--sp-4); text-align: center; color: var(--c-ink-3); font-size: var(--fs-sm); }
+.jh-toast { position: fixed; left: 50%; bottom: var(--u-84); transform: translate(-50%, var(--u-12)); opacity: 0; transition: var(--duration-fast); background: var(--c-toast-bg); color: var(--c-toast-ink); padding: var(--u-10) var(--u-16); border-radius: var(--u-999); font-size: var(--fs-sm); z-index: var(--z-toast); pointer-events: none; }
+.jh-toast.is-show { opacity: 1; transform: translate(-50%, 0); }
+
+/* ── 2단계 공통 컴포넌트 ── */
+.jh-textarea { width: 100%; min-height: var(--u-96); padding: var(--sp-3); border: var(--u-1) solid var(--c-line-strong); border-radius: var(--radius-sm); background: var(--c-surface); font-size: var(--fs-sm); resize: vertical; }
+.jh-textarea:focus { outline: var(--u-2) solid var(--c-primary-weak); border-color: var(--c-primary); }
+.jh-field__hint { display: block; margin-top: var(--sp-1); font-size: var(--fs-xs); color: var(--c-ink-3); }
+.jh-field__error { display: none; margin-top: var(--sp-1); font-size: var(--fs-xs); color: var(--c-danger); font-weight: 600; }
+.jh-field[data-invalid="true"] .jh-input, .jh-field[data-invalid="true"] .jh-select, .jh-field[data-invalid="true"] .jh-textarea { border-color: var(--c-danger); }
+.jh-field[data-invalid="true"] .jh-field__error { display: block; }
+.jh-iconbtn { display: inline-grid; place-items: center; width: var(--u-36); height: var(--u-36); border: var(--u-1) solid var(--c-line); border-radius: var(--radius-sm); background: var(--c-surface); color: var(--c-ink-2); font-size: var(--fs-md); }
+.jh-iconbtn:disabled { opacity: .4; cursor: default; }
+.jh-segmented { display: inline-flex; padding: var(--u-3); border-radius: var(--radius-sm); background: var(--c-bg); border: var(--u-1) solid var(--c-line); }
+.jh-segmented__item { min-height: var(--u-36); padding: 0 var(--sp-4); border: 0; border-radius: var(--u-6); background: transparent; font-size: var(--fs-sm); font-weight: 600; color: var(--c-ink-2); }
+.jh-segmented__item[aria-pressed="true"] { background: var(--c-surface); color: var(--c-primary-strong); box-shadow: var(--shadow-1); }
+.jh-link { color: var(--c-primary); font-size: var(--fs-sm); font-weight: 600; background: transparent; border: 0; padding: 0; font-family: inherit; cursor: pointer; }   /* 버튼으로 만든 링크도 바탕·테두리 없이 */
+.jh-link:hover { text-decoration: underline; }
+.jh-alert { padding: var(--sp-3) var(--sp-4); border-radius: var(--radius-sm); border: var(--u-1) solid var(--c-line); background: var(--c-bg); font-size: var(--fs-sm); }
+.jh-alert[data-tone="info"] { background: var(--c-primary-weak); border-color: transparent; color: var(--c-primary-strong); }
+.jh-alert[data-tone="warn"] { background: var(--c-warn-bg); border-color: transparent; color: var(--c-warn-ink); }
+.jh-alert[data-tone="danger"] { background: var(--st-rejected-bg); border-color: transparent; color: var(--st-rejected-fg); }
+.jh-skeleton { display: block; height: var(--u-14); border-radius: var(--u-6); background: var(--c-line); opacity: .7; }
+.jh-chiplist { display: flex; flex-wrap: wrap; gap: var(--sp-2); }
+.jh-dialog { position: fixed; inset: 0; z-index: var(--z-dialog); display: grid; place-items: center; padding: var(--sp-4); }
+.jh-dialog__backdrop { position: absolute; inset: 0; background: var(--c-overlay); }
+.jh-dialog__panel { position: relative; width: 100%; max-width: var(--u-440); background: var(--c-surface); border-radius: var(--radius-lg); box-shadow: var(--shadow-1); padding: var(--sp-5); display: grid; gap: var(--sp-4); }
+.jh-dialog__title { font-size: var(--fs-lg); }
+.jh-dialog__body { font-size: var(--fs-sm); color: var(--c-ink-2); }
+.jh-dialog__actions { display: flex; justify-content: flex-end; gap: var(--sp-2); }
+.jh-suggest { list-style: none; margin: var(--sp-1) 0 0; padding: var(--sp-1); border: var(--u-1) solid var(--c-line); border-radius: var(--radius-sm); background: var(--c-surface); box-shadow: var(--shadow-1); max-height: var(--u-220); overflow: auto; }
+.jh-suggest__item { display: flex; justify-content: space-between; gap: var(--sp-3); padding: var(--u-10) var(--sp-3); border-radius: var(--u-6); font-size: var(--fs-sm); cursor: pointer; }
+.jh-suggest__item:hover, .jh-suggest__item[aria-selected="true"] { background: var(--c-primary-weak); }
+
+.jh-btn { min-height: var(--u-44); transition: background-color var(--duration-fast), border-color var(--duration-fast), color var(--duration-fast); }
+.jh-btn[data-variant="secondary"] { color: var(--c-primary-strong); border-color: var(--c-primary); background: var(--c-surface); }
+.jh-btn:hover:not(:disabled) { border-color: var(--c-primary); }
+.jh-btn[data-variant="primary"]:hover:not(:disabled) { background: var(--c-primary-strong); }
+.jh-iconbtn { width: var(--u-44); height: var(--u-44); }
+.jh-input, .jh-select, .jh-segmented__item, .jh-suggest__item { min-height: var(--u-44); }
+.jh-field__hint, .jh-empty { color: var(--c-ink-2); }
+.jh-field[data-invalid="true"] .jh-field__error { color: var(--st-rejected-fg); }
+.jh-field[data-invalid="true"] .jh-input, .jh-field[data-invalid="true"] .jh-select, .jh-field[data-invalid="true"] .jh-textarea { border-width: var(--u-2); }
+.jh-dialog { z-index: var(--z-dialog); }
+.jh-toast { z-index: var(--z-toast); }
+@media (prefers-reduced-motion: reduce) { .jh-btn, .jh-toast { transition: none; } }
+
+/* 폰에서는 숨기는 요소(PC 전용). 폰은 하단 막대의 '새 문서 작성'이 같은 일을 한다 */
+@media (max-width: 899px) { .jh-pc-only { display: none; } }
+
+/* 공용 사이드 내비게이션(shared/sidenav.js): 넓은 화면은 왼쪽 세로 메뉴, 899px 이하는 위쪽 가로 스크롤 메뉴 */
+.jh-sidenav { display: flex; flex-direction: column; flex: 0 0 var(--u-220); width: var(--u-220); box-sizing: border-box; gap: var(--u-2); padding: var(--sp-3); overflow-y: auto; background: var(--c-surface); border-right: var(--u-1) solid var(--c-line); }
+.jh-sidenav__title { padding: var(--sp-2) var(--sp-3); font-size: var(--fs-md); font-weight: 800; color: var(--c-ink); }
+.jh-sidenav__sec { display: flex; flex-direction: column; gap: var(--u-2); }
+.jh-sidenav__sec + .jh-sidenav__sec { margin-top: var(--sp-3); padding-top: var(--sp-3); border-top: var(--u-1) solid var(--c-line); }
+.jh-sidenav__head { padding: var(--sp-1) var(--sp-3); font-size: var(--fs-xs); font-weight: 800; color: var(--c-ink-3); letter-spacing: 0.04em; }
+.jh-sidenav__sub { padding: var(--sp-2) var(--sp-3) var(--u-2); font-size: var(--fs-xs); font-weight: 700; color: var(--c-ink-3); }
+.jh-sidenav__item { display: flex; align-items: center; min-height: var(--u-36, 2.25rem); padding: 0 var(--sp-3); border-radius: var(--radius); color: var(--c-ink-2); font-size: var(--fs-sm); font-weight: 600; text-decoration: none; }
+.jh-sidenav__item:hover { background: var(--c-primary-weak); color: var(--c-ink); }
+.jh-sidenav__item[aria-current="page"] { background: var(--c-primary); color: var(--c-primary-ink); }
+@media (max-width: 899px) {
+  .jh-sidenav { flex-direction: row; flex: 0 0 auto; width: auto; align-items: center; gap: var(--sp-2); overflow-x: auto; overflow-y: hidden; border-right: 0; border-bottom: var(--u-1) solid var(--c-line); }
+  .jh-sidenav__title { display: none; }
+  .jh-sidenav__sec { flex-direction: row; align-items: center; flex: 0 0 auto; gap: var(--sp-2); }
+  .jh-sidenav__sec + .jh-sidenav__sec { margin: 0 0 0 var(--sp-3); padding: 0 0 0 var(--sp-3); border-top: 0; border-left: var(--u-1) solid var(--c-line-strong); }
+  .jh-sidenav__head, .jh-sidenav__sub { padding: 0 var(--sp-1); white-space: nowrap; }
+  .jh-sidenav__item { flex: 0 0 auto; min-height: var(--u-44); white-space: nowrap; }
+}
+.jh-sidenav__item[data-active="1"]:not([aria-current="page"]) { background: var(--c-primary-weak); color: var(--c-ink); font-weight: 800; }   /* 지금 보는 프로젝트 등 상위 항목 */
+/* 전자결재: 왼쪽 사이드 내비게이션(공용, 220px) + 오른쪽 본문. 좁은 화면은 위쪽 가로 메뉴 + 아래 본문 */
+.jh-edoc--side { display: grid; grid-template-columns: var(--u-220) minmax(0, 1fr); gap: var(--sp-4); align-items: start; }
+.jh-edoc--side > .jh-sidenav { position: sticky; top: var(--sp-4); max-height: calc(100vh - var(--sp-5) * 2); border: var(--u-1) solid var(--c-line); border-radius: var(--radius); }
+.jh-edoc__body { min-width: 0; }
+@media (max-width: 899px) { .jh-edoc--side { grid-template-columns: minmax(0, 1fr); } .jh-edoc--side > .jh-sidenav { position: static; max-height: none; } }
+@media print { .jh-edoc--side { display: block; } .jh-edoc--side > .jh-sidenav { display: none; } }
+/* 최근 사용 메뉴: 화면 오른쪽 가장자리에 떠 있는 탭 → 누르면 최근 10개 목록(다시 넘어가기) */
+.jh-recent { position: fixed; right: 0; top: 50%; transform: translateY(-50%); z-index: var(--z-actionbar); display: flex; flex-direction: row-reverse; align-items: center; gap: var(--sp-2); pointer-events: none; }
+.jh-recent > * { pointer-events: auto; }
+.jh-recent__tab { writing-mode: vertical-rl; padding: var(--sp-3) var(--sp-2); border: var(--u-1) solid var(--c-line-strong); border-right: 0; border-radius: var(--radius) 0 0 var(--radius); background: var(--c-surface); color: var(--c-ink-2); font: inherit; font-size: var(--fs-sm); font-weight: 700; cursor: pointer; box-shadow: 0 var(--u-2) var(--u-8) var(--c-overlay); }
+.jh-recent__tab:hover, .jh-recent[data-open="true"] .jh-recent__tab { background: var(--c-primary); color: var(--c-primary-ink); border-color: var(--c-primary); }
+.jh-recent__panel { width: var(--u-320); max-height: 70vh; overflow-y: auto; margin-right: var(--sp-2); padding: var(--sp-3); border: var(--u-1) solid var(--c-line-strong); border-radius: var(--radius); background: var(--c-surface); box-shadow: 0 var(--u-4) var(--u-16) var(--c-overlay); }
+.jh-recent__panel[hidden] { display: none; }
+.jh-recent__head { display: flex; justify-content: space-between; align-items: center; gap: var(--sp-2); padding-bottom: var(--sp-2); margin-bottom: var(--sp-2); border-bottom: var(--u-1) solid var(--c-line); }
+.jh-recent__clear { border: 0; background: none; color: var(--c-ink-3); font: inherit; font-size: var(--fs-xs); cursor: pointer; text-decoration: underline; }
+.jh-recent__list { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--u-2); }
+.jh-recent__list a { display: grid; gap: var(--u-2); padding: var(--sp-2) var(--sp-3); border-radius: var(--radius); color: var(--c-ink); text-decoration: none; }
+.jh-recent__list a:hover { background: var(--c-primary-weak); }
+.jh-recent__label { font-size: var(--fs-sm); font-weight: 600; overflow-wrap: anywhere; }
+.jh-recent__list small { color: var(--c-ink-3); font-size: var(--fs-xs); }
+.jh-recent__empty { padding: var(--sp-3); color: var(--c-ink-3); font-size: var(--fs-sm); }
+@media (max-width: 899px) { .jh-recent { top: 40%; } .jh-recent__panel { width: min(var(--u-320), 78vw); } }
+@media print { .jh-recent { display: none; } }
+/* 작업 탭 바(데스크톱 하단): 살려 둔 화면들을 탭으로 — 누르면 그 화면 그대로, ↻ 처음 상태로, ✕ 닫기 */
+.jh-worktabs { flex: 0 0 auto; position: sticky; bottom: 0; z-index: var(--z-tabbar); display: flex; align-items: stretch; min-height: var(--u-40); background: var(--c-surface); border-top: var(--u-1) solid var(--c-line-strong); overflow: hidden; }   /* 화면 폭 안에서만 — 가로 스크롤 없음 */
+.jh-worktabs[hidden] { display: none; }
+.jh-worktabs__list { display: flex; align-items: stretch; gap: var(--u-2); flex: 1 1 auto; min-width: 0; margin: 0; padding: var(--u-4) var(--sp-3) 0; list-style: none; }
+.jh-worktabs__item { display: flex; align-items: center; flex: 0 1 auto; min-width: var(--u-64); max-width: var(--u-220);   /* 탭이 많아지면 폭을 나눠 함께 좁아진다 */ border: var(--u-1) solid var(--c-line); border-bottom: 0; border-radius: var(--radius) var(--radius) 0 0; background: var(--c-bg); }
+.jh-worktabs__item[data-current="1"] { background: var(--c-surface); border-color: var(--c-primary); box-shadow: inset 0 var(--u-3) 0 var(--c-primary); }
+.jh-worktabs__tab { flex: 1 1 auto; padding: 0 var(--sp-2); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--c-ink-2); font-size: var(--fs-sm); font-weight: 600; text-decoration: none; line-height: var(--u-36, 2.25rem); }
+.jh-worktabs__item[data-current="1"] .jh-worktabs__tab { color: var(--c-primary); font-weight: 800; }
+.jh-worktabs__btn { flex: none; border: 0; background: none; padding: 0 var(--u-6); color: var(--c-ink-3); font: inherit; font-size: var(--fs-xs); cursor: pointer; line-height: var(--u-36, 2.25rem); }
+.jh-worktabs__item:not([data-current="1"]) [data-wt-reload] { display: none; }   /* 새로고침은 보고 있는 탭에만 — 탭이 많을 때 이름 공간을 확보 */
+.jh-worktabs__btn:hover { color: var(--c-ink); background: var(--c-primary-weak); }
+@media (max-width: 899px) { .jh-worktabs { display: none; } }
+@media print { .jh-worktabs { display: none; } }
+.jh-body > .jh-main, .jh-body > .jh-keep { flex: 1 1 auto; }   /* 작업 탭 바가 항상 아래쪽에 붙도록 본문이 남는 높이를 차지 */
+
+/* 카드 안에서 표·안내문이 카드 가장자리에 바로 붙는 경우(표 상자·재무 표·월간 공수 표·안내 문구): 머리글 제목과 같은 좌우 여백(20px)에 맞춘다 */
+.jh-card > :is(.jh-hr__scroll, .jh-finance__scroll) { padding-bottom: var(--sp-2); }
+.jh-card > :is(.jh-hr__scroll, .jh-finance__scroll) :is(th, td):first-child, .jh-card > .jh-ro__t :is(th, td):first-child { padding-left: calc(var(--sp-4) + var(--sp-1)); }
+.jh-card > :is(.jh-hr__scroll, .jh-finance__scroll) :is(th, td):last-child, .jh-card > .jh-ro__t :is(th, td):last-child { padding-right: calc(var(--sp-4) + var(--sp-1)); }
+.jh-card > .jh-field__hint { padding: var(--sp-3) calc(var(--sp-4) + var(--sp-1)) var(--sp-2); }
+

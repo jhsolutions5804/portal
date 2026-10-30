@@ -1,0 +1,144 @@
+/* 인사 — 근로자 명부(새 화면) */
+.jh-hr { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--sp-4); max-width: calc(var(--u-440) * 2.5); }
+#w-body { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--sp-4); }
+.jh-hr__bar { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-3); }
+.jh-hr__bar .jh-hr__q { flex: 1 1 var(--u-220); max-width: var(--u-420); }
+.jh-hr__bar .jh-segmented { flex-wrap: wrap; max-width: 100%; }
+.jh-hr__pad { padding: var(--sp-4) calc(var(--sp-4) + var(--sp-1)); display: grid; gap: var(--sp-4); }
+.jh-hr__scroll { overflow-x: auto; }
+.jh-hr__sub { margin: var(--sp-3) 0 0; font-size: var(--fs-md); }
+.jh-hr__grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--sp-3) var(--sp-4); }
+.jh-hr__line { display: flex; justify-content: space-between; gap: var(--sp-3); padding: var(--sp-2) 0; border-bottom: var(--u-1) solid var(--c-line); font-size: var(--fs-sm); align-items: center; }
+.jh-hr__label { color: var(--c-ink-2); font-weight: 600; }
+.jh-hr__hist { margin: 0; padding-left: var(--sp-4); display: grid; gap: var(--sp-2); font-size: var(--fs-sm); }
+.jh-hr-table { width: 100%; min-width: var(--u-440); border-collapse: collapse; font-size: var(--fs-sm); }
+.jh-hr-table th { text-align: left; padding: var(--sp-2) var(--sp-3); border-bottom: var(--u-1) solid var(--c-line-strong); color: var(--c-ink-2); font-weight: 700; white-space: nowrap; }
+.jh-hr-table td { padding: var(--sp-2) var(--sp-3); border-top: var(--u-1) solid var(--c-line); vertical-align: middle; }
+.jh-hr-table .num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.jh-hr-table--click tbody tr { cursor: pointer; }
+.jh-hr-table--click tbody tr:hover { background: var(--c-primary-weak); }
+@media (max-width: 720px) { .jh-hr__grid { grid-template-columns: minmax(0, 1fr); } }
+/* 인사 캘린더 */
+.jh-hc__grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: var(--sp-1); }
+.jh-hc__dow { text-align: center; font-size: var(--fs-sm); font-weight: 700; padding: var(--sp-2) 0; color: var(--c-ink-2); }
+.jh-hc__dow[data-d="0"], .jh-hc__num[data-d="0"] { color: var(--c-danger); }
+.jh-hc__dow[data-d="6"], .jh-hc__num[data-d="6"] { color: var(--c-primary); }
+.jh-hc__cell { min-height: calc(var(--u-56) * 1.6); padding: var(--sp-1) var(--sp-2); border: var(--u-1) solid var(--c-line); border-radius: var(--radius); background: var(--c-surface); cursor: pointer; overflow: hidden; }
+.jh-hc__cell--blank { background: transparent; border-color: transparent; cursor: default; }
+.jh-hc__cell.is-today { border-color: var(--c-primary); }
+.jh-hc__cell.is-sel { outline: 2px solid var(--c-primary); background: var(--c-primary-weak); }
+.jh-hc__num { font-size: var(--fs-sm); font-weight: 700; }
+.jh-hc__hol { font-size: var(--fs-xs, 0.7rem); font-weight: 500; color: var(--c-danger); }
+.jh-hc__chip { font-size: var(--fs-xs, 0.75rem); line-height: 1.35; padding: 2px 6px; margin-top: 3px; border-radius: 5px; border-left: 3px solid var(--hc, var(--c-ink-3)); background: var(--c-bg); overflow: hidden; white-space: nowrap; text-overflow: ellipsis; cursor: pointer; }
+.jh-hc__tag { display: inline-block; font-size: var(--fs-xs, 0.75rem); font-weight: 600; padding: 3px 9px; border-radius: 7px; border-left: 3px solid var(--hc, var(--c-ink-3)); background: var(--c-bg); white-space: nowrap; }
+[data-t="interview"] { --hc: #1D5BA6; } [data-t="offerreply"] { --hc: #D97706; } [data-t="salarynego"] { --hc: #16A34A; } [data-t="eval"] { --hc: #7C3AED; } [data-t="resign"] { --hc: #DC2626; } [data-t="etc"] { --hc: #64748B; } [data-t="leave"] { --hc: #0F9D6B; }
+.jh-hc__row { display: flex; align-items: center; gap: var(--sp-3); padding: var(--sp-3) var(--sp-4); border-top: var(--u-1) solid var(--c-line); cursor: pointer; }
+.jh-hc__row:hover { background: var(--c-primary-weak); }
+
+/* 급여테이블 — 좌 기준 설정 · 우 호봉표(세로 배치) */
+.jh-hr__split { display: grid; grid-template-columns: minmax(var(--u-280, 18rem), 24rem) minmax(0, 1fr); gap: var(--sp-4); align-items: start; }
+.jh-hr__tenure { display: flex; align-items: center; gap: var(--sp-1); font-weight: 400; font-size: var(--fs-sm); }
+.jh-hr__tenure .jh-input { max-width: 4.2rem; padding: 2px 6px; }
+@media (max-width: 960px) { .jh-hr__split { grid-template-columns: minmax(0, 1fr); } }
+
+/* 연봉 제안서 */
+.jh-hr__offer { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--sp-4); align-items: start; }
+.jh-hr__col { display: grid; gap: var(--sp-4); min-width: 0; }
+.jh-hr__col#o-result { position: sticky; top: var(--sp-3); }
+@media (max-width: 1100px) { .jh-hr__offer { grid-template-columns: minmax(0, 1fr); } .jh-hr__col#o-result { position: static; } }
+
+/* 출퇴근 달력(관리자) */
+.jh-ac__cell { position: relative; text-align: center; padding: var(--sp-2) var(--sp-1); border-radius: var(--radius); font-size: var(--fs-sm); cursor: pointer; border: var(--u-1) solid transparent; color: var(--c-ink); }
+.jh-ac__cell[data-s="work"] { background: var(--c-primary); color: var(--c-primary-ink); font-weight: 700; }
+.jh-ac__cell[data-s="holidayWork"] { background: #EDE9FE; color: #5B21B6; font-weight: 700; }
+.jh-ac__cell[data-s="leave"] { background: #FDE68A; color: #92400E; font-weight: 700; }
+.jh-ac__cell[data-s="absent"] { background: #FEE2E2; color: #DC2626; font-weight: 700; }
+.jh-ac__cell[data-s="off"] { color: var(--c-ink-3); }
+.jh-ac__cell.is-today { border-color: #F59E0B; }
+.jh-ac__cell.is-sel { outline: 2px solid var(--c-primary); }
+.jh-ac__sub { font-size: var(--fs-xs, 0.7rem); font-weight: 600; }
+.jh-ac__dot { position: absolute; top: 3px; right: 4px; width: 6px; height: 6px; border-radius: 50%; background: #F59E0B; }
+
+/* 급여명세서: 조건(기준월·지급일·근로자·계좌)은 한 줄로, 지급 내역과 공제 내역은 좌우로 나란히 */
+.jh-hr__condbar { display: grid; grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr)); gap: var(--sp-3); align-items: end; }
+.jh-hr__two { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--sp-4); align-items: start; }
+@media (max-width: 1100px) { .jh-hr__two { grid-template-columns: minmax(0, 1fr); } }
+
+/* ── 표 셀 정렬 근본 수정: .jh-field__hint 는 display:block 이라 표 셀(td)에 쓰면 행에서 빠져나와 줄이 어긋난다 ── */
+.jh-hr-table td.jh-field__hint, .jh-hr-table th.jh-field__hint { display: table-cell; margin: 0; }
+.jh-hr-table td.jh-hr__muted { color: var(--c-ink-3); font-size: var(--fs-xs); }
+.jh-hr-table--top td { vertical-align: top; }
+.jh-hr-table--nowrap td { white-space: nowrap; }
+.jh-hr--wide { max-width: none; }
+/* 인사 홈: 요약 카드는 왼쪽에 세로로, 캘린더는 오른쪽 */
+.jh-hr__home { display: grid; grid-template-columns: var(--u-320) minmax(0, 1fr); gap: var(--sp-4); align-items: start; }
+.jh-hr__homeside { display: grid; gap: var(--sp-3); align-content: start; position: sticky; top: var(--sp-3); }
+.jh-hr__homeside .jh-kpi-grid { grid-template-columns: minmax(0, 1fr); }
+.jh-hr__homemain { display: grid; gap: var(--sp-4); min-width: 0; }
+@media (max-width: 1099px) { .jh-hr__home { grid-template-columns: minmax(0, 1fr); } .jh-hr__homeside { position: static; } .jh-hr__homeside .jh-kpi-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+/* 채용 지원자: 면접일 날짜·시간은 한 줄 */
+.jh-hr__iv { display: flex; flex-wrap: nowrap; align-items: center; gap: var(--sp-1); }
+.jh-hr__iv .jh-input { width: auto; min-width: 0; }
+.jh-hr__iv .jh-input[type="date"] { flex: 0 0 var(--u-160, 9.5rem); }
+.jh-hr__iv .jh-input[type="time"] { flex: 0 0 var(--u-120, 6.5rem); }
+.jh-hr__stsel { width: auto; min-width: var(--u-100, 6rem); }
+.jh-hr__trunc { display: inline-block; max-width: var(--u-220); overflow: hidden; vertical-align: middle; }
+.jh-hr__trunc .jh-chip { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* 저장된 계약서: 테두리 있는 목록(표) */
+.jh-hr__post { display: grid; gap: var(--sp-2); padding: var(--sp-3) var(--sp-4); border: var(--u-1) solid var(--c-line); border-radius: var(--radius); background: var(--c-surface); }
+.jh-hr__acts { gap: var(--sp-2); }
+/* 연차사용촉진: 촉진 일정 열 — 1차·2차·추가분 줄이 라벨/날짜 두 칸으로 정렬 */
+.jh-hr__sched { display: grid; grid-template-columns: max-content max-content; gap: var(--u-2) var(--sp-2); font-size: var(--fs-xs); white-space: nowrap; }
+.jh-hr__sched span:nth-child(odd) { color: var(--c-ink-3); font-weight: 700; }
+
+/* 출퇴근 달력 + 초과근로: 3단(근로자 명단 | 달력 | 근로 내역 추가·수정 + 초과근로) */
+.jh-ac__head { justify-content: flex-start; gap: var(--sp-4); }
+.jh-ac__month { display: inline-flex; align-items: center; gap: var(--sp-2); }
+.jh-ac__help { flex: 1 1 var(--u-320); margin: 0; }
+.jh-ac__layout { display: grid; grid-template-columns: var(--u-220) minmax(0, 1fr) minmax(var(--u-320), 26rem); gap: var(--sp-4); align-items: start; }
+.jh-ac__layout[data-mode="ot"] > .jh-ac__wide, .jh-ac__layout[data-mode="caps"] > .jh-ac__wide { grid-column: 2 / 4; }
+.jh-ac__center, .jh-ac__side, .jh-ac__wide { display: grid; gap: var(--sp-4); min-width: 0; align-content: start; }
+/* 오른쪽 칸(근로 내역 추가/수정·초과근로)은 달력·주별 표를 스크롤해도 화면에 떠서 따라온다. 칸이 화면보다 길면 안에서 스크롤(재무회계·전자결재와 같은 방식, 대표님 2026-10-26) */
+.jh-ac__layout > .jh-ac__side { position: sticky; top: var(--sp-3); max-height: calc(100vh - var(--sp-6)); overflow-y: auto; overscroll-behavior: contain; }
+.jh-ac__layout > .jh-card:first-child { position: sticky; top: var(--sp-3); max-height: calc(100vh - var(--sp-6)); overflow-x: hidden; overflow-y: auto; }
+.jh-ac__wlist { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--u-4); padding: var(--sp-2); }   /* minmax(0,1fr): 이름 줄바꿈 금지 때문에 칸이 내용만큼 넓어져 가로 스크롤이 생기던 것을 막는다 */
+.jh-ac__wbtn { box-sizing: border-box; min-width: 0; display: flex; align-items: center; justify-content: space-between; gap: var(--sp-2); width: 100%; padding: var(--sp-2) var(--sp-3); border: var(--u-1) solid var(--c-line); border-radius: var(--radius); background: var(--c-surface); color: var(--c-ink); font: inherit; font-size: var(--fs-sm); text-align: left; cursor: pointer; }
+.jh-ac__wbtn:hover { background: var(--c-primary-weak); }
+.jh-ac__wbtn[aria-pressed="true"] { background: var(--c-primary); border-color: var(--c-primary); color: var(--c-primary-ink); font-weight: 700; }
+.jh-ac__wname { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.jh-ac__center .jh-kpi-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.jh-ac__ot { font-size: var(--fs-xs, 0.7rem); font-weight: 700; color: #B45309; }
+.jh-ac__cell[data-s="work"] .jh-ac__ot, .jh-ac__cell[data-s="holidayWork"] .jh-ac__ot { color: inherit; }
+.jh-ac__otlist { display: grid; gap: var(--sp-2); }
+.jh-ac__otrow { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--sp-2); padding: var(--sp-2) var(--sp-3); border: var(--u-1) solid var(--c-line); border-radius: var(--radius); background: var(--c-bg); font-size: var(--fs-sm); cursor: pointer; }
+.jh-ac__otrow:hover { background: var(--c-primary-weak); }
+@media (max-width: 1279px) { .jh-ac__layout { grid-template-columns: var(--u-220) minmax(0, 1fr); } .jh-ac__layout > .jh-ac__side { grid-column: 2; position: static; max-height: none; overflow: visible; } .jh-ac__layout[data-mode="ot"] > .jh-ac__wide, .jh-ac__layout[data-mode="caps"] > .jh-ac__wide { grid-column: 2; } }
+@media (max-width: 899px) { .jh-ac__layout, .jh-ac__layout[data-mode="ot"], .jh-ac__layout[data-mode="caps"] { grid-template-columns: minmax(0, 1fr); } .jh-ac__layout > .jh-ac__side, .jh-ac__layout[data-mode="ot"] > .jh-ac__wide, .jh-ac__layout[data-mode="caps"] > .jh-ac__wide { grid-column: auto; } .jh-ac__layout > .jh-card:first-child { position: static; max-height: none; } .jh-ac__center .jh-kpi-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+
+/* 인사 캘린더: 인사 홈에서는 3단(요약 카드 | 달력 | 선택한 날의 일정 내용) — 넓은 화면(1500px 이상)에서만 나란히, 좁으면 달력 아래 */
+.jh-hc__layout { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--sp-4); align-items: start; }
+.jh-hc__main, .jh-hc__detail { display: grid; gap: var(--sp-4); min-width: 0; align-content: start; }
+@media (min-width: 1500px) { .jh-hr__homemain .jh-hc__layout { grid-template-columns: minmax(0, 1fr) var(--u-320); } .jh-hr__home { grid-template-columns: 17rem minmax(0, 1fr); } }
+.jh-hr__listbox { border: var(--u-1) solid var(--c-line); border-radius: var(--radius); background: var(--c-surface); overflow: hidden; }
+.jh-hr__listbox .jh-hr-table { min-width: 0; }
+.jh-hr__listbox .jh-hr-table tbody tr:first-child td { border-top: 0; }
+.jh-hr__listbox .jh-hr__acts { display: flex; flex-wrap: nowrap; }
+
+/* 인사평가 — 정기평가 운영(팀 보드·평가 패널) */
+.jh-hr-ev__area { display: grid; gap: var(--sp-1); }
+.jh-hr-ev__rate { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: var(--sp-3); align-items: center; padding: var(--sp-2) 0; border-bottom: var(--u-1) solid var(--c-line); font-size: var(--fs-sm); }
+.jh-hr-ev__dots { display: inline-flex; gap: var(--sp-1); }
+.jh-hr-ev__dot { min-width: var(--u-36); min-height: var(--u-36); border: var(--u-1) solid var(--c-line); border-radius: var(--radius-sm); background: var(--c-surface); font-weight: 600; cursor: pointer; }
+.jh-hr-ev__dot[aria-pressed="true"] { background: var(--c-primary); border-color: var(--c-primary); color: var(--c-on-primary); }
+.jh-hr-ev__dot:disabled { cursor: not-allowed; opacity: .6; }
+.jh-hr-ev__score { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--sp-3); }
+.jh-hr-ev__cell { display: grid; gap: var(--sp-1); padding: var(--sp-3); border-radius: var(--radius-sm); background: var(--c-primary-weak); }
+.jh-hr-ev__cell strong { font-size: var(--fs-lg); }
+.jh-hr-ev__peer { display: grid; grid-template-columns: minmax(0, 1fr) repeat(3, minmax(var(--u-64), 6rem)); gap: var(--sp-2); align-items: center; font-size: var(--fs-sm); }
+@media (max-width: 720px) { .jh-hr-ev__score { grid-template-columns: repeat(2, minmax(0, 1fr)); } .jh-hr-ev__rate { grid-template-columns: minmax(0, 1fr); } .jh-hr-ev__peer { grid-template-columns: minmax(0, 1fr); } }
+
+/* 4대보험 신고 입력표(1-3-17 2단계): 다섯 구역 표의 칸 폭을 같게 고정 — 복사 단추 열이 구역마다 달라 보이지 않게 */
+.jh-edi__tbl { table-layout: fixed; width: 100%; }
+.jh-edi__c1 { width: 24%; } .jh-edi__c2 { width: 30%; } .jh-edi__c3 { width: 9rem; } .jh-edi__c4 { width: auto; }
+.jh-edi__tbl td, .jh-edi__tbl th { overflow-wrap: anywhere; vertical-align: middle; }
+@media (max-width: 899px) { .jh-edi__tbl { table-layout: auto; min-width: 36rem; } .jh-edi__c1, .jh-edi__c2, .jh-edi__c3 { width: auto; } }
