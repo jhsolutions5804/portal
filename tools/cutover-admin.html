@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>전환 작업 도구 (관리자 전용)</title>
+<style>
+  :root { color-scheme: light; }
+  body { font: 15px/1.55 system-ui, -apple-system, "Malgun Gothic", sans-serif; margin: 0; padding: 14px; color: #1A2540; background: #F4F6FA; }
+  h1 { font-size: 19px; margin: 4px 0 6px; }
+  h2 { font-size: 16px; margin: 0 0 6px; }
+  section { background: #fff; border: 1px solid #D5DBE8; border-radius: 12px; padding: 14px; margin: 12px 0; }
+  .note { color: #4A5675; font-size: 13px; margin: 4px 0 8px; }
+  button { font: inherit; padding: 10px 12px; border-radius: 10px; border: 1px solid #1D5BA6; background: #1D5BA6; color: #fff; margin: 4px 6px 4px 0; }
+  button.ghost { background: #fff; color: #1D5BA6; }
+  button.warn { background: #B3261E; border-color: #B3261E; }
+  button:disabled { opacity: .4; }
+  .row { display: flex; flex-wrap: wrap; align-items: center; gap: 2px; padding: 8px 0; border-top: 1px solid #EEF1F7; }
+  .row:first-of-type { border-top: 0; }
+  .row b { min-width: 74px; }
+  .res { font-size: 13px; color: #1A2540; margin-top: 4px; width: 100%; white-space: pre-wrap; }
+  #who { font-weight: 600; }
+  #log { background: #0F172A; color: #E2E8F0; padding: 10px; border-radius: 10px; font: 12px/1.5 ui-monospace, Menlo, monospace; white-space: pre-wrap; max-height: 320px; overflow: auto; }
+  input[type=file] { margin: 6px 0; max-width: 100%; }
+</style>
+</head>
+<body>
+<h1>전환 작업 도구</h1>
+<p class="note">관리자 계정으로 <b>이미 로그인된 상태</b>에서만 동작합니다. 작업 기록에는 로그인한 계정 이름이 남습니다. 전환이 끝나면 이 페이지는 삭제합니다.</p>
+<div id="who">로그인 확인 중…</div>
+
+<section>
+  <h2>1. 전자결재 설정 적용</h2>
+  <p class="note">설정 전환용 파일(.json)을 고르면 내용을 요약해 보여 줍니다. 위에서부터 차례로 눌러 주세요. 정책은 대표(필수 결재자) 본인 계정으로만 적용됩니다.</p>
+  <input type="file" id="f" accept=".json,application/json">
+  <div class="res" id="fsum"></div>
+  <button id="bPol" disabled>① 필수 결재자·대리 권한 적용</button>
+  <button id="bGuides" disabled>② 권장 결재선 적용</button>
+  <button id="bVeh" class="ghost" disabled>③ 운행일지 차량 목록 동기화</button>
+</section>
+
+<section>
+  <h2>2. 주민번호 암호화 이전</h2>
+  <p class="note">순서: <b>계획</b>(쓰기 없음) → <b>적용</b>(암호화 저장 + 마스킹 값 기록) → 값을 확인한 뒤 <b>정리</b>(평문 삭제). 번호 값은 화면·기록에 나오지 않습니다. 앞 단계를 끝내야 다음 단추가 켜집니다.</p>
+  <div id="idRows"></div>
+</section>
+
+<section>
+  <h2>작업 기록 (이 화면에서만 보임)</h2>
+  <pre id="log">아직 없습니다.</pre>
+</section>
+
+<script type="module">
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
+import { getAuth, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
+import { getFunctions, httpsCallable } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-functions.js';
+import { getFirestore, collection, getDocs } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+
+const firebaseConfig = {
+  apiKey: "AIzaSyCyQxBJ_ftfM0ImBXubmqD5gfzFR54iPmE",
+  authDomain: "p4ph2-fab-506a7.firebaseapp.com",
+  projectId: "p4ph2-fab-506a7",
+  storageBucket: "p4ph2-fab-506a7.appspot.com",
+  messagingSenderId: "36946317914",
+  appId: "1:36946317914:web:4a0c7062a2f1a4e9a03de5"
+};
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const fns = getFunctions(app, 'asia-northeast3');
+const db = getFirestore(app);
+const $ = (id) => document.getElementById(id);
+const logEl = $('log');
+const stamp = () => new Date().toLocaleTimeString('ko-KR', { hour12: false });
+const log = (t) => { logEl.textContent = '[' + stamp() + '] ' + t + (logEl.textContent === '아직 없습니다.' ? '' : '\n\n' + logEl.textContent); };
+const call = async (name, data) => (await httpsCallable(fns, name)(data)).data;
+const errText = (e) => String((e && e.message) || e || '알 수 없는 오류');
+
+let signedIn = false, cfg = null;
+const setEnabled = (id, on) => { $(id).disabled = !on; };
+
+onAuthStateChanged(auth, (u) => {
+  signedIn = !!u;
+  $('who').textContent = u ? ('로그인: ' + (u.email || u.uid)) : '로그인되어 있지 않습니다. 먼저 portal.jhsol.kr/app/ 에서 관리자 계정으로 로그인한 뒤 이 페이지를 다시 여세요.';
+  refresh();
+});
+
+/* ── 1. 전자결재 설정 ── */
+$('f').addEventListener('change', async (ev) => {
+  cfg = null; $('fsum').textContent = '';
+  const file = ev.target.files && ev.target.files[0]; if (!file) { refresh(); return; }
+  try {
+    const j = JSON.parse(await file.text());
+    const req = j && j.policy && Array.isArray(j.policy.required) ? j.policy.required : null;
+    const proxy = j && j.policy && Array.isArray(j.policy.proxy) ? j.policy.proxy : [];
+    const guides = j && j.guides && typeof j.guides === 'object' ? j.guides : null;
+    if (!req || !req.length || !guides || !Object.keys(guides).length) throw new Error('설정 전환용 파일이 아닙니다(policy.required, guides 가 필요합니다).');
+    cfg = { policy: { required: req, proxy }, guides };
+    $('fsum').textContent = '파일 확인됨 — 필수 결재자 ' + req.length + '명, 대리 승인·전결 ' + proxy.length + '명, 권장 결재선 ' + Object.keys(guides).length + '종(' + Object.keys(guides).join(', ') + ')';
+  } catch (e) { $('fsum').textContent = '파일을 읽지 못했습니다: ' + errText(e); }
+  refresh();
+});
+const run = (btnId, fn) => $(btnId).addEventListener('click', async () => {
+  $(btnId).disabled = true;
+  try { await fn(); } catch (e) { log('실패 — ' + errText(e)); } finally { refresh(); }
+});
+run('bPol', async () => {
+  if (!confirm('필수 결재자 ' + cfg.policy.required.length + '명, 대리 승인·전결 ' + cfg.policy.proxy.length + '명을 적용합니다. 계속할까요?')) { log('① 취소했습니다.'); return; }
+  const r = await call('edocAct', { action: 'saveSettings', kind: 'policy', policy: cfg.policy });
+  log('① 정책 적용 완료 — ' + JSON.stringify(r)); state.pol = true;
+});
+run('bGuides', async () => {
+  if (!confirm('권장 결재선 ' + Object.keys(cfg.guides).length + '종을 적용합니다. 계속할까요?')) { log('② 취소했습니다.'); return; }
+  const r = await call('edocAct', { action: 'saveSettings', kind: 'guides', guides: cfg.guides });
+  log('② 권장 결재선 적용 완료 — ' + JSON.stringify(r)); state.guides = true;
+});
+run('bVeh', async () => {
+  const snap = await getDocs(collection(db, 'general_vehicles'));
+  const list = snap.docs.map((d) => ({ id: d.id, ...d.data() })).filter((v) => v.status !== '반납·매각').map((v) => ({ id: v.id, name: v.name || '', plate: v.plate || '' }));
+  if (!confirm('운행일지 차량 ' + list.length + '대를 동기화합니다. 계속할까요?')) { log('③ 취소했습니다.'); return; }
+  const r = await call('edocAct', { action: 'saveSettings', kind: 'vehicles', vehicles: list });
+  log('③ 차량 목록 동기화 완료(' + list.length + '대) — ' + JSON.stringify(r));
+});
+
+/* ── 2. 주민번호 암호화 이전 ── */
+const KINDS = [['roster', '연명부', true], ['hr', '인사', true], ['contracts', '계약서(마스킹)', false]];
+const state = { pol: false, guides: false };
+const st = {}; // kind → { planned, applied }
+const summarize = (kind, r) => kind === 'contracts'
+  ? '전체 ' + r.total + ' · 전체번호 있음 ' + r.withFull + (r.converted != null ? ' · 변환 ' + r.converted : '') + ' · 형식 오류 ' + ((r.odd || []).length)
+  : '전체 ' + r.total + ' · 평문 있음 ' + r.withPlain + ' · 암호문 복사 ' + (r.copied || 0) + ' · 이미 있음 ' + (r.already || 0) + ' · 평문 삭제 ' + (r.cleaned || 0) + ' · 형식 오류/건너뜀 ' + ((r.invalid || []).length) + ((r.invalid || []).length ? ' (' + r.invalid.join(', ') + ')' : '');
+KINDS.forEach(([kind, label, hasClean]) => {
+  st[kind] = { planned: false, applied: false };
+  const row = document.createElement('div'); row.className = 'row';
+  row.innerHTML = '<b></b><button class="ghost" data-a="plan">계획(쓰기 없음)</button><button data-a="apply" disabled>적용</button>' + (hasClean ? '<button class="warn" data-a="clean" disabled>정리(평문 삭제)</button>' : '') + '<div class="res"></div>';
+  row.querySelector('b').textContent = label; $('idRows').appendChild(row);
+  const res = row.querySelector('.res'); const btn = (a) => row.querySelector('[data-a="' + a + '"]');
+  const go = async (a) => {
+    const names = { plan: '계획', apply: '적용', clean: '정리' };
+    if (a === 'apply' && !confirm(label + ' 주민번호를 암호화해 저장하고 마스킹 값을 기록합니다(평문은 아직 지우지 않음). 계속할까요?')) { log(label + ' 적용 취소.'); return; }
+    if (a === 'clean' && !(confirm(label + ' 평문 주민번호를 삭제합니다. 암호문을 복호화해 확인한 뒤에만 지웁니다. 계속할까요?') && confirm('정말 삭제할까요? 되돌릴 수 없습니다(암호문은 남습니다).'))) { log(label + ' 정리 취소.'); return; }
+    row.querySelectorAll('button').forEach((b) => { b.disabled = true; });
+    try {
+      const r = await call('identityAct', { action: 'migrate', kind, mode: a === 'plan' ? 'plan' : 'apply', clean: a === 'clean' });
+      res.textContent = names[a] + ' 결과 — ' + summarize(kind, r); log(label + ' ' + names[a] + ' — ' + summarize(kind, r));
+      if (a === 'plan') st[kind].planned = true; if (a === 'apply') st[kind].applied = true;
+    } catch (e) { res.textContent = names[a] + ' 실패 — ' + errText(e); log(label + ' ' + names[a] + ' 실패 — ' + errText(e)); }
+    refresh();
+  };
+  ['plan', 'apply', 'clean'].forEach((a) => { const b = btn(a); if (b) b.addEventListener('click', () => go(a)); });
+  st[kind].sync = () => { btn('plan').disabled = !signedIn; btn('apply').disabled = !(signedIn && st[kind].planned); const c = btn('clean'); if (c) c.disabled = !(signedIn && st[kind].applied); };
+});
+
+function refresh() {
+  setEnabled('bPol', signedIn && !!cfg && !state.pol);
+  setEnabled('bGuides', signedIn && !!cfg && !state.guides);
+  setEnabled('bVeh', signedIn);
+  KINDS.forEach(([kind]) => st[kind].sync());
+}
+refresh();
+</script>
+</body>
+</html>
