@@ -3529,6 +3529,10 @@ function openModule(m, tab, overrideUrl){
  if(m.key==='plan' && !overrideUrl){ location.href='app/#/plan'; return; }
  // 2026-10-30 P6(인사총무 전환): 인사 메뉴도 새 플랫폼 화면으로 연다(같은 데이터). 되돌리려면 아래 한 줄을 지운다.
  if(m.key==='hr' && !overrideUrl){ location.href='app/#/hr'; return; }
+ // 2026-10-30/31 ③-4(PJT·전자결재 전환): 전자결재·PJT·내 팀 공수표 메뉴도 새 플랫폼 화면으로 연다(같은 데이터). 되돌리려면 아래 세 줄을 지운다.
+ if(m.key==='edoc' && !overrideUrl){ location.href='app/#/edoc'; return; }
+ if(m.key==='pjt' && !overrideUrl){ location.href='app/#/pjt'; return; }
+ if(m.key==='myteam' && !overrideUrl){ location.href='app/#/myteam'; return; }
   const actualUrl=overrideUrl||m.url;
   if(tab==='pjt_home'||m.key==='pjt'&&tab===null){
     showPjtHome(); return;
