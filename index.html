@@ -3525,6 +3525,8 @@ function openModule(m, tab, overrideUrl){
   if(m.key==='myteam' && !window.jhModAllowed(m,me)){ toast('팀장으로 지정된 계정 또는 관리자만 볼 수 있습니다.'); return; }
   if(tab==='pjt_roster' && !(me&&(me.admin||(me.perms&&me.perms.pjt)))){ toast('근로자 연명부는 PJT 권한이 있는 계정만 접근할 수 있습니다.'); return; }
   if((m.key==='plan'||m.key==='hr') && !(me&&me.admin)){ toast('기획/인사는 관리자만 접근할 수 있습니다.'); return; }
+ // 2026-10-30 P5(영업기획 전환): 기획 메뉴는 새 플랫폼 화면으로 연다(같은 데이터). 되돌리려면 아래 한 줄을 지운다.
+ if(m.key==='plan' && !overrideUrl){ location.href='app/#/plan'; return; }
   const actualUrl=overrideUrl||m.url;
   if(tab==='pjt_home'||m.key==='pjt'&&tab===null){
     showPjtHome(); return;
