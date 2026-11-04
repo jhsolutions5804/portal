@@ -1,7 +1,8 @@
-import { esc } from '../../core/ui.js?v=20261103f';
-import { MAX_FILES, ACCEPT, fmtSize } from './attach-logic.js?v=20261103f';
-import { isAnnualType } from './home-calc.js?v=20261103f';
-import { COMPOSE_TYPES, composeType, fieldRows, emptyItem, isLocked, guideStatus, lineIssues, MAX_APPROVERS, MAX_CC } from './compose.js?v=20261103f';
+import { esc } from '../../core/ui.js?v=20261104f';
+import { MAX_FILES, ACCEPT, fmtSize } from './attach-logic.js?v=20261104f';
+import { isAnnualType } from './home-calc.js?v=20261104f';
+import { COMPOSE_TYPES, composeType, fieldRows, emptyItem, isLocked, guideStatus, lineIssues, MAX_APPROVERS, MAX_CC } from './compose.js?v=20261104f';
+import { SERVICE_ITEMS, OTHER_ITEMS, REC_KEYS, REC_LABEL, carCalcText, recKey } from '../../shared/car-cost.js?v=20261104f';
 
 const uname = (ctx, uid) => { const u = ctx.byUid[uid]; return u ? esc(u.name) + (u.rank ? ' <small>' + esc(u.rank) + '</small>' : '') : '(알 수 없음)'; };
 
@@ -29,7 +30,8 @@ function control(f, v, errs, ctx) {
   if (f.type === 'project') return '<select class="jh-select"' + common + '><option value="">프로젝트를 선택하세요</option>' + (f.allowCommon ? '<option value="common"' + (val === 'common' ? ' selected' : '') + '>공통 · 프로젝트 무관(본사 경비)</option>' : '') + (ctx.projects || []).map((p) => '<option value="' + esc(p.id) + '"' + (p.id === val ? ' selected' : '') + '>' + esc((p.code ? p.code + ' · ' : '') + p.name) + '</option>').join('') + '</select>';
   if (f.type === 'date') return '<input class="jh-input" type="date"' + common + ' value="' + esc(val) + '">';
   if (f.type === 'time') return '<input class="jh-input" type="time" step="600"' + common + ' value="' + esc(val) + '">';
-  if (f.type === 'number') return '<input class="jh-input" type="number" inputmode="decimal" step="0.5" min="0"' + common + ' value="' + esc(val) + '" placeholder="' + esc(f.ph || '') + '">';
+  if (f.type === 'calc') return '<div class="jh-input jh-input--static" data-car-calc="' + esc(f.key) + '" aria-live="polite">' + esc(carCalcText(f.key, v)) + '</div>'; // 금액·주유량으로 자동 계산되는 표시 칸(입력 아님)
+  if (f.type === 'number') return '<input class="jh-input" type="number" inputmode="decimal" step="' + esc(f.step || '0.5') + '" min="0"' + common + ' value="' + esc(val) + '" placeholder="' + esc(f.ph || '') + '">';
   if (f.type === 'money') return '<input class="jh-input" type="text" inputmode="numeric"' + common + ' value="' + esc(val) + '" placeholder="' + esc(f.ph || '') + '">';
   return '<input class="jh-input" type="text"' + common + ' value="' + esc(val) + '" placeholder="' + esc(f.ph || '') + '" maxlength="200">';
 }
@@ -39,7 +41,8 @@ function fieldHtml(f, v, errs, ctx) {
     '<label class="jh-field__label" for="f-' + esc(f.key) + '">' + esc(f.label) + (f.required ? ' *' : '') + '</label>' + control(f, v, errs, ctx) +
     (f.hint ? '<span class="jh-field__hint">' + esc(f.hint) + '</span>' : '') + '<span class="jh-field__error">' + esc(e || '') + '</span></div>';
 }
-function itemsHtml(f, v, errs) {
+function itemsHtml(f, v, errs, ui) {
+  if (f.variant === 'car') return carItemsHtml(f, v, errs, ui);
   const rows = v.items && v.items.length ? v.items : [];
   const itemErr = (i, k) => errs['items.' + i + '.' + k];
   const cell = (i, k, label, type, ph, val) => '<div class="jh-field"' + (itemErr(i, k) ? ' data-invalid="true"' : '') + '><label class="jh-field__label">' + label + '</label><input class="jh-input" type="' + type + '" data-item="' + i + '.' + k + '" value="' + esc(val == null ? '' : val) + '" placeholder="' + esc(ph) + '"' + (type === 'number' ? ' inputmode="decimal" min="0"' : '') + '><span class="jh-field__error">' + esc(itemErr(i, k) || '') + '</span></div>';
@@ -50,9 +53,26 @@ function itemsHtml(f, v, errs) {
     (errs.items ? '<div class="jh-field" data-invalid="true"><span class="jh-field__error">' + esc(errs.items) + '</span></div>' : '') +
     '<div><button type="button" class="jh-btn" data-variant="secondary" data-add-item' + (rows.length >= 20 ? ' disabled' : '') + '>+ 품목 추가</button></div></div>';
 }
-function fieldsBlock(type, v, errs, ctx) {
+/** 운행일지의 정비·수리·기타 비용 항목 — 위쪽 「항목 선택」(정비 항목·기타 항목 탭)에서 항목 단추를 누르면 줄이 추가되고, 줄은 항목·금액·메모가 한 줄이다. 목록에 없으면 「직접 입력」. */
+function carItemsHtml(f, v, errs, ui) {
+  const rows = v.items && v.items.length ? v.items : [];
+  const err = (i, k) => errs['items.' + i + '.' + k];
+  const open = !(ui && ui.carOpen === false); const tab = ui && ui.carTab === 'other' ? 'other' : 'service';
+  const picked = new Set(rows.map((r) => String(r.name || '').trim()).filter(Boolean));
+  const list = tab === 'other' ? OTHER_ITEMS : SERVICE_ITEMS;
+  const chips = list.map(([name, cycle]) => '<button type="button" class="jh-car-chip" data-car-pick="' + esc(name) + '" aria-pressed="' + picked.has(name) + '"' + (cycle ? ' title="교체 주기 ' + esc(cycle) + '"' : '') + '><span class="jh-car-chip__n">' + esc(name) + '</span>' + (cycle ? '<small>' + esc(cycle) + '</small>' : '') + '</button>').join('');
+  const picker = '<div class="jh-car-picker"><button type="button" class="jh-btn" data-variant="ghost" data-car-toggle aria-expanded="' + open + '">' + (open ? '▾ 항목 선택 접기' : '▸ 항목 선택 열기') + '</button>' +
+    (open ? '<div class="jh-segmented" role="group" aria-label="항목 종류"><button type="button" class="jh-segmented__item" data-car-tab="service" aria-pressed="' + (tab === 'service') + '">정비 항목</button><button type="button" class="jh-segmented__item" data-car-tab="other" aria-pressed="' + (tab === 'other') + '">기타 항목</button></div><div class="jh-car-chips">' + chips + '</div><span class="jh-field__hint">항목을 누르면 아래에 줄이 추가됩니다. 이미 있는 항목을 누르면 그 줄의 금액 칸으로 이동합니다.</span>' : '') + '</div>';
+  const cell = (i, k, label, ph, val, extra) => '<div class="jh-field"' + (err(i, k) ? ' data-invalid="true"' : '') + '><label class="jh-field__label">' + label + '</label><input class="jh-input" type="text"' + (extra || '') + ' data-item="' + i + '.' + k + '" aria-label="항목 ' + (i + 1) + ' ' + esc(label.replace(/ \*$/, '')) + '" value="' + esc(val == null ? '' : val) + '" placeholder="' + esc(ph) + '" maxlength="100"><span class="jh-field__error">' + esc(err(i, k) || '') + '</span></div>';
+  return '<div class="jh-form__section" data-field="items"' + (errs.items ? ' data-invalid="true"' : '') + '><h3 class="jh-form__h">' + esc(f.label) + '</h3>' + picker +
+    '<div class="jh-car-rows">' + rows.map((r, i) => '<div class="jh-car-row">' + cell(i, 'name', '항목 *', '항목 이름', r.name, ' autocomplete="off"') + cell(i, 'amount', '금액 (원) *', '0', r.amount, ' inputmode="numeric"') + cell(i, 'memo', '메모', '교체 주기, 보증 여부 등', r.memo) +
+      '<button type="button" class="jh-iconbtn" data-remove-item="' + i + '" aria-label="항목 ' + (i + 1) + ' 삭제">×</button></div>').join('') + '</div>' +
+    (errs.items ? '<div class="jh-field" data-invalid="true"><span class="jh-field__error">' + esc(errs.items) + '</span></div>' : '') +
+    '<div><button type="button" class="jh-btn" data-variant="secondary" data-add-item' + (rows.length >= 20 ? ' disabled' : '') + '>+ 직접 입력</button></div></div>';
+}
+function fieldsBlock(type, v, errs, ctx, ui) {
   return fieldRows(type, v).map((row) => {
-    if (row.items) return itemsHtml(row.fields[0], v, errs);
+    if (row.items) return itemsHtml(row.fields[0], v, errs, ui);
     const rowHtml = '<div class="jh-form__row" data-cols="' + (row.layout || row.cols) + '">' + row.fields.map((f) => fieldHtml(f, v, errs, ctx)).join('') + '</div>';
   return row.layout === 'narrow-first-3' ? '<div class="jh-form__rowbox">' + rowHtml + '</div>' : rowHtml; // 세 칸 줄은 상자의 폭(화면 폭이 아님)으로 배치를 정한다 — 왼쪽 목록이 있는 분할 화면에서는 폼 칸이 화면보다 훨씬 좁다
   }).join('');
@@ -161,13 +181,17 @@ export function composeHtml(s) {
   const kind = type === 'spend' ? '<div class="jh-form__section"><div class="jh-segmented" role="group" aria-label="구분">' +
       ['purchase:구매품의', 'expense:지출결의'].map((x) => { const [k, l] = x.split(':'); return '<button type="button" class="jh-segmented__item" data-kind="' + k + '" aria-pressed="' + (values.kind === k) + '"' + (edit && values.kind !== k ? ' disabled' : '') + '>' + l + '</button>'; }).join('') +
       '</div>' + (edit ? '<span class="jh-field__hint">작성한 문서의 구분은 바꿀 수 없습니다.</span>' : '') + '</div>' : '';
+  const rk = recKey(values.rec);
+  const rec = type === 'drive' ? '<div class="jh-form__section"><div class="jh-segmented" role="group" aria-label="기록 종류">' +
+    REC_KEYS.map((k) => '<button type="button" class="jh-segmented__item" data-rec="' + k + '" aria-pressed="' + (rk === k) + '"' + (edit && rk !== k ? ' disabled' : '') + '>' + esc(REC_LABEL[k]) + '</button>').join('') +
+    '</div><span class="jh-field__hint">' + (edit ? '작성한 기록의 종류는 바꿀 수 없습니다.' : '운행·주유·정비·수리·기타 비용을 한곳에 기록합니다. 주유와 정비는 운행기록부(주행거리·업무사용비율)에 섞이지 않고, 총무의 「차량 비용」에 금액과 연비로 모입니다.') + '</span></div>' : '';
   return '<form class="jh-form" data-compose="' + esc(type) + '" novalidate autocomplete="off">' +
     '<header class="jh-form__head"><h2 class="jh-form__title">' + esc(t ? t.label : '') + (edit ? ' 수정' : ' 작성') + '</h2><p class="jh-form__sub">작성자: ' + esc(ctx.me.name) + (ctx.me.rank ? ' ' + esc(ctx.me.rank) : '') + (ctx.me.dept ? ' · ' + esc(ctx.me.dept) : '') + '</p></header>' +
     (rejectReason ? '<div class="jh-alert" data-tone="danger" role="alert"><strong>반려 사유</strong><br>' + esc(rejectReason).replace(/\n/g, '<br>') + '</div>' : '') +
-    kind + '<section class="jh-form__section"><h3 class="jh-form__h">내용</h3>' + fieldsBlock(type, values, errors || {}, ctx) + (type === 'leave' ? '<div id="edoc-balance" aria-live="polite">' + balanceHintHtml(s.balance, values.days, values.leaveType) + '</div>' : '') + (type === 'attend' ? '<div id="edoc-attend-hint" aria-live="polite">' + attendHintHtml(s.attend) + '</div>' : '') + '</section>' +
+    kind + rec + '<section class="jh-form__section"><h3 class="jh-form__h">내용</h3>' + fieldsBlock(type, values, errors || {}, ctx, s.ui) + (type === 'leave' ? '<div id="edoc-balance" aria-live="polite">' + balanceHintHtml(s.balance, values.days, values.leaveType) + '</div>' : '') + (type === 'attend' ? '<div id="edoc-attend-hint" aria-live="polite">' + attendHintHtml(s.attend) + '</div>' : '') + '</section>' +
     (type === 'daily' && s.partsOn === true ? '<section class="jh-form__section" id="edoc-parts">' + partsHtml(s) + '</section>' : '') +
   '<section class="jh-form__section" id="edoc-attach">' + attachHtml(s) + '</section>' +
-    (s.type === 'drive' ? '<section class="jh-form__section"><div class="jh-alert" data-tone="info" role="status">결재 없이 <strong>기록하기</strong>를 누르면 바로 기록됩니다. 총무가 모든 사람의 운행일지를 시간 순으로 모아 봅니다.</div></section>' : '<section class="jh-form__section" id="edoc-line-section"><h3 class="jh-form__h">결재선</h3>' + lineEditorHtml(s.line, ctx, s.ui) + '</section>') +
+    (s.type === 'drive' ? '<section class="jh-form__section"><div class="jh-alert" data-tone="info" role="status">결재 없이 <strong>기록하기</strong>를 누르면 바로 기록됩니다. ' + (rk === 'trip' ? '총무가 모든 사람의 운행일지를 시간 순으로 모아 봅니다.' : '총무 → 운행일지의 <strong>차량 비용</strong>에서 월별 금액과 연비를 모아 봅니다.') + '</div></section>' : '<section class="jh-form__section" id="edoc-line-section"><h3 class="jh-form__h">결재선</h3>' + lineEditorHtml(s.line, ctx, s.ui) + '</section>') +
     (s.formError ? '<div class="jh-alert" data-tone="danger" role="alert" id="edoc-form-error">' + esc(s.formError) + '</div>' : '') +
     '<div class="jh-form__foot"><button type="button" class="jh-btn" data-variant="ghost" data-act="cancel">취소</button>' +
       '<button type="button" class="jh-btn" data-act="save"' + (s.busy ? ' disabled' : '') + '>임시저장</button>' +
