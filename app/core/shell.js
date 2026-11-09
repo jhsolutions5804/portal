@@ -1,8 +1,8 @@
-import { esc } from './ui.js?v=20261109s';
-import { openSettings } from './settings.js?v=20261109s';
-import { openProfile } from './profile.js?v=20261109s';
-import { phoneTabs } from './nav.js?v=20261109s';
-import { LEGACY_PORTAL_URL, IS_TEST } from './config.js?v=20261109s';
+import { esc } from './ui.js?v=20261109v';
+import { openSettings } from './settings.js?v=20261109v';
+import { openProfile } from './profile.js?v=20261109v';
+import { phoneTabs } from './nav.js?v=20261109v';
+import { IS_TEST } from './config.js?v=20261109v';
 
 export function renderLogin(root, { onSubmit, onMicrosoft, message }) {
   root.innerHTML =
@@ -18,8 +18,8 @@ export function renderLogin(root, { onSubmit, onMicrosoft, message }) {
       '</div>' +
       '<div class="jh-login__panel" role="tabpanel" id="jh-panel-guest" aria-labelledby="jh-tab-guest" hidden>' +
         '<form id="jh-login-form" autocomplete="on">' +
-          '<label class="jh-field"><span class="jh-field__label">아이디 또는 이메일</span><input class="jh-input" id="jh-id" name="username" autocomplete="username" placeholder="회사 아이디 또는 본인 이메일" required></label>' +
-          '<label class="jh-field"><span class="jh-field__label">비밀번호</span><input class="jh-input" id="jh-pw" name="password" type="password" autocomplete="current-password" required></label>' +
+          '<label class="jh-field"><span class="jh-field__label">아이디 또는 이메일</span><input class="jh-input" id="jh-id" name="username" autocomplete="username" autocapitalize="none" autocorrect="off" spellcheck="false" enterkeyhint="next" placeholder="회사 아이디 또는 본인 이메일" required></label>' +
+          '<label class="jh-field"><span class="jh-field__label">비밀번호</span><span class="jh-login__pw"><input class="jh-input" id="jh-pw" name="password" type="password" autocomplete="current-password" autocapitalize="none" autocorrect="off" spellcheck="false" enterkeyhint="go" required><button type="button" class="jh-login__pwbtn" data-pw-toggle aria-pressed="false" aria-controls="jh-pw">보기</button></span></label>' +
           '<button class="jh-btn" data-variant="primary" id="jh-login-btn" type="submit">로그인</button>' +
         '</form>' +
       '</div>' +
@@ -33,6 +33,12 @@ export function renderLogin(root, { onSubmit, onMicrosoft, message }) {
     t.addEventListener('click', () => select(k, false));
     t.addEventListener('keydown', (ev) => { const n = ev.key === 'ArrowRight' ? Math.min(k + 1, tabs.length - 1) : ev.key === 'ArrowLeft' ? Math.max(k - 1, 0) : -1; if (n >= 0) { ev.preventDefault(); select(n, true); } });
   });
+  const TAB_KEY = 'jh_login_tab';   // 마지막으로 쓴 로그인 방식을 기억 — Guest 계정을 쓰는 분이 매번 탭을 누르지 않게(저장이 막힌 브라우저에서는 그냥 기본 탭)
+  const remember = (k) => { try { localStorage.setItem(TAB_KEY, k === 1 ? 'guest' : 'staff'); } catch (e) { /* 저장 불가는 무시 */ } };
+  tabs.forEach((t, k) => t.addEventListener('click', () => remember(k)));
+  try { if (localStorage.getItem(TAB_KEY) === 'guest') select(1, false); } catch (e) { /* 기본 탭 */ }
+  const pwBox = root.querySelector('#jh-pw'), pwBtn = root.querySelector('[data-pw-toggle]');
+  pwBtn.addEventListener('click', () => { const show = pwBox.type === 'password'; pwBox.type = show ? 'text' : 'password'; pwBtn.textContent = show ? '숨기기' : '보기'; pwBtn.setAttribute('aria-pressed', show ? 'true' : 'false'); });
   root.querySelector('#jh-ms-btn').addEventListener('click', async (ev) => {
     const btn = ev.currentTarget; btn.disabled = true; btn.textContent = 'Microsoft로 이동 중…'; msg.textContent = '';
     try { await onMicrosoft(); } catch (e) { msg.textContent = 'Microsoft 로그인을 시작하지 못했습니다.'; btn.disabled = false; btn.textContent = 'Microsoft로 로그인'; }
@@ -42,15 +48,14 @@ export function renderLogin(root, { onSubmit, onMicrosoft, message }) {
     const btn = root.querySelector('#jh-login-btn');
     btn.disabled = true; btn.textContent = '로그인 중…'; msg.textContent = '';
     try { await onSubmit(root.querySelector('#jh-id').value, root.querySelector('#jh-pw').value); }
-    catch (e) { msg.textContent = e && e.message ? e.message : '로그인에 실패했습니다.'; btn.disabled = false; btn.textContent = '로그인'; }
+    catch (e) { msg.textContent = e && e.message ? e.message : '로그인에 실패했습니다.'; btn.disabled = false; btn.textContent = '로그인'; pwBox.type = 'password'; pwBtn.textContent = '보기'; pwBtn.setAttribute('aria-pressed', 'false'); pwBox.focus(); pwBox.select(); }   // 실패하면 비밀번호 칸으로 돌아가 바로 다시 입력
   });
 }
 
 export function renderDenied(root, text, onLogout) {
   root.innerHTML = '<div class="jh-login"><div class="jh-login__card"><div class="jh-login__brand">JH Portal</div>' +
     '<p class="jh-login__sub">' + esc(text) + '</p>' +
-    '<a class="jh-btn" data-variant="secondary" href="' + LEGACY_PORTAL_URL + '">기존 포털로 이동</a>' +
-    '<button class="jh-btn" data-variant="ghost" id="jh-denied-logout" type="button">로그아웃</button></div></div>';
+        '<button class="jh-btn" data-variant="ghost" id="jh-denied-logout" type="button">로그아웃</button></div></div>';
   root.querySelector('#jh-denied-logout').addEventListener('click', onLogout);
 }
 
@@ -75,7 +80,6 @@ export function renderShell(root, me, mods, { onLogout }) {
         '<div class="jh-sidebar__brand"><span class="jh-brand__short" aria-hidden="true">JH</span><span class="jh-brand__full">JH Portal</span>' + (IS_TEST ? ' <span class="jh-chip" data-tone="warn">테섭</span>' : '') + '</div>' +
         '<nav class="jh-nav" aria-label="모듈">' + homeItem + items + '</nav>' +
         '<div class="jh-sidebar__foot">' +
-          '<a class="jh-nav__item" href="' + LEGACY_PORTAL_URL + '"><span class="jh-nav__icon" aria-hidden="true">←</span><span class="jh-nav__label">기존 포털</span></a>' +
           '<button type="button" class="jh-nav__item" data-open-profile><span class="jh-nav__icon" aria-hidden="true">👤</span><span class="jh-nav__label">내 정보</span></button>' +
         '<button type="button" class="jh-nav__item" data-open-settings><span class="jh-nav__icon" aria-hidden="true">⚙</span><span class="jh-nav__label">화면 설정</span></button>' +
           '<div class="jh-userchip">' + who + '</div>' +
@@ -95,7 +99,6 @@ export function renderShell(root, me, mods, { onLogout }) {
         moreItems + (moreItems ? '<div class="jh-sheet__sep"></div>' : '') +
         '<button type="button" class="jh-sheet__item" data-open-profile data-sheet-link><span class="jh-nav__icon" aria-hidden="true">👤</span>내 정보</button>' +
         '<button type="button" class="jh-sheet__item" data-open-settings data-sheet-link><span class="jh-nav__icon" aria-hidden="true">⚙</span>화면 설정</button>' +
-        '<a class="jh-sheet__item" href="' + LEGACY_PORTAL_URL + '"><span class="jh-nav__icon" aria-hidden="true">←</span>기존 포털</a>' +
         '<button type="button" class="jh-sheet__item" id="jh-sheet-logout"><span class="jh-nav__icon" aria-hidden="true">⎋</span>로그아웃</button>' +
         '<div class="jh-userchip">' + who + '</div></div></div>' +
     '</div>';
