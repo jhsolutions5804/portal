@@ -1,6 +1,6 @@
-import { esc } from '../../core/ui.js?v=20261125a';
-import { WEEKDAYS, ymd, dateKey, monthGrid, shiftMonth, fmtRange, expiryNote, expiryState, OWN_TAGS, TAG_LABEL, canWrite, canEditOwn, isHHMM, pad, VIEWS, dayLabel } from './logic.js?v=20261125a';
-import { holidayName as holName } from '../../shared/holidays.js?v=20261125a';
+import { esc } from '../../core/ui.js?v=20261125b';
+import { WEEKDAYS, ymd, dateKey, monthGrid, shiftMonth, fmtRange, expiryNote, expiryState, OWN_TAGS, TAG_LABEL, canWrite, canEditOwn, isHHMM, pad, VIEWS, dayLabel } from './logic.js?v=20261125b';
+import { holidayName as holName } from '../../shared/holidays.js?v=20261125b';
 
 export const SRC_LABEL = { pjt: 'PJT', leave: '연차·휴무', company: '회사', expiry: '만료', hr: '인사' };
 const srcLabel = (s) => SRC_LABEL[s] || s;
@@ -18,9 +18,11 @@ export function barHtml(S, providers, me) {
 /** 달력 본체(막대 · 알림 · 본문 + (월 보기에서) 선택한 날 목록). 전체 화면과 홈 위젯이 똑같이 쓴다 */
 function bodyHtml(S, providers, me) {
   return '<div class="jh-cal" data-view="' + S.view + '"' + (S.widget ? ' data-in-widget="true"' : '') + '>' + barHtml(S, providers, me) + '<div data-cal-notice></div><div class="jh-cal__split"><div class="jh-cal__gridwrap" data-cal-grid aria-busy="true"></div>' +
-    (S.widget && !S.embedded ? '' : '<section class="jh-card jh-form jh-cal__dayarea" aria-live="polite" data-cal-day></section>') + '</div></div>';   // 홈에서는 날짜 목록이 따로 카드(listFrameHtml)
+    (S.widget ? '' : '<section class="jh-card jh-form jh-cal__dayarea" aria-live="polite" data-cal-day></section>') + '</div></div>';   // 홈에서는 날짜 목록이 따로 카드(listFrameHtml)
 }
 export function fullFrameHtml(S, providers, me) { return bodyHtml(S, providers, me); }
+/** 모듈 홈(영업기획 홈·재무회계 개요)에 끼우는 일정: 왼쪽 달력 카드 + 오른쪽 「일정 목록」 카드(고른 날의 상세) — 칸이 좁으면 위아래 */
+export function embeddedFrameHtml(S, providers, me) { return '<div class="jh-cal-embed__grid">' + widgetFrameHtml(S, providers, me) + listFrameHtml() + '</div>'; }
 /** 홈 위젯: 월 달력(보기 전환 없음) 카드. 선택한 날의 일정 목록은 옆 카드(listFrameHtml)에 나온다 */
 export function widgetFrameHtml(S, providers, me) {
   return '<section class="jh-panel jh-card" aria-label="일정 캘린더"><div class="jh-panel__head"><h3>📅 일정 캘린더</h3></div><div class="jh-form">' + bodyHtml(S, providers, me) + '</div></section>';
@@ -63,7 +65,7 @@ function rowHtml(e, S, me) {
   const own = canEditOwn(e, me) && !S.readOnly; const exp = e.source === 'expiry' ? expiryState(e.start, S.today) : null;
   const meta = [e.project, e.place, e.extra && e.source === 'pjt' ? '참석 ' + e.extra : ''].filter(Boolean).map(esc).join(' · ');
   const todo = e.isTodo && own ? '<label class="jh-cal__todo"><input type="checkbox" data-done="' + esc(e.ref) + '"' + (e.done ? ' checked' : '') + '> 완료</label>' : (e.isTodo ? '<span class="jh-chip">할 일' + (e.done ? ' · 완료' : '') + '</span>' : '');
-  const acts = own ? '<span class="jh-cal__acts"><button type="button" class="jh-btn" data-variant="ghost" data-edit="' + esc(e.ref) + '">수정</button><button type="button" class="jh-btn" data-variant="ghost" data-del="' + esc(e.ref) + '">삭제</button></span>' : '';
+  const acts = own ? '<span class="jh-cal__acts"><button type="button" class="jh-btn" data-variant="ghost" data-edit="' + esc(e.ref) + '">수정</button><button type="button" class="jh-btn" data-variant="ghost" data-del="' + esc(e.ref) + '">삭제</button>' + (e.recurId ? '<button type="button" class="jh-btn" data-variant="ghost" data-delfuture="' + esc(e.ref) + '">이후 모두 삭제</button>' : '') + '</span>' : '';
   const go = e.link ? '<a class="jh-link" href="' + esc(e.link) + '">원본으로 이동 ›</a>' : '';
   return '<li class="jh-cal__row" data-src="' + esc(e.source) + '"' + (exp ? ' data-exp="' + exp.state + '"' : '') + '><span class="jh-cal__time">' + esc(fmtRange(e)) + '</span><div class="jh-cal__what"><div class="jh-cal__name' + (e.done ? ' is-done' : '') + '">' + esc(e.title) + '</div>' +
     '<div class="jh-cal__meta"><span class="jh-chip" data-src="' + esc(e.source) + '">' + esc(srcLabel(e.source)) + '</span> ' + (e.tagLabel !== srcLabel(e.source) ? '<span class="jh-chip">' + esc(e.tagLabel) + '</span>' : '') + (exp ? ' <span class="jh-chip" data-tone="' + (exp.state === 'ok' ? 'info' : 'warn') + '">' + esc(expiryNote(e.start, S.today)) + '</span>' : '') + (meta ? ' ' + meta : '') + '</div>' + todo + go + '</div>' + acts + '</li>';
